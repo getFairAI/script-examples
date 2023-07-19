@@ -1,2 +1,2 @@
-# script-examples
-This repository aggregates all the official script examples of the Fair Protocol marketplace.
+# Script Examples
+This folder has some script examples for some models to use in the Fair Protocol markerplace.
