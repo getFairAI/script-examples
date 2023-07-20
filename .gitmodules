@@ -1,0 +1,9 @@
+[submodule "MusicGen/audiocraft-local"]
+	path = MusicGen/audiocraft-local
+	url = git@github.com:FAIR-Protocol/audiocraft-local.git
+[submodule "kandinsky/Kandinsky-2-local"]
+	path = kandinsky/Kandinsky-2-local
+	url = git@github.com:FAIR-Protocol/Kandinsky-2-local.git
+[submodule "MusicGen/tango-local"]
+	path = MusicGen/tango-local
+	url = git@github.com:FAIR-Protocol/tango-local.git
