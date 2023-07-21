@@ -1,9 +1,9 @@
 """
-This code a slight modification of perplexity by hugging face
-https://huggingface.co/docs/transformers/perplexity
-
-Both this code and the orignal code are published under the MIT license.
-by Burhan Ul tayyab and Nicholas Chua
+# This code a slight modification of perplexity by hugging face
+# https://huggingface.co/docs/transformers/perplexity
+#
+# Both this code and the orignal code are published under the MIT license.
+# by Burhan Ul tayyab and Nicholas Chua
 """
 
 import torch
