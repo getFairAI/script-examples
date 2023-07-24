@@ -59,4 +59,4 @@ export const CREATOR_PERCENTAGE_FEE = 0.025;
 export const U_CONTRACT_ID = 'KTzTXT_ANmF84fWEKHzWURD1LWd9QaFR9yfYUwH2Lxw';
 export const U_DIVIDER = 1e6;
 
-export const ATOMIC_TOKEN_CONTRACT_ID = '_zrc9nFd07a3cVbcU6TitbwnmuS2QE88Z7gsf1va23E';
+export const ATOMIC_TOKEN_CONTRACT_ID = '37n5Z9NZUUPuXPdbbjXa2iYb9Wl39nAjkaSoz5DsxZQ';
