@@ -1,7 +1,7 @@
 # Instructions on how to install DreamShaper
 
 ## Depedencies
-To use this library, you need to have:
+To use this library, you need to do:
 
 
 1. Download model file and rename to `dreamshaper_631BakedVae-full.safetensors`

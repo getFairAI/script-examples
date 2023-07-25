@@ -101,7 +101,7 @@ const sendToBundlr = async (
     { name: REQUEST_TRANSACTION_TAG, value: requestTransaction },
     { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
     { name: CONVERSATION_IDENTIFIER_TAG, value: conversationIdentifier },
-    { name: CONTENT_TYPE_TAG, value: 'image/png' },
+    { name: CONTENT_TYPE_TAG, value: 'audio/wav' },
     { name: UNIX_TIME_TAG, value: (Date.now() / secondInMS).toString() },
     // add atomic token tags
     { name: APP_NAME_TAG, value: 'SmartWeaveContract' },
@@ -110,7 +110,7 @@ const sendToBundlr = async (
     {
       name: 'Init-State',
       value: JSON.stringify({
-        owner: userAddress,
+        firstOwner: userAddress,
         canEvolve: false,
         balances: {
           [userAddress]: 1,
@@ -121,7 +121,7 @@ const sendToBundlr = async (
     },
     { name: 'Title', value: 'Fair Protocol NFT' },
     { name: 'Description', value: prompt }, // use request prompt
-    { name: 'Type', value: 'Image' },
+    { name: 'Type', value: 'Audio' },
   ];
 
   try {
@@ -150,7 +150,7 @@ const inference = async function (requestTx: IEdge) {
   });
   const tempData: { audioPath: string } = await res.json();
 
-  return { imgPaths: tempData.audioPath, prompt: text };
+  return { audioPath: tempData.audioPath, prompt: text };
 };
 
 const getOperatorFee = async (operatorAddress = address) => {
@@ -287,7 +287,7 @@ const processRequest = async (requestId: string, reqUserAddr: string) => {
   logger.info(`Inference Result: ${inferenceResult}`);
 
   await sendToBundlr(
-    inferenceResult.imgPaths,
+    inferenceResult.audioPath,
     inferenceResult.prompt,
     appVersion,
     requestTx.node.owner.address,

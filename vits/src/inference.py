@@ -17,12 +17,13 @@
 from TTS.api import TTS
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import os
 
 # Init TTS with the target model name
 tts = TTS(model_name="tts_models/en/ljspeech/vits", progress_bar=True, gpu=True)
 
 hostName = "localhost"
-serverPort = 8087
+serverPort = 8089
 
 class MyServer(BaseHTTPRequestHandler):
   def do_POST(self):
@@ -30,12 +31,13 @@ class MyServer(BaseHTTPRequestHandler):
       content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
       post_data = self.rfile.read(content_length) # <--- Gets the data itself
       prompt = post_data.decode("utf-8")
+      file_path = os.getcwd() + "/output.wav"
       # Run TTS
-      tts.tts_to_file(text=prompt, file_path="output.wav")
+      tts.tts_to_file(text=prompt, file_path=file_path)
       self.send_response(200)
       self.send_header("Content-Type", "application/json")
       self.end_headers()
-      self.wfile.write(json.dumps(json_dict).encode('utf-8'))
+      self.wfile.write(json.dumps( { "audioPath": file_path } ).encode('utf-8'))
     else:
       self.send_error(404)
 
