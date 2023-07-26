@@ -76,8 +76,6 @@ and put the following text into the newly created file (replace all the "user" f
 Description=VITS Model Server
 [Service]
 WorkingDirectory=/home/user/Desktop/vits/
-VIRTUAL_ENV=/home/user/Desktop/vits/vits-env
-Environment=PATH=$VIRTUAL_ENV/bin:$PATH
 ExecStart=/home/user/Desktop/vits/vits-env/bin/python src/inference.py
 Restart=on-failure
 [Install]
