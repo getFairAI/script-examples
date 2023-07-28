@@ -116,4 +116,6 @@ sudo systemctl start vits-server
 sudo systemctl start vits-loop
 ```
 
-#### This is all for today, congrats if you made it this far!
+**Note:** To run the script after instalation, you just need to follow steps `8` and `11`.
+
+### This is all for today, congrats if you made it this far!
