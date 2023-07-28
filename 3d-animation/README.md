@@ -1,44 +1,119 @@
-# Instructions on how to install DreamShaper
+# Instructions on how to install 3D Animation Style
 
-## Depedencies
-To use this library, you need to have:
+## Notes
+This script was tested with Ubuntu 22.04 LTS, with the model running on an NVIDIA GPU. It should work in other environments, but some tweaks may be necessary in the following steps.
 
+The Stable Diffusion WebUI version used was 1.5.1.
 
-1. Download model file and rename to `dreamshaper_631BakedVae-full.safetensors`
+## Dependencies
+To use this library, you need to have the following:
 
-2. Download the script files and extract
+1. Install needed dependencies
+```sh
+# Debian-based:
+sudo apt install wget git python3 python3-venv
+# Red Hat-based:
+sudo dnf install wget git python3
+# Arch-based:
+sudo pacman -S wget git python3
+```
 
-3. Place model file in scripts folder 
+2. Install the Stable Diffusion WebUI from AUTOMATIC111
+```sh
+git clone --depth 1 --branch v1.5.1 https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
+```
 
-4. Place your arweave wallet file in the root folder under the name `wallet.json`
+3. Download the model file and read the license terms
+
+4. Extract the model file and put the `disneyPixarCartoon_v10.safetensors` file on the `models/Stable-diffusion` folder of the directory you downloaded the WebUI
+
+5. Put the `MoistMix.vae.pt` file on the `models/VAE` folder of the directory you downloaded the WebUI
+
+6. Navigate to the root folder of the directory you downloaded the WebUI and create a new environment
+```sh
+python3 -m venv stable-diffusion-webui-venv
+```
+
+7. On the same directory, activate the environment created
+```sh
+source stable-diffusion-webui-venv/bin/activate
+```
+
+8. On the same directory, start the WebUI on API mode
+```sh
+bash webui.sh --api
+```
+
+9. Download the script files and extract them to some folder
+
+10. Place your Arweave wallet file in the same folder under the name `wallet.json`
 **Note:** Wallet must have funds in Bundlr node 1
 
-5. (Optional) Create a python virtual environment
-```sh
-python3 -m venv path/to/set/environment
-source path/to/set/environment/bin/activate
-```
-
-1. Install Requirements
-```
-pip install -r requirements.txt
-```
-1. Open a terminal in the scripts folder (with the python virtual environment active if using venv)
-```sh
-python inference.py # or python inference-cpu.py
-```
-**Note:** Cpu inference is much slower than using gpu
-
-1. Using another terminal in same folder run
-```sh
-npm install
-npm start
-```
-
-*Optional:* If you want to test the inference first, after putting the model on the same folder as the other files run instead the test script with
-
+11. Run the 3D Animation model script
 ```bash
-ts-node dreamshaper-inference-test.ts
+ts-node 3d-animation.ts
 ```
 
-#### This is all for today, congrats if you made this far!
+*Optional:* If you want to test the inference first, after putting the model in the same folder as the other files, run the test script with one of those commands instead
+```bash
+ts-node 3d-animation-inference-test.ts
+python3 3d-animation-inference-test.py
+```
+
+*Optional:* Make the script always run in the background when the computer starts
+
+* Run this command 
+
+```sh
+sudo nano /lib/systemd/system/vits-loop.service
+```
+    
+and put the following text into the newly created file (replace all the "user" from the text with your system username)
+
+```conf
+[Unit]
+Description= Loop 3D Animation Style
+[Service]
+Type=simple
+User=user
+Environment=NODE_VERSION=18.16.1
+ExecStart=/home/user/.nvm/nvm-exec npm start
+WorkingDirectory=/home/user/Desktop/3d-animation-style
+[Install]
+WantedBy=multi-user.target
+```
+
+* Run "sudo nano /lib/systemd/system/stable-diffusion-webui-server.service" 
+
+and put the following text into the newly created file (replace all the "user" and path from the text with your system username and path where the Stable Diffusion WebUI is)
+
+```conf
+[Unit]
+Description=Stable Diffusion WebUI Server
+[Service]
+WorkingDirectory=/home/user/Desktop/stable-diffusion-webui/
+ExecStart=/bin/bash webui.sh
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
+```
+
+* Run this command
+
+```sh
+sudo systemctl daemon-reload
+```
+
+* Run this command
+
+```sh
+sudo systemctl start vits-server
+```
+
+* Run this command
+
+```sh
+sudo systemctl start vits-loop
+```
+
+#### This is all for today, congrats if you made it this far!
