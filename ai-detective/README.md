@@ -1,6 +1,6 @@
 # Instructions on how to install AI Detective
 ​
-## Depedencies
+## Dependencies
 To use this model, you need to:
 ​
 1. Download model zip file
