@@ -17,7 +17,7 @@
 import CONFIG from '../config.json' assert { type: 'json' };
 
 const inference = async function (text: string) {
-  const res = await fetch(`${CONFIG.url}/textToImage`, {
+  const res = await fetch(`${CONFIG.url}/`, {
     method: 'POST',
     body: text,
   });
