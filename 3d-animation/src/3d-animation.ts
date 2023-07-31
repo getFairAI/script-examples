@@ -161,7 +161,7 @@ const inference = async function (requestTx: IEdge) {
     sampler_index: "Euler a",
   }
 
-  const res = await fetch(`${CONFIG.url}/`, {
+  const res = await fetch(`${CONFIG.url}//sdapi/v1/txt2img`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
