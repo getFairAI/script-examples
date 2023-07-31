@@ -304,7 +304,7 @@ const processRequest = async (requestId: string, reqUserAddr: string) => {
   }
 
   const inferenceResult = await inference(requestTx);
-  logger.info(`Inference Result: ${inferenceResult}`);
+  logger.info(`Inference Result: ${inferenceResult.imgPaths}`);
 
   await sendToBundlr(
     inferenceResult.imgPaths,

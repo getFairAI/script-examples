@@ -22,14 +22,13 @@ payload = {
 }
 
 override_settings = {}
-#override_settings["filter_nsfw"] = "false"
 override_settings["sd_model_checkpoint"] = "disneyPixarCartoon_v10.safetensors [732d0dd2cf]"
 override_settings["sd_vae"] = "MoistMix.vae.pt"
 override_settings["CLIP_stop_at_last_layers"] = 2
 
 override_payload = {
-                "override_settings": override_settings
-            }
+    "override_settings": override_settings
+}
 payload.update(override_payload)
 
 response = requests.post(url=f'{url}/sdapi/v1/txt2img', json=payload)

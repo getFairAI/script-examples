@@ -42,9 +42,7 @@ const inference = async function () {
     body: JSON.stringify(payload),
   });
   const tempData: { images: string[] } = await res.json();
-  tempData.images.map((el, i)=>fs.writeFileSync(`output_${i}.png`, Buffer.from(el, 'base64')));
-
-  return;
+  tempData.images.forEach((el, i)=>fs.writeFileSync(`output_${i}.png`, Buffer.from(el, 'base64')));
 };
 
 (async () => {
