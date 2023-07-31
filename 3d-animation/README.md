@@ -65,7 +65,7 @@ python3 3d-animation-inference-test.py
 * Run this command 
 
 ```sh
-sudo nano /lib/systemd/system/vits-loop.service
+sudo nano /lib/systemd/system/3d-animation-style-loop.service
 ```
     
 and put the following text into the newly created file (replace all the "user" from the text with your system username)
@@ -83,6 +83,11 @@ WorkingDirectory=/home/user/Desktop/3d-animation-style
 WantedBy=multi-user.target
 ```
 
+* Edit 'webui-user.sh'
+Uncomment 'venv' line and update with correct virtual environment path like below, replace the path according to your installation
+```sh
+venv='/home/user/Desktop/stable-diffusion-webui/stable-diffusion-venv'
+```
 * Run "sudo nano /lib/systemd/system/stable-diffusion-webui-server.service" 
 
 and put the following text into the newly created file (replace all the "user" and path from the text with your system username and path where the Stable Diffusion WebUI is)
@@ -91,6 +96,7 @@ and put the following text into the newly created file (replace all the "user" a
 [Unit]
 Description=Stable Diffusion WebUI Server
 [Service]
+User=user
 WorkingDirectory=/home/user/Desktop/stable-diffusion-webui/
 ExecStart=/bin/bash webui.sh
 Restart=on-failure
@@ -102,6 +108,13 @@ WantedBy=multi-user.target
 
 ```sh
 sudo systemctl daemon-reload
+```
+
+* Set services to start on boot
+
+```sh
+sudo systemctl enable 3d-animation-style-loop.service
+sudo systemctl enable stable-diffusion-webui-server.service
 ```
 
 * Run this command
