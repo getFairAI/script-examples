@@ -2,7 +2,7 @@
 
 **Note:** This script only works with Linux systems
 
-## Depedencies
+## Dependencies
 To use this library, you need to do:
 
 

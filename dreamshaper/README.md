@@ -1,6 +1,6 @@
 # Instructions on how to install DreamShaper
 
-## Depedencies
+## Dependencies
 To use this library, you need to do:
 
 
