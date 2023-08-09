@@ -70,3 +70,27 @@ export interface ITransactions {
     hasNextPage: boolean;
   };
 }
+
+export type payloadFormatOptions = 'webui' | 'default';
+
+export interface OperatorParams {
+  modelOwner: string;
+  operatorFee: number;
+  scripName: string;
+  scriptCurator: string;
+  scriptId: string;
+  registrationTx: IEdge;
+  url: string;
+  payloadFormat: payloadFormatOptions;
+}
+
+export interface ServerResponse {
+  images?: string[];
+  imgPaths?: string[];
+  audioPath?: string;
+}
+
+export interface UrlConfig {
+  url: string;
+  payloadFormat: payloadFormatOptions;
+}
