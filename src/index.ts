@@ -65,14 +65,15 @@ const findRegistrations = async () => {
     // filter by scripts that have config  url
     const urls = Object.keys(CONFIG.urls);
     const scriptTx = tx.node.tags.find(tag => tag.name === 'Script-Transaction')?.value;
+    const scriptName = tx.node.tags.find(tag => tag.name === 'Script-Name')?.value;
     const hasUrlForScript = scriptTx && urls.includes(scriptTx);
 
     if (!isTxCancelled && hasUrlForScript) {
       filtered.push(tx);
     } else if (!hasUrlForScript && !isTxCancelled) {
-      logger.info(`Script '${scriptTx}' not found in config, Registration for this script will be ignore. Skipping...`);
+      logger.info(`Script ${scriptName}(id: '${scriptTx}') not found in config, Registration for this script will be ignored. Skipping...`);
     } else {
-      // ignore cancelled registrations
+      logger.info(`Registration with id '${txid}' is cancelled. Skipping...`);
     }
   }
 
@@ -166,29 +167,30 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
       const txid = tx.node.id;
       const tags = tx.node.tags;
 
-      const modelOwner = await getModelOwner(txid, address);
+      
       const scriptName = tags.find(tag => tag.name === 'Script-Name')?.value;
       const scriptCurator = tags.find(tag => tag.name === 'Script-Curator')?.value;
       const scriptId = tags.find(tag => tag.name === 'Script-Transaction')?.value;
       const feeIndex = tags.findIndex((tag) => tag.name === 'Operator-Fee');
 
-      if (!modelOwner) {
-        logger.error(`Could not find Model Owner for registration '${txid}'. Ignoring...`);
+      if (!scriptCurator) {
+        logger.error(`Could not find Script Curator for registration '${txid}'. Ignoring...`);
         hasErrors = true;
       }
-
+      
       if (!scriptName) {
         logger.error(`Could not find Script Name for registration '${txid}'. Ignoring...`);
         hasErrors = true;
       }
 
-      if (!scriptCurator) {
-        logger.error(`Could not find Script Curator for registration '${txid}'. Ignoring...`);
+      if (!scriptId) {
+        logger.error(`Could not find Script Transaction for registration '${txid}'. Ignoring...`);
         hasErrors = true;
       }
 
-      if (!scriptId) {
-        logger.error(`Could not find Script Transaction for registration '${txid}'. Ignoring...`);
+      const modelOwner = await getModelOwner(scriptName as string, scriptCurator as string);
+      if (!modelOwner) {
+        logger.error(`Could not find Model Owner for registration '${txid}'. Ignoring...`);
         hasErrors = true;
       }
 
@@ -224,6 +226,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     logger.error('Error Fetching Model Owners for registrations');
     logger.info('Shutting down...');
 
+    process.exit(1);
+  }
+
+  if (registrations.length === 0) {
+    pool.terminate();
+    logger.error('No registrations found. Shutting down...');
     process.exit(1);
   }
 

@@ -1,7 +1,6 @@
 import fs from 'fs';
 import { WarpFactory } from 'warp-contracts';
 import { DeployPlugin } from 'warp-contracts-plugin-deploy';
-import NodeBundlr from '@bundlr-network/client/build/cjs/node/index';
 import { JWKInterface } from 'arweave/node/lib/wallet';
 import { default as Pino } from 'pino';
 import { IEdge, OperatorParams, ServerResponse, payloadFormatOptions } from './interfaces';
@@ -29,6 +28,7 @@ import {
   queryTransactionAnswered,
   queryCheckUserPayment,
 } from './queries';
+import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 
 const logger = Pino({
   name: 'Operator Loop',
@@ -241,7 +241,7 @@ const processRequest = async (requestId: string, reqUserAddr: string, registrati
     return false;
   }
 
-  const responseTxs: IEdge[] = await queryTransactionAnswered(requestId, address, registration.scriptId);
+  const responseTxs: IEdge[] = await queryTransactionAnswered(requestId, address, registration.scripName, registration.scriptCurator);
   if (responseTxs.length > 0) {
     // If the request has already been answered, we don't need to do anything
     logger.info(`Request ${requestId} has already been answered. Skipping...`);

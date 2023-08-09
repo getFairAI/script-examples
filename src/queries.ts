@@ -25,6 +25,7 @@ import {
   OPERATOR_REGISTRATION_AR_FEE,
   REGISTRATION_TRANSACTION_TAG,
   REQUEST_TRANSACTION_TAG,
+  SCRIPT_CURATOR_TAG,
   SCRIPT_NAME_TAG,
   SCRIPT_OPERATOR_TAG,
   SCRIPT_TRANSACTION_TAG,
@@ -146,15 +147,19 @@ export const getRequest = async (transactionId: string) => {
 
   return parseQueryResult(result)[0];
 };
-export const queryTransactionAnswered = async (transactionId: string, address: string, scriptId: string) => {
+export const queryTransactionAnswered = async (transactionId: string, address: string, scriptName: string, scriptcurator: string) => {
   const tags = [
     {
       name: OPERATION_NAME_TAG,
       values: ['Script Inference Response'],
     },
     {
-      name: SCRIPT_TRANSACTION_TAG,
-      values: [ scriptId ],
+      name: SCRIPT_NAME_TAG,
+      values: [ scriptName ],
+    },
+    {
+      name: SCRIPT_CURATOR_TAG,
+      values: [ scriptcurator ],
     },
     {
       name: REQUEST_TRANSACTION_TAG,
