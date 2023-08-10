@@ -33,7 +33,11 @@ import {
 } from './queries';
 import { JWKInterface } from 'arweave/node/lib/wallet';
 import workerpool from 'workerpool';
-import processRequest from './worker';
+import path from 'path';
+import {fileURLToPath} from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let address: string;
 const registrations: OperatorParams[]  = [];
@@ -50,7 +54,8 @@ const arweave = Arweave.init({
   protocol: 'https',
 });
 
-const pool = workerpool.pool();
+const pool = workerpool.pool(__dirname + '/worker.cjs', { maxWorkers: workerpool.cpus });
+logger.info(pool.stats());
 
 const JWK: JWKInterface = JSON.parse(fs.readFileSync('wallet.json').toString());
 
@@ -78,6 +83,19 @@ const findRegistrations = async () => {
   }
 
   return filtered;
+};
+
+// eslint-disable-next-line no-unused-vars
+const startThread = (reqTxId: string, reqUserAddr: string, currentRegistration: OperatorParams, address: string, handleWorkerEvents: (payload: { type: 'info' | 'error', message: string}) => void) => pool.exec('processRequest', [reqTxId, reqUserAddr, currentRegistration, address], { on: handleWorkerEvents });
+
+const stopPool = () => pool.terminate();
+
+const handleWorkerEvents = (payload: { type: 'info' | 'error', message: string}) => {
+  if (payload.type === 'error') {
+    logger.error(payload.message);
+  } else {
+    logger.info(payload.message);
+  }
 };
 
 const start = async () => {
@@ -123,13 +141,13 @@ const start = async () => {
 
       if (reqTxId && reqUserAddr && currentRegistration) {
         // successRequest = await processRequest(reqTxId, reqUserAddr, currentRegistration);
-        threadPromises.push(pool.exec(processRequest, [reqTxId, reqUserAddr, currentRegistration, address]));
+        threadPromises.push(startThread(reqTxId, reqUserAddr, currentRegistration, address, handleWorkerEvents));
       } else {
         logger.error('No Registration, inference Tx or userAddr found for request. Skipping...');
         // skip requests without inference transaction tag
       }
     }
-
+    logger.info(pool.stats());
     // await pool excution
     const results = await Promise.all(threadPromises);
     // filter only successful processed requests
@@ -154,7 +172,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   try {
     tempRegistrations = await findRegistrations();
   } catch (err) {
-    pool.terminate();
+    stopPool();
     logger.error('Error Fetching Operator Registrations');
     logger.info('Shutting down...');
 
@@ -222,7 +240,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
       }
     }
   } catch (err) {
-    pool.terminate();
+    stopPool();
     logger.error('Error Fetching Model Owners for registrations');
     logger.info('Shutting down...');
 
@@ -230,7 +248,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   if (registrations.length === 0) {
-    pool.terminate();
+    stopPool();
     logger.error('No registrations found. Shutting down...');
     process.exit(1);
   }

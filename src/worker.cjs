@@ -14,41 +14,38 @@
  * limitations under the License.
  */
 
-import fs from 'node:fs';
-import { WarpFactory } from 'warp-contracts';
-import { DeployPlugin } from 'warp-contracts-plugin-deploy';
-import { JWKInterface } from 'arweave/node/lib/wallet';
-import { IEdge, OperatorParams, ServerResponse, payloadFormatOptions, ITransactions } from './interfaces';
-import {
-  APP_NAME_TAG,
-  APP_VERSION_TAG,
-  ATOMIC_TOKEN_CONTRACT_ID,
-  CONTENT_TYPE_TAG,
-  CONVERSATION_IDENTIFIER_TAG,
-  CREATOR_PERCENTAGE_FEE,
-  CURATOR_PERCENTAGE_FEE,
-  INPUT_TAG,
-  MARKETPLACE_PERCENTAGE_FEE,
-  NET_ARWEAVE_URL,
-  OPERATION_NAME_TAG,
-  REQUEST_TRANSACTION_TAG,
-  SCRIPT_TRANSACTION_TAG,
-  SCRIPT_USER_TAG,
-  UNIX_TIME_TAG,
-  VAULT_ADDRESS,
-  secondInMS,
-  CONTRACT_TAG,
-  INFERENCE_TRANSACTION_TAG,
-  SCRIPT_CURATOR_TAG,
-  SCRIPT_NAME_TAG,
-  SEQUENCE_OWNER_TAG,
-  U_CONTRACT_ID,
-} from './constants';
-import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
-import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
-import workerpool from 'workerpool';
+const fs = require('fs');
+const NodeBundlr = require('@bundlr-network/client');
+const { WarpFactory } = require('warp-contracts');
+const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
+const { DeployPlugin } = require('warp-contracts-plugin-deploy');
+const workerpool = require('workerpool');
 
-const JWK: JWKInterface = JSON.parse(fs.readFileSync('wallet.json').toString());
+const APP_VERSION_TAG = 'App-Version';
+const CONVERSATION_IDENTIFIER_TAG = 'Conversation-Identifier';
+const APP_NAME_TAG = 'App-Name';
+const CONTENT_TYPE_TAG = 'Content-Type';
+const UNIX_TIME_TAG = 'Unix-Time';
+const SCRIPT_CURATOR_TAG = 'Script-Curator';
+const SCRIPT_NAME_TAG = 'Script-Name';
+const SCRIPT_USER_TAG = 'Script-User';
+const REQUEST_TRANSACTION_TAG = 'Request-Transaction';
+const OPERATION_NAME_TAG = 'Operation-Name';
+const INFERENCE_TRANSACTION_TAG = 'Inference-Transaction';
+const CONTRACT_TAG = 'Contract';
+const INPUT_TAG = 'Input';
+const SEQUENCE_OWNER_TAG = 'Sequencer-Owner';
+const SCRIPT_TRANSACTION_TAG = 'Script-Transaction';
+const NET_ARWEAVE_URL = 'https://arweave.net';
+const secondInMS = 1000;
+const VAULT_ADDRESS = 'tXd-BOaxmxtgswzwMLnryROAYlX5uDC9-XK2P4VNCQQ';
+const MARKETPLACE_PERCENTAGE_FEE = 0.15;
+const CURATOR_PERCENTAGE_FEE = 0.025;
+const CREATOR_PERCENTAGE_FEE = 0.025;
+const U_CONTRACT_ID = 'KTzTXT_ANmF84fWEKHzWURD1LWd9QaFR9yfYUwH2Lxw';
+const ATOMIC_TOKEN_CONTRACT_ID = '37n5Z9NZUUPuXPdbbjXa2iYb9Wl39nAjkaSoz5DsxZQ';
+
+const JWK = JSON.parse(fs.readFileSync('wallet.json').toString());
 // initailze the bundlr SDK
 // const bundlr: Bundlr = new (Bundlr as any).default(
 const bundlr = new NodeBundlr('https://node1.bundlr.network', 'arweave', JWK);
@@ -87,10 +84,10 @@ const gqlQuery = gql`
   }
 `;
 
-const parseQueryResult = (result: { data: { transactions: ITransactions } }) =>
+const parseQueryResult = (result) =>
   result.data.transactions.edges;
 
-const queryTransactionAnswered = async (transactionId: string, address: string, scriptName: string, scriptcurator: string) => {
+const queryTransactionAnswered = async (transactionId, address, scriptName, scriptcurator) => {
   const tags = [
     {
       name: OPERATION_NAME_TAG,
@@ -140,10 +137,10 @@ const queryTransactionAnswered = async (transactionId: string, address: string, 
 };
 
 const queryCheckUserPayment = async (
-  inferenceTransaction: string,
-  userAddress: string,
-  inputValues: string[],
-  scriptId: string,
+  inferenceTransaction,
+  userAddress,
+  inputValues,
+  scriptId,
 ) => {
   const tags = [
     {
@@ -180,13 +177,13 @@ const queryCheckUserPayment = async (
 };
 
 const sendToBundlr = async (
-  responses: string[] | string,
-  prompt: string,
-  appVersion: string,
-  userAddress: string,
-  requestTransaction: string,
-  conversationIdentifier: string,
-  scriptId: string,
+  responses,
+  prompt,
+  appVersion,
+  userAddress,
+  requestTransaction,
+  conversationIdentifier,
+  scriptId,
 ) => {
   const type = Array.isArray(responses) ? 'image/png' : 'audio/wav';
 
@@ -249,7 +246,7 @@ const sendToBundlr = async (
   }
 };
 
-const inference = async function (requestTx: IEdge, url: string, format: payloadFormatOptions) {
+const inference = async function (requestTx, url, format) {
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
   const text = await (await requestData.blob()).text();
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
@@ -278,7 +275,7 @@ const inference = async function (requestTx: IEdge, url: string, format: payload
     method: 'POST',
     body: payload,
   });
-  const tempData: ServerResponse = await res.json();
+  const tempData = await res.json();
 
   if (tempData.images) {
     const imgPaths = tempData.images.map((el, i)=>{
@@ -302,12 +299,12 @@ const inference = async function (requestTx: IEdge, url: string, format: payload
 };
 
 const checkUserPaidInferenceFees = async (
-  txid: string,
-  userAddress: string,
-  creatorAddress: string,
-  curatorAddress: string,
-  operatorFee: number,
-  scriptId: string,
+  txid,
+  userAddress,
+  creatorAddress,
+  curatorAddress,
+  operatorFee,
+  scriptId,
 ) => {
   const marketplaceShare = operatorFee * MARKETPLACE_PERCENTAGE_FEE;
   const curatorShare = operatorFee * CURATOR_PERCENTAGE_FEE;
@@ -331,7 +328,7 @@ const checkUserPaidInferenceFees = async (
     qty: parseInt(creatorShare.toString(), 10).toString(),
   });
 
-  const paymentTxs: IEdge[] = await queryCheckUserPayment(txid, userAddress, [
+  const paymentTxs = await queryCheckUserPayment(txid, userAddress, [
     marketpaceInput,
     curatorInput,
     creatorInput,
@@ -372,7 +369,7 @@ const checkUserPaidInferenceFees = async (
   return true;
 };
 
-const getRequest = async (transactionId: string) => {
+const getRequest = async (transactionId) => {
   const result = await clientGateway.query({
     query: gql`
       query tx($id: ID!) {
@@ -403,20 +400,20 @@ const getRequest = async (transactionId: string) => {
   return parseQueryResult(result)[0];
 };
 
-const processRequest = async (requestId: string, reqUserAddr: string, registration: OperatorParams, address: string) => {
+const processRequest = async (requestId, reqUserAddr, registration, address) => {
   workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestId}...` });
   
-  const requestTx: IEdge = await getRequest(requestId);
+  const requestTx = await getRequest(requestId);
   if (!requestTx) {
     // If the request doesn't exist, skip
     workerpool.workerEmit({ type: 'error', message: `Request ${requestId} does not exist. Skipping...` });
     return false;
   }
 
-  const responseTxs: IEdge[] = await queryTransactionAnswered(requestId, address, registration.scripName, registration.scriptCurator);
+  const responseTxs = await queryTransactionAnswered(requestId, address, registration.scripName, registration.scriptCurator);
   if (responseTxs.length > 0) {
     // If the request has already been answered, we don't need to do anything
-    workerpool.workerEmit({ type: 'info', message: `Request ${requestId} has already been answered. Skipping...` });
+    workerpool.workerEmit({ type: 'info', message: `Request ${requestId} has already been answered. Skipping...` });    
     return requestId;
   }
 
