@@ -16,6 +16,7 @@
 
 from TTS.api import TTS
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 import json
 import os
 
@@ -41,8 +42,11 @@ class MyServer(BaseHTTPRequestHandler):
     else:
       self.send_error(404)
 
+class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
+    pass
+
 if __name__ == "__main__":
-    webServer = HTTPServer((hostName, serverPort), MyServer)
+    webServer = ThreadingSimpleServer((hostName, serverPort), MyServer)
     print("Server started http://%s:%s" % (hostName, serverPort))
 
     try:

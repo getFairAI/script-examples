@@ -15,6 +15,7 @@
 """
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 from diffusers import StableDiffusionPipeline
 import os
 import json
@@ -81,8 +82,11 @@ class MyServer(BaseHTTPRequestHandler):
     else:
       self.send_error(404)
 
+class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
+    pass
+
 if __name__ == "__main__":
-    webServer = HTTPServer((hostName, serverPort), MyServer)
+    webServer = ThreadingSimpleServer((hostName, serverPort), MyServer)
     print("Server started http://%s:%s" % (hostName, serverPort))
 
     try:
