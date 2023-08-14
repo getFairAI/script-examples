@@ -1,0 +1,13 @@
+{
+  "urls": {
+    "scriptTx1": {
+      "url": "http://127.0.0.1:8088",
+      "payloadFormat": "webui"
+    },
+    "scriptTx2": {
+      "url": "http://127.0.0.1:8089",
+      "payloadFormat": "default"
+    }
+  },
+  "sleepTimeSeconds": 7
+}
