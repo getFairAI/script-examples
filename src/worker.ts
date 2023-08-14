@@ -444,10 +444,10 @@ const processRequest = async (requestId: string, reqUserAddr: string, registrati
   }
 
   const inferenceResult = await inference(requestTx, registration.url, registration.payloadFormat);
-  workerpool.workerEmit({ type: 'info', message: `Inference Result: ${inferenceResult}` });
+  workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(inferenceResult)}` });
 
   await sendToBundlr(
-    inferenceResult.imgPaths || inferenceResult.audioPath,
+    inferenceResult.imgPaths ?? inferenceResult.audioPath,
     inferenceResult.prompt,
     appVersion,
     requestTx.node.owner.address,

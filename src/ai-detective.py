@@ -34,8 +34,6 @@ class GPT2PPL:
         self.device = device
         self.model_id = model_id
         path_dir = "./ai-detector/"
-        # self.model = GPT2LMHeadModel.from_pretrained(model_id, cache_dir=path_dir).to(device)
-        # self.tokenizer = GPT2TokenizerFast.from_pretrained(model_id, cache_dir=path_dir)
         self.model = GPT2LMHeadModel.from_pretrained(path_dir, local_files_only=True).to(device)
         self.tokenizer = GPT2TokenizerFast.from_pretrained(path_dir, local_files_only=True)
 
@@ -150,12 +148,14 @@ model = GPT2PPL()
 hostName = "localhost"
 serverPort = 8087
 
-
 class MyServer(BaseHTTPRequestHandler):
-  def do_POST(self):
+  """ Server Class """
+  def do_POST(self) -> None:
     if self.path == '/':
-      content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
-      post_data = self.rfile.read(content_length) # <--- Gets the data itself
+      # Gets the size of data
+      content_length = int(self.headers['Content-Length'])
+      # Gets the data itself
+      post_data = self.rfile.read(content_length)
       prompt = post_data.decode("utf-8")
       results, out = model(prompt)
       self.send_response(200)
@@ -170,6 +170,7 @@ class MyServer(BaseHTTPRequestHandler):
       self.send_error(404)
 
 class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
+    """ Threading Server Class """
     pass
 
 if __name__ == "__main__":

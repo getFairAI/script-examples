@@ -27,10 +27,13 @@ hostName = "localhost"
 serverPort = 8089
 
 class MyServer(BaseHTTPRequestHandler):
-  def do_POST(self):
+  """Server Class Implementation"""
+  def do_POST(self) -> None:
     if self.path == '/':
-      content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
-      post_data = self.rfile.read(content_length) # <--- Gets the data itself
+      # Gets the size of data
+      content_length = int(self.headers['Content-Length'])
+      # Gets the data itself
+      post_data = self.rfile.read(content_length)
       prompt = post_data.decode("utf-8")
       file_path = os.getcwd() + "/output.wav"
       # Run TTS
@@ -43,6 +46,7 @@ class MyServer(BaseHTTPRequestHandler):
       self.send_error(404)
 
 class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
+    """Thread Server Class"""
     pass
 
 if __name__ == "__main__":

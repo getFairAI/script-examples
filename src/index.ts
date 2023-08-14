@@ -37,8 +37,8 @@ import path from 'path';
 import {fileURLToPath} from 'url';
 import { Mutex } from 'async-mutex';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const fileName = fileURLToPath(import.meta.url);
+const dirName = path.dirname(fileName);
 
 let address: string;
 const registrations: OperatorParams[]  = [];
@@ -70,8 +70,8 @@ const findRegistrations = async () => {
     const isTxCancelled = await isRegistrationCancelled(txid, address);
     // filter by scripts that have config  url
     const urls = Object.keys(CONFIG.urls);
-    const scriptTx = tx.node.tags.find(tag => tag.name === 'Script-Transaction')?.value;
-    const scriptName = tx.node.tags.find(tag => tag.name === 'Script-Name')?.value;
+    const scriptTx = tx.node.tags.find((tag) => tag.name === 'Script-Transaction')?.value;
+    const scriptName = tx.node.tags.find((tag) => tag.name === 'Script-Name')?.value;
     const hasUrlForScript = scriptTx && urls.includes(scriptTx);
 
     if (!isTxCancelled && hasUrlForScript) {
@@ -86,8 +86,68 @@ const findRegistrations = async () => {
   return filtered;
 };
 
-// eslint-disable-next-line no-unused-vars
-const startThread = (reqTxId: string, reqUserAddr: string, currentRegistration: OperatorParams, address: string, lock: Mutex, handleWorkerEvents: (payload: { type: 'info' | 'error', message: string}) => void) => pool.exec('processRequestLock', [ reqTxId, reqUserAddr, currentRegistration, address, lock ], { on: handleWorkerEvents });
+const validateRegistration = async (tx: IEdge) => {
+  const urls = CONFIG.urls;
+  let hasErrors = false;
+  const txid = tx.node.id;
+  const tags = tx.node.tags;
+
+  
+  const scriptName = tags.find((tag) => tag.name === 'Script-Name')?.value;
+  const scriptCurator = tags.find((tag) => tag.name === 'Script-Curator')?.value;
+  const scriptId = tags.find((tag) => tag.name === 'Script-Transaction')?.value;
+  const feeIndex = tags.findIndex((tag) => tag.name === 'Operator-Fee');
+
+  if (!scriptCurator) {
+    logger.error(`Could not find Script Curator for registration '${txid}'. Ignoring...`);
+    hasErrors = true;
+  }
+  
+  if (!scriptName) {
+    logger.error(`Could not find Script Name for registration '${txid}'. Ignoring...`);
+    hasErrors = true;
+  }
+
+  if (!scriptId) {
+    logger.error(`Could not find Script Transaction for registration '${txid}'. Ignoring...`);
+    hasErrors = true;
+  }
+
+  const modelOwner = await getModelOwner(scriptName as string, scriptCurator as string);
+  if (!modelOwner) {
+    logger.error(`Could not find Model Owner for registration '${txid}'. Ignoring...`);
+    hasErrors = true;
+  }
+
+  if (feeIndex < 0) {
+    logger.error(`Could not find Operator Fee Tag for registration '${txid}'. Ignoring...`);
+    hasErrors = true;
+  }
+
+  const opFee = parseFloat(tags[feeIndex].value);
+  if (Number.isNaN(opFee) || opFee <= 0) {
+    logger.error(`Invalid Operator Fee Found for registration '${txid}'. Ignoring...`);
+    hasErrors = true;
+  }
+
+  const urlConf: UrlConfig = (urls as any)[scriptId as string];
+
+  if (!hasErrors) {
+    registrations.push({
+      ...urlConf,
+      modelOwner,
+      scriptId: scriptId as string,
+      operatorFee: opFee,
+      scripName: scriptName as string,
+      scriptCurator: scriptCurator as string, 
+      registrationTx: tx,
+    });
+  } else {
+    // ignore registrations with errors
+  }
+};
+
+const startThread = (reqTxId: string, reqUserAddr: string, currentRegistration: OperatorParams, lock: Mutex) => pool.exec('processRequestLock', [ reqTxId, reqUserAddr, currentRegistration, address, lock ], { on: handleWorkerEvents });
 
 const stopPool = () => pool.terminate();
 
@@ -101,10 +161,8 @@ const handleWorkerEvents = (payload: { type: 'info' | 'error', message: string})
 
 const start = async () => {
   try {
-    /* const scriptNames = registrations.map(reg => reg.scripName);
-    const scriptCurators = registrations.map(reg => reg.scriptCurator); */
-    const scriptIds = registrations.map(reg => reg.scriptId);
-    const operatorFees = registrations.map(reg => reg.operatorFee);
+    const scriptIds = registrations.map((reg) => reg.scriptId);
+    const operatorFees = registrations.map((reg) => reg.operatorFee);
     // request only new txs
     const { requestTxs, hasNextPage } = await queryTransactionsReceived(address, operatorFees, scriptIds);
 
@@ -142,8 +200,7 @@ const start = async () => {
       const registrationIdx = registrations.findIndex((reg) => reg.scriptId === edge.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value);
 
       if (reqTxId && reqUserAddr && currentRegistration && registrationIdx >= 0) {
-        // successRequest = await processRequest(reqTxId, reqUserAddr, currentRegistration);
-        threadPromises.push(startThread(reqTxId, reqUserAddr, currentRegistration, address, mutexes[registrationIdx], handleWorkerEvents));
+        threadPromises.push(startThread(reqTxId, reqUserAddr, currentRegistration, mutexes[registrationIdx]));
       } else {
         logger.error('No Registration, inference Tx or userAddr found for request. Skipping...');
         // skip requests without inference transaction tag
@@ -153,9 +210,9 @@ const start = async () => {
     // await pool excution
     const results = await Promise.all(threadPromises);
     // filter only successful processed requests
-    const successfulProcessedRequests = newRequestTxs.filter(el => results.includes(el.node.tags.find((tag) => tag.name === INFERENCE_TRANSACTION_TAG)?.value as string));
+    const successfulProcessedRequests = newRequestTxs.filter((el) => results.includes(el.node.tags.find((tag) => tag.name === INFERENCE_TRANSACTION_TAG)?.value as string));
     // save latest tx id only for successful processed requests
-    lastProcessedTxs.push(...successfulProcessedRequests.map(el => el.node.id));
+    lastProcessedTxs.push(...successfulProcessedRequests.map((el) => el.node.id));
   } catch (e) {
     logger.error(`Errored with: ${e}`);
   }
@@ -165,7 +222,6 @@ const start = async () => {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 (async () => {
-  const urls = CONFIG.urls;
   address = await arweave.wallets.jwkToAddress(JWK);
 
   logger.info(`Wallet address: ${address}. Fetching Registrations...`);
@@ -183,63 +239,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   try {
     for (const tx of tempRegistrations) {
-      let hasErrors = false;
-      const txid = tx.node.id;
-      const tags = tx.node.tags;
-
-      
-      const scriptName = tags.find(tag => tag.name === 'Script-Name')?.value;
-      const scriptCurator = tags.find(tag => tag.name === 'Script-Curator')?.value;
-      const scriptId = tags.find(tag => tag.name === 'Script-Transaction')?.value;
-      const feeIndex = tags.findIndex((tag) => tag.name === 'Operator-Fee');
-
-      if (!scriptCurator) {
-        logger.error(`Could not find Script Curator for registration '${txid}'. Ignoring...`);
-        hasErrors = true;
-      }
-      
-      if (!scriptName) {
-        logger.error(`Could not find Script Name for registration '${txid}'. Ignoring...`);
-        hasErrors = true;
-      }
-
-      if (!scriptId) {
-        logger.error(`Could not find Script Transaction for registration '${txid}'. Ignoring...`);
-        hasErrors = true;
-      }
-
-      const modelOwner = await getModelOwner(scriptName as string, scriptCurator as string);
-      if (!modelOwner) {
-        logger.error(`Could not find Model Owner for registration '${txid}'. Ignoring...`);
-        hasErrors = true;
-      }
-
-      if (feeIndex < 0) {
-        logger.error(`Could not find Operator Fee Tag for registration '${txid}'. Ignoring...`);
-        hasErrors = true;
-      }
-
-      const opFee = parseFloat(tags[feeIndex].value);
-      if (Number.isNaN(opFee) || opFee <= 0) {
-        logger.error(`Invalid Operator Fee Found for registration '${txid}'. Ignoring...`);
-        hasErrors = true;
-      }
-
-      const urlConf: UrlConfig = (urls as any)[scriptId as string];
-
-      if (!hasErrors) {
-        registrations.push({
-          ...urlConf,
-          modelOwner,
-          scriptId: scriptId as string,
-          operatorFee: opFee,
-          scripName: scriptName as string,
-          scriptCurator: scriptCurator as string, 
-          registrationTx: tx,
-        });
-      } else {
-        // ignore registrations with errors
-      }
+      await validateRegistration(tx);
     }
   } catch (err) {
     stopPool();
@@ -256,9 +256,9 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   const nThreads = registrations.length > workerpool.cpus ? workerpool.cpus : registrations.length;
-  registrations.map(() => mutexes.push(new Mutex())); // start one mutex for each registration
+  registrations.forEach(() => mutexes.push(new Mutex())); // start one mutex for each registration
   // start pool
-  pool = workerpool.pool(__dirname + '/worker.cjs', { maxWorkers: nThreads });
+  pool = workerpool.pool(dirName + '/worker.cjs', { maxWorkers: nThreads });
   logger.info(pool.stats());
 
   // eslint-disable-next-line no-constant-condition

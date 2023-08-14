@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-import * as esbuild from 'esbuild';
+import { build } from 'esbuild';
 import { nodeExternalsPlugin } from 'esbuild-node-externals';
 import { default as Pino } from 'pino';
 /* import fs from 'node:fs'; */
@@ -23,19 +23,15 @@ export const logger = Pino({
   level: 'debug',
 });
 
-/* const files = fs.readdirSync('./src');
-const entryPoints = files.filter(file => file.includes('.ts')).map(file => `./src/${file}`); */
-
 try {
   const sharedConfig = {
-    entryPoints: [ './src/index.ts'], // entryPoints,
+    entryPoints: [ './src/index.ts'],
     bundle: true,
     minify: true,
     plugins: [ nodeExternalsPlugin() ],
-    // outdir: 'dist',
   };
 
-  await esbuild.build({
+  await build({
     ...sharedConfig,
     platform: 'node', // for CJS
     outfile: './dist/index.cjs',

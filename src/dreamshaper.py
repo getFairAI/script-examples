@@ -20,7 +20,6 @@ from diffusers import StableDiffusionPipeline
 import os
 import json
 import datetime
-from PIL import Image
 import torch
 
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -46,16 +45,9 @@ def get_inputs(prompt = "", batch_size=1):
   num_inference_steps = 50                                                                                                                                                                                                  
 
   return {"prompt": prompts, "generator": generator, "num_inference_steps": num_inference_steps}
-
-def image_grid(imgs, rows=2, cols=2):                                                                                                                                                                                                         
-    w, h = imgs[0].size                                                                                                                                                                                                                       
-    grid = Image.new('RGB', size=(cols*w, rows*h))                                                                                                                                                                                            
-                                                                                                                                                                                                                                              
-    for i, img in enumerate(imgs):                                                                                                                                                                                                            
-        grid.paste(img, box=(i%cols*w, i//cols*h))                                                                                                                                                                                            
-    return grid  
   
-def gen_img(prompt: str):
+def gen_img(prompt: str) -> { "imgPaths": [str] }:
+  """Generates images from a prompt"""
   images = pipe(**get_inputs(prompt,batch_size=4)).images
   paths = []
   for i, img in enumerate(images):
@@ -70,10 +62,13 @@ serverPort = 8088
 
 
 class MyServer(BaseHTTPRequestHandler):
-  def do_POST(self):
+  """Server Class"""
+  def do_POST(self) -> None:
     if self.path == '/':
-      content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
-      post_data = self.rfile.read(content_length) # <--- Gets the data itself
+      # Gets the size of data
+      content_length = int(self.headers['Content-Length'])
+      # Gets the data itself
+      post_data = self.rfile.read(content_length)
       prompt = post_data.decode("utf-8")
       result = gen_img(prompt)
       self.send_response(200)
@@ -84,6 +79,7 @@ class MyServer(BaseHTTPRequestHandler):
       self.send_error(404)
 
 class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
+    """Thread Server Class"""
     pass
 
 if __name__ == "__main__":

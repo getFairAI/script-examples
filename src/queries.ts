@@ -73,7 +73,7 @@ const parseQueryResult = (result: { data: { transactions: ITransactions } }) =>
   result.data.transactions.edges;
 
 export const queryTransactionsReceived = async (address: string, opFees: number[], scriptIds: string[], after?: string) => {
-  const paymentInputs = opFees.map(opFee => {
+  const paymentInputs = opFees.map((opFee) => {
     const feeShare = opFee * OPERATOR_PERCENTAGE_FEE;
 
     return JSON.stringify({
