@@ -47,6 +47,7 @@ import {
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
 import workerpool from 'workerpool';
+import { Mutex } from 'async-mutex';
 
 const JWK: JWKInterface = JSON.parse(fs.readFileSync('wallet.json').toString());
 // initailze the bundlr SDK
@@ -403,9 +404,7 @@ const getRequest = async (transactionId: string) => {
   return parseQueryResult(result)[0];
 };
 
-const processRequest = async (requestId: string, reqUserAddr: string, registration: OperatorParams, address: string) => {
-  workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestId}...` });
-  
+const processRequest = async (requestId: string, reqUserAddr: string, registration: OperatorParams, address: string) => {  
   const requestTx: IEdge = await getRequest(requestId);
   if (!requestTx) {
     // If the request doesn't exist, skip
@@ -460,6 +459,15 @@ const processRequest = async (requestId: string, reqUserAddr: string, registrati
   return requestId;
 };
 
+const processRequestLock = async (requestId: string, reqUserAddr: string, registration: OperatorParams, address: string, lock: Mutex) => {
+  workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestId}...` });
+  await lock.runExclusive(async () => {
+    workerpool.workerEmit({ type: 'info', message: `Thread ${requestId} acquired lock` });
+    await processRequest(requestId, reqUserAddr, registration, address);
+    workerpool.workerEmit({ type: 'info', message: `Thread ${requestId} released lock` });
+  });
+};
+
 workerpool.worker({
-  processRequest,
+  processRequestLock,
 });

@@ -35,12 +35,14 @@ import { JWKInterface } from 'arweave/node/lib/wallet';
 import workerpool from 'workerpool';
 import path from 'path';
 import {fileURLToPath} from 'url';
+import { Mutex } from 'async-mutex';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let address: string;
 const registrations: OperatorParams[]  = [];
+const mutexes: Mutex[] = [];
 const lastProcessedTxs: string[] = [];
 
 const logger = Pino({
@@ -54,8 +56,7 @@ const arweave = Arweave.init({
   protocol: 'https',
 });
 
-const pool = workerpool.pool(__dirname + '/worker.cjs', { maxWorkers: workerpool.cpus });
-logger.info(pool.stats());
+let pool: workerpool.WorkerPool;
 
 const JWK: JWKInterface = JSON.parse(fs.readFileSync('wallet.json').toString());
 
@@ -86,7 +87,7 @@ const findRegistrations = async () => {
 };
 
 // eslint-disable-next-line no-unused-vars
-const startThread = (reqTxId: string, reqUserAddr: string, currentRegistration: OperatorParams, address: string, handleWorkerEvents: (payload: { type: 'info' | 'error', message: string}) => void) => pool.exec('processRequest', [reqTxId, reqUserAddr, currentRegistration, address], { on: handleWorkerEvents });
+const startThread = (reqTxId: string, reqUserAddr: string, currentRegistration: OperatorParams, address: string, lock: Mutex, handleWorkerEvents: (payload: { type: 'info' | 'error', message: string}) => void) => pool.exec('processRequestLock', [ reqTxId, reqUserAddr, currentRegistration, address, lock ], { on: handleWorkerEvents });
 
 const stopPool = () => pool.terminate();
 
@@ -138,10 +139,11 @@ const start = async () => {
       const reqTxId = edge.node.tags.find((tag) => tag.name === INFERENCE_TRANSACTION_TAG)?.value;
       const reqUserAddr = edge.node.tags.find((tag) => tag.name === SEQUENCE_OWNER_TAG)?.value;
       const currentRegistration = registrations.find((reg) => reg.scriptId === edge.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value);
+      const registrationIdx = registrations.findIndex((reg) => reg.scriptId === edge.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value);
 
-      if (reqTxId && reqUserAddr && currentRegistration) {
+      if (reqTxId && reqUserAddr && currentRegistration && registrationIdx >= 0) {
         // successRequest = await processRequest(reqTxId, reqUserAddr, currentRegistration);
-        threadPromises.push(startThread(reqTxId, reqUserAddr, currentRegistration, address, handleWorkerEvents));
+        threadPromises.push(startThread(reqTxId, reqUserAddr, currentRegistration, address, mutexes[registrationIdx], handleWorkerEvents));
       } else {
         logger.error('No Registration, inference Tx or userAddr found for request. Skipping...');
         // skip requests without inference transaction tag
@@ -252,6 +254,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     logger.error('No registrations found. Shutting down...');
     process.exit(1);
   }
+
+  const nThreads = registrations.length > workerpool.cpus ? workerpool.cpus : registrations.length;
+  registrations.map(() => mutexes.push(new Mutex())); // start one mutex for each registration
+  // start pool
+  pool = workerpool.pool(__dirname + '/worker.cjs', { maxWorkers: nThreads });
+  logger.info(pool.stats());
 
   // eslint-disable-next-line no-constant-condition
   while (true) {

@@ -400,9 +400,7 @@ const getRequest = async (transactionId) => {
   return parseQueryResult(result)[0];
 };
 
-const processRequest = async (requestId, reqUserAddr, registration, address) => {
-  workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestId}...` });
-  
+const processRequest = async (requestId, reqUserAddr, registration, address) => {  
   const requestTx = await getRequest(requestId);
   if (!requestTx) {
     // If the request doesn't exist, skip
@@ -413,7 +411,7 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
   const responseTxs = await queryTransactionAnswered(requestId, address, registration.scripName, registration.scriptCurator);
   if (responseTxs.length > 0) {
     // If the request has already been answered, we don't need to do anything
-    workerpool.workerEmit({ type: 'info', message: `Request ${requestId} has already been answered. Skipping...` });    
+    workerpool.workerEmit({ type: 'info', message: `Request ${requestId} has already been answered. Skipping...` });
     return requestId;
   }
 
@@ -457,6 +455,15 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
   return requestId;
 };
 
+const processRequestLock = async (requestId, reqUserAddr, registration, address, lock) => {
+  workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestId}...` });
+  await lock.runExclusive(async () => {
+    workerpool.workerEmit({ type: 'info', message: `Thread ${requestId} acquired lock` });
+    await processRequest(requestId, reqUserAddr, registration, address);
+    workerpool.workerEmit({ type: 'info', message: `Thread ${requestId} released lock` });
+  });
+};
+
 workerpool.worker({
-  processRequest,
+  processRequestLock,
 });
