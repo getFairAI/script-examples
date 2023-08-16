@@ -89,6 +89,7 @@ User=user
 Environment=NODE_VERSION=18.16.1
 ExecStart=/home/user/.nvm/nvm-exec npm start
 WorkingDirectory=/home/user/Desktop/3d-animation-style
+Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 ```

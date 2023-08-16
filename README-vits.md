@@ -63,6 +63,7 @@ User=user
 Environment=NODE_VERSION=18.16.1
 ExecStart=/home/user/.nvm/nvm-exec npm start
 WorkingDirectory=/home/user/Desktop/vits
+Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 ```
