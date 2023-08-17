@@ -44,11 +44,12 @@ const CURATOR_PERCENTAGE_FEE = 0.025;
 const CREATOR_PERCENTAGE_FEE = 0.025;
 const U_CONTRACT_ID = 'KTzTXT_ANmF84fWEKHzWURD1LWd9QaFR9yfYUwH2Lxw';
 const ATOMIC_TOKEN_CONTRACT_ID = '37n5Z9NZUUPuXPdbbjXa2iYb9Wl39nAjkaSoz5DsxZQ';
+const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
 
 const JWK = JSON.parse(fs.readFileSync('wallet.json').toString());
 // initailze the bundlr SDK
 // const bundlr: Bundlr = new (Bundlr as any).default(
-const bundlr = new NodeBundlr('https://node1.bundlr.network', 'arweave', JWK);
+const bundlr = new NodeBundlr(NODE2_BUNDLR_URL, 'arweave', JWK);
 const warp = WarpFactory.forMainnet().use(new DeployPlugin());
 
 const clientGateway = new ApolloClient({

@@ -43,6 +43,7 @@ import {
   SCRIPT_NAME_TAG,
   SEQUENCE_OWNER_TAG,
   U_CONTRACT_ID,
+  NODE2_BUNDLR_URL,
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -52,7 +53,7 @@ import { Mutex } from 'async-mutex';
 const JWK: JWKInterface = JSON.parse(fs.readFileSync('wallet.json').toString());
 // initailze the bundlr SDK
 // const bundlr: Bundlr = new (Bundlr as any).default(
-const bundlr = new NodeBundlr('https://node1.bundlr.network', 'arweave', JWK);
+const bundlr = new NodeBundlr(NODE2_BUNDLR_URL, 'arweave', JWK);
 const warp = WarpFactory.forMainnet().use(new DeployPlugin());
 
 const clientGateway = new ApolloClient({
