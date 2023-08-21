@@ -44,6 +44,7 @@ import {
   SEQUENCE_OWNER_TAG,
   U_CONTRACT_ID,
   NODE2_BUNDLR_URL,
+  UDL_ID,
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -230,6 +231,9 @@ const sendToBundlr = async (
     { name: 'Title', value: 'Fair Protocol NFT' },
     { name: 'Description', value: prompt }, // use request prompt
     { name: 'Type', value: 'Image' },
+    // add license tags
+    { name: 'License', value: UDL_ID },
+    { name: 'Commercial-Use', value: 'Allowed' },
   ];
   // turn into array to use same code for single and multiple responses
   responses = Array.isArray(responses) ? responses : [responses];
