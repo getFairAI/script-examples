@@ -286,19 +286,19 @@ const inference = async function (requestTx: IEdge, url: string, format: payload
   let payload;
   if (format === 'webui') {
     payload = JSON.stringify({
-      enable_hr: 'true',
-      denoising_strength: 0.5,
-      hr_scale: 2,
-      hr_upscaler: 'Latent',
-      hr_second_pass_steps: 20,
+      'enable_hr': 'true',
+      'denoising_strength': 0.5,
+      'hr_scale': 2,
+      'hr_upscaler': 'Latent',
+      'hr_second_pass_steps': 20,
       prompt: `masterpiece, best quality, ${text}`,
       seed: -1,
-      n_iter: 4,
+      'n_iter': 4,
       steps: 20,
-      cfg_scale: 7,
-      negative_prompt:
+      'cfg_scale': 7,
+      'negative_prompt':
         'EasyNegative, drawn by bad-artist, sketch by bad-artist-anime, (bad_prompt:0.8), (artist name, signature, watermark:1.4), (ugly:1.2), (worst quality, poor details:1.4), bad-hands-5, badhandv4, blurry,',
-      sampler_index: 'Euler a',
+      'sampler_index': 'Euler a',
     });
   } else {
     payload = text;
