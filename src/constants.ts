@@ -41,6 +41,8 @@ export const SCRIPT_INFERENCE_REQUEST = 'Script Inference Request';
 export const CANCEL_OPERATION = 'Operator Cancellation';
 
 export const NET_ARWEAVE_URL = 'https://arweave.net';
+export const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
+
 export const secondInMS = 1000;
 export const successStatusCode = 200;
 
@@ -64,4 +66,4 @@ export const U_DIVIDER = 1e6;
 
 export const ATOMIC_TOKEN_CONTRACT_ID = '37n5Z9NZUUPuXPdbbjXa2iYb9Wl39nAjkaSoz5DsxZQ';
 
-export const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
+export const UDL_ID = 'yRj4a5KMctX_uOmKWCFJIjmY8DeJcusVk6-HzLiM_t8';

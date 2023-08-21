@@ -72,7 +72,12 @@ const gqlQuery = gql`
 const parseQueryResult = (result: { data: { transactions: ITransactions } }) =>
   result.data.transactions.edges;
 
-export const queryTransactionsReceived = async (address: string, opFees: number[], scriptIds: string[], after?: string) => {
+export const queryTransactionsReceived = async (
+  address: string,
+  opFees: number[],
+  scriptIds: string[],
+  after?: string,
+) => {
   const paymentInputs = opFees.map((opFee) => {
     const feeShare = opFee * OPERATOR_PERCENTAGE_FEE;
 
@@ -147,7 +152,12 @@ export const getRequest = async (transactionId: string) => {
 
   return parseQueryResult(result)[0];
 };
-export const queryTransactionAnswered = async (transactionId: string, address: string, scriptName: string, scriptcurator: string) => {
+export const queryTransactionAnswered = async (
+  transactionId: string,
+  address: string,
+  scriptName: string,
+  scriptcurator: string,
+) => {
   const tags = [
     {
       name: OPERATION_NAME_TAG,
@@ -155,11 +165,11 @@ export const queryTransactionAnswered = async (transactionId: string, address: s
     },
     {
       name: SCRIPT_NAME_TAG,
-      values: [ scriptName ],
+      values: [scriptName],
     },
     {
       name: SCRIPT_CURATOR_TAG,
-      values: [ scriptcurator ],
+      values: [scriptcurator],
     },
     {
       name: REQUEST_TRANSACTION_TAG,
@@ -209,7 +219,7 @@ export const queryCheckUserPayment = async (
     },
     {
       name: SCRIPT_TRANSACTION_TAG,
-      values: [ scriptId ],
+      values: [scriptId],
     },
     {
       name: INFERENCE_TRANSACTION_TAG,
@@ -349,7 +359,9 @@ export const queryOperatorRegistrations = async (address: string) => {
   let registrationTxs: IEdge[] = [];
   do {
     const first = 10;
-    const after: string | undefined = hasNextPage ? registrationTxs[registrationTxs.length - 1].cursor : undefined;
+    const after: string | undefined = hasNextPage
+      ? registrationTxs[registrationTxs.length - 1].cursor
+      : undefined;
 
     const { data }: { data: { transactions: ITransactions } } = await clientGateway.query({
       query: gqlQuery,

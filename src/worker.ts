@@ -18,7 +18,13 @@ import fs from 'node:fs';
 import { WarpFactory } from 'warp-contracts';
 import { DeployPlugin } from 'warp-contracts-plugin-deploy';
 import { JWKInterface } from 'arweave/node/lib/wallet';
-import { IEdge, OperatorParams, ServerResponse, payloadFormatOptions, ITransactions } from './interfaces';
+import {
+  IEdge,
+  OperatorParams,
+  ServerResponse,
+  payloadFormatOptions,
+  ITransactions,
+} from './interfaces';
 import {
   APP_NAME_TAG,
   APP_VERSION_TAG,
@@ -44,6 +50,7 @@ import {
   SEQUENCE_OWNER_TAG,
   U_CONTRACT_ID,
   NODE2_BUNDLR_URL,
+  UDL_ID,
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -92,7 +99,12 @@ const gqlQuery = gql`
 const parseQueryResult = (result: { data: { transactions: ITransactions } }) =>
   result.data.transactions.edges;
 
-const queryTransactionAnswered = async (transactionId: string, address: string, scriptName: string, scriptcurator: string) => {
+const queryTransactionAnswered = async (
+  transactionId: string,
+  address: string,
+  scriptName: string,
+  scriptcurator: string,
+) => {
   const tags = [
     {
       name: OPERATION_NAME_TAG,
@@ -100,11 +112,11 @@ const queryTransactionAnswered = async (transactionId: string, address: string, 
     },
     {
       name: SCRIPT_NAME_TAG,
-      values: [ scriptName ],
+      values: [scriptName],
     },
     {
       name: SCRIPT_CURATOR_TAG,
-      values: [ scriptcurator ],
+      values: [scriptcurator],
     },
     {
       name: REQUEST_TRANSACTION_TAG,
@@ -154,7 +166,7 @@ const queryCheckUserPayment = async (
     },
     {
       name: SCRIPT_TRANSACTION_TAG,
-      values: [ scriptId ],
+      values: [scriptId],
     },
     {
       name: INFERENCE_TRANSACTION_TAG,
@@ -195,11 +207,17 @@ const sendToBundlr = async (
   // Get loaded balance in atomic units
   const atomicBalance = await bundlr.getLoadedBalance();
 
-  workerpool.workerEmit({ type: 'info', message: `node balance (atomic units) = ${atomicBalance}` });
+  workerpool.workerEmit({
+    type: 'info',
+    message: `node balance (atomic units) = ${atomicBalance}`,
+  });
 
   // Convert balance to an easier to read format
   const convertedBalance = bundlr.utils.fromAtomic(atomicBalance);
-  workerpool.workerEmit({ type: 'info', message: `node balance (converted) = ${convertedBalance}` });
+  workerpool.workerEmit({
+    type: 'info',
+    message: `node balance (converted) = ${convertedBalance}`,
+  });
 
   const tags = [
     { name: 'Custom-App-Name', value: 'Fair Protocol' },
@@ -230,6 +248,9 @@ const sendToBundlr = async (
     { name: 'Title', value: 'Fair Protocol NFT' },
     { name: 'Description', value: prompt }, // use request prompt
     { name: 'Type', value: 'Image' },
+    // add license tags
+    { name: 'License', value: UDL_ID },
+    { name: 'Commercial-Use', value: 'Allowed' },
   ];
   // turn into array to use same code for single and multiple responses
   responses = Array.isArray(responses) ? responses : [responses];
@@ -237,10 +258,16 @@ const sendToBundlr = async (
   try {
     for (const response of responses) {
       const transaction = await bundlr.uploadFile(response, { tags });
-      workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${transaction.id}` });
+      workerpool.workerEmit({
+        type: 'info',
+        message: `Data uploaded ==> https://arweave.net/${transaction.id}`,
+      });
       try {
         const { contractTxId } = await warp.register(transaction.id, 'node1'); // must use same node as uploaded data
-        workerpool.workerEmit({ type: 'info', message: `Token Registered ==> https://arweave.net/${contractTxId}` });
+        workerpool.workerEmit({
+          type: 'info',
+          message: `Token Registered ==> https://arweave.net/${contractTxId}`,
+        });
       } catch (e) {
         workerpool.workerEmit({ type: 'error', message: `Could not register token: ${e}` });
       }
@@ -269,7 +296,8 @@ const inference = async function (requestTx: IEdge, url: string, format: payload
       'n_iter': 4,
       steps: 20,
       'cfg_scale': 7,
-      'negative_prompt': 'EasyNegative, drawn by bad-artist, sketch by bad-artist-anime, (bad_prompt:0.8), (artist name, signature, watermark:1.4), (ugly:1.2), (worst quality, poor details:1.4), bad-hands-5, badhandv4, blurry,',
+      'negative_prompt':
+        'EasyNegative, drawn by bad-artist, sketch by bad-artist-anime, (bad_prompt:0.8), (artist name, signature, watermark:1.4), (ugly:1.2), (worst quality, poor details:1.4), bad-hands-5, badhandv4, blurry,',
       'sampler_index': 'Euler a',
     });
   } else {
@@ -283,7 +311,7 @@ const inference = async function (requestTx: IEdge, url: string, format: payload
   const tempData: ServerResponse = await res.json();
 
   if (tempData.images) {
-    const imgPaths = tempData.images.map((el, i)=>{
+    const imgPaths = tempData.images.map((el, i) => {
       fs.writeFileSync(`output_${requestTx.node.id}_${i}.png`, Buffer.from(el, 'base64'));
       return `./output_${requestTx.node.id}_${i}.png`;
     });
@@ -333,11 +361,12 @@ const checkUserPaidInferenceFees = async (
     qty: parseInt(creatorShare.toString(), 10).toString(),
   });
 
-  const paymentTxs: IEdge[] = await queryCheckUserPayment(txid, userAddress, [
-    marketpaceInput,
-    curatorInput,
-    creatorInput,
-  ], scriptId);
+  const paymentTxs: IEdge[] = await queryCheckUserPayment(
+    txid,
+    userAddress,
+    [marketpaceInput, curatorInput, creatorInput],
+    scriptId,
+  );
   const necessaryPayments = 3;
 
   if (paymentTxs.length < necessaryPayments) {
@@ -405,18 +434,34 @@ const getRequest = async (transactionId: string) => {
   return parseQueryResult(result)[0];
 };
 
-const processRequest = async (requestId: string, reqUserAddr: string, registration: OperatorParams, address: string) => {  
+const processRequest = async (
+  requestId: string,
+  reqUserAddr: string,
+  registration: OperatorParams,
+  address: string,
+) => {
   const requestTx: IEdge = await getRequest(requestId);
   if (!requestTx) {
     // If the request doesn't exist, skip
-    workerpool.workerEmit({ type: 'error', message: `Request ${requestId} does not exist. Skipping...` });
+    workerpool.workerEmit({
+      type: 'error',
+      message: `Request ${requestId} does not exist. Skipping...`,
+    });
     return false;
   }
 
-  const responseTxs: IEdge[] = await queryTransactionAnswered(requestId, address, registration.scripName, registration.scriptCurator);
+  const responseTxs: IEdge[] = await queryTransactionAnswered(
+    requestId,
+    address,
+    registration.scripName,
+    registration.scriptCurator,
+  );
   if (responseTxs.length > 0) {
     // If the request has already been answered, we don't need to do anything
-    workerpool.workerEmit({ type: 'info', message: `Request ${requestId} has already been answered. Skipping...` });
+    workerpool.workerEmit({
+      type: 'info',
+      message: `Request ${requestId} has already been answered. Skipping...`,
+    });
     return requestId;
   }
 
@@ -430,7 +475,10 @@ const processRequest = async (requestId: string, reqUserAddr: string, registrati
       registration.scriptId,
     ))
   ) {
-    workerpool.workerEmit({ type: 'error', message: `Could not find payment for request ${requestId}. Skipping...` });
+    workerpool.workerEmit({
+      type: 'error',
+      message: `Could not find payment for request ${requestId}. Skipping...`,
+    });
     return false;
   }
 
@@ -440,12 +488,18 @@ const processRequest = async (requestId: string, reqUserAddr: string, registrati
   )?.value;
   if (!appVersion || !conversationIdentifier) {
     // If the request doesn't have the necessary tags, skip
-    workerpool.workerEmit({ type: 'error', message: `Request ${requestId} does not have the necessary tags.` });
+    workerpool.workerEmit({
+      type: 'error',
+      message: `Request ${requestId} does not have the necessary tags.`,
+    });
     return false;
   }
 
   const inferenceResult = await inference(requestTx, registration.url, registration.payloadFormat);
-  workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(inferenceResult)}` });
+  workerpool.workerEmit({
+    type: 'info',
+    message: `Inference Result: ${JSON.stringify(inferenceResult)}`,
+  });
 
   await sendToBundlr(
     inferenceResult.imgPaths ?? inferenceResult.audioPath,
@@ -454,13 +508,19 @@ const processRequest = async (requestId: string, reqUserAddr: string, registrati
     requestTx.node.owner.address,
     requestTx.node.id,
     conversationIdentifier,
-    registration.scriptId
+    registration.scriptId,
   );
 
   return requestId;
 };
 
-const processRequestLock = async (requestId: string, reqUserAddr: string, registration: OperatorParams, address: string, lock: Mutex) => {
+const processRequestLock = async (
+  requestId: string,
+  reqUserAddr: string,
+  registration: OperatorParams,
+  address: string,
+  lock: Mutex,
+) => {
   workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestId}...` });
   await lock.runExclusive(async () => {
     workerpool.workerEmit({ type: 'info', message: `Thread ${requestId} acquired lock` });

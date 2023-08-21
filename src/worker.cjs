@@ -37,6 +37,7 @@ const INPUT_TAG = 'Input';
 const SEQUENCE_OWNER_TAG = 'Sequencer-Owner';
 const SCRIPT_TRANSACTION_TAG = 'Script-Transaction';
 const NET_ARWEAVE_URL = 'https://arweave.net';
+const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
 const secondInMS = 1000;
 const VAULT_ADDRESS = 'tXd-BOaxmxtgswzwMLnryROAYlX5uDC9-XK2P4VNCQQ';
 const MARKETPLACE_PERCENTAGE_FEE = 0.15;
@@ -44,7 +45,7 @@ const CURATOR_PERCENTAGE_FEE = 0.025;
 const CREATOR_PERCENTAGE_FEE = 0.025;
 const U_CONTRACT_ID = 'KTzTXT_ANmF84fWEKHzWURD1LWd9QaFR9yfYUwH2Lxw';
 const ATOMIC_TOKEN_CONTRACT_ID = '37n5Z9NZUUPuXPdbbjXa2iYb9Wl39nAjkaSoz5DsxZQ';
-const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
+const UDL_ID = 'yRj4a5KMctX_uOmKWCFJIjmY8DeJcusVk6-HzLiM_t8';
 
 const JWK = JSON.parse(fs.readFileSync('wallet.json').toString());
 // initailze the bundlr SDK
@@ -226,6 +227,9 @@ const sendToBundlr = async (
     { name: 'Title', value: 'Fair Protocol NFT' },
     { name: 'Description', value: prompt }, // use request prompt
     { name: 'Type', value: 'Image' },
+    // add license tags
+    { name: 'License', value: UDL_ID },
+    { name: 'Commercial-Use', value: 'Allowed' },
   ];
   // turn into array to use same code for single and multiple responses
   responses = Array.isArray(responses) ? responses : [responses];
