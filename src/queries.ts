@@ -63,6 +63,9 @@ const gqlQuery = gql`
             name
             value
           }
+          block {
+            height
+          }
         }
       }
     }
