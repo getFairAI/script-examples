@@ -139,7 +139,7 @@ const validateRegistration = async (tx: IEdge) => {
       modelOwner,
       scriptId: scriptId as string,
       operatorFee: opFee,
-      scripName: scriptName as string,
+      scriptName: scriptName as string,
       scriptCurator: scriptCurator as string,
       registrationTx: tx,
     });
@@ -168,10 +168,9 @@ const startThread = (
       });
 
       logger.info(`Thread ${reqTxId} released lock`);
-      return;
     }
   );
-}
+};
 
 const handleWorkerEvents = (payload: { type: 'info' | 'error' | 'result'; message: string | boolean }, txid: string) => {
   if (payload.type === 'error') {
@@ -222,7 +221,7 @@ const start = async () => {
     }
 
     const mostRecent: IEdge[] =[];
-    newRequestTxs.forEach(tx => {
+    newRequestTxs.forEach((tx) => {
       if (!tx.node.block ||tx.node.block?.height >= parseInt(CONFIG.startBlockHeight, 10)) {
         mostRecent.push(tx);
       } else {
