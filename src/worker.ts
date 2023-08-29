@@ -51,6 +51,7 @@ import {
   U_CONTRACT_ID,
   NODE2_BUNDLR_URL,
   UDL_ID,
+  MAX_STR_SIZE
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -199,9 +200,7 @@ const sendToBundlr = async (
   userAddress: string,
   requestTransaction: string,
   conversationIdentifier: string,
-  scriptId: string,
-  scriptName: string,
-  scriptCurator: string
+  registration: OperatorParams,
 ) => {
   const type = Array.isArray(responses) ? 'image/png' : 'audio/wav';
 
@@ -223,9 +222,9 @@ const sendToBundlr = async (
   const tags = [
     { name: 'Custom-App-Name', value: 'Fair Protocol' },
     { name: 'Custom-App-Version', value: appVersion },
-    { name: SCRIPT_TRANSACTION_TAG, value: scriptId },
-    { name: SCRIPT_CURATOR_TAG, value: scriptCurator },
-    { name: SCRIPT_NAME_TAG, value: scriptName },
+    { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
+    { name: SCRIPT_CURATOR_TAG, value: registration.scriptCurator },
+    { name: SCRIPT_NAME_TAG, value: registration.scriptName },
     { name: SCRIPT_USER_TAG, value: userAddress },
     { name: REQUEST_TRANSACTION_TAG, value: requestTransaction },
     { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
@@ -249,7 +248,7 @@ const sendToBundlr = async (
       }),
     },
     { name: 'Title', value: 'Fair Protocol NFT' },
-    { name: 'Description', value:  prompt.length > 1000 ? prompt.slice(0,1000) : prompt }, // use request prompt
+    { name: 'Description', value:  prompt.length > MAX_STR_SIZE ? prompt.slice(0,MAX_STR_SIZE) : prompt }, // use request prompt
     { name: 'Type', value: 'Image' },
     // add license tags
     { name: 'License', value: UDL_ID },
@@ -461,7 +460,7 @@ const processRequest = async (
   const responseTxs: IEdge[] = await queryTransactionAnswered(
     requestId,
     address,
-    registration.scripName,
+    registration.scriptName,
     registration.scriptCurator,
   );
   if (responseTxs.length > 0) {
@@ -516,9 +515,7 @@ const processRequest = async (
     requestTx.node.owner.address,
     requestTx.node.id,
     conversationIdentifier,
-    registration.scriptId,
-    registration.scripName,
-    registration.scriptCurator
+    registration
   );
 
   return requestId;

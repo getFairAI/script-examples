@@ -46,6 +46,7 @@ const CREATOR_PERCENTAGE_FEE = 0.025;
 const U_CONTRACT_ID = 'KTzTXT_ANmF84fWEKHzWURD1LWd9QaFR9yfYUwH2Lxw';
 const ATOMIC_TOKEN_CONTRACT_ID = '37n5Z9NZUUPuXPdbbjXa2iYb9Wl39nAjkaSoz5DsxZQ';
 const UDL_ID = 'yRj4a5KMctX_uOmKWCFJIjmY8DeJcusVk6-HzLiM_t8';
+const MAX_STR_SIZE = 1000;
 
 const JWK = JSON.parse(fs.readFileSync('wallet.json').toString());
 // initailze the bundlr SDK
@@ -185,9 +186,7 @@ const sendToBundlr = async (
   userAddress,
   requestTransaction,
   conversationIdentifier,
-  scriptId,
-  scriptName,
-  scriptCurator
+  registration,
 ) => {
   const type = Array.isArray(responses) ? 'image/png' : 'audio/wav';
 
@@ -203,9 +202,9 @@ const sendToBundlr = async (
   const tags = [
     { name: 'Custom-App-Name', value: 'Fair Protocol' },
     { name: 'Custom-App-Version', value: appVersion },
-    { name: SCRIPT_TRANSACTION_TAG, value: scriptId },
-    { name: SCRIPT_CURATOR_TAG, value: scriptCurator },
-    { name: SCRIPT_NAME_TAG, value: scriptName },
+    { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
+    { name: SCRIPT_CURATOR_TAG, value: registration.scriptCurator },
+    { name: SCRIPT_NAME_TAG, value: registration.scriptName },
     { name: SCRIPT_USER_TAG, value: userAddress },
     { name: REQUEST_TRANSACTION_TAG, value: requestTransaction },
     { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
@@ -229,7 +228,7 @@ const sendToBundlr = async (
       }),
     },
     { name: 'Title', value: 'Fair Protocol NFT' },
-    { name: 'Description', value:  prompt.length > 1000 ? prompt.slice(0,1000) : prompt }, // use request prompt
+    { name: 'Description', value:  prompt.length > MAX_STR_SIZE ? prompt.slice(0, MAX_STR_SIZE) : prompt }, // use request prompt
     { name: 'Type', value: 'Image' },
     // add license tags
     { name: 'License', value: UDL_ID },
@@ -422,7 +421,7 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     return false;
   }
 
-  const responseTxs = await queryTransactionAnswered(requestId, address, registration.scripName, registration.scriptCurator);
+  const responseTxs = await queryTransactionAnswered(requestId, address, registration.scriptName, registration.scriptCurator);
   if (responseTxs.length > 0) {
     // If the request has already been answered, we don't need to do anything
     workerpool.workerEmit({ type: 'info', message: `Request ${requestId} has already been answered. Skipping...` });
@@ -463,9 +462,7 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     requestTx.node.owner.address,
     requestTx.node.id,
     conversationIdentifier,
-    registration.scriptId,
-    registration.scripName,
-    registration.scriptCurator
+    registration
   );
 
   return requestId;

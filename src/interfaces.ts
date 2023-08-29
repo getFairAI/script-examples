@@ -76,7 +76,7 @@ export type payloadFormatOptions = 'webui' | 'default';
 export interface OperatorParams {
   modelOwner: string;
   operatorFee: number;
-  scripName: string;
+  scriptName: string;
   scriptCurator: string;
   scriptId: string;
   registrationTx: IEdge;

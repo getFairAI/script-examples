@@ -67,3 +67,5 @@ export const U_DIVIDER = 1e6;
 export const ATOMIC_TOKEN_CONTRACT_ID = '37n5Z9NZUUPuXPdbbjXa2iYb9Wl39nAjkaSoz5DsxZQ';
 
 export const UDL_ID = 'yRj4a5KMctX_uOmKWCFJIjmY8DeJcusVk6-HzLiM_t8';
+
+export const MAX_STR_SIZE = 1000;
