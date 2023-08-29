@@ -153,18 +153,37 @@ const startThread = (
   reqUserAddr: string,
   currentRegistration: OperatorParams,
   lock: Mutex,
-) =>
-  pool.exec('processRequestLock', [reqTxId, reqUserAddr, currentRegistration, address, lock], {
-    on: handleWorkerEvents,
-  });
+  txid: string,
+) => {
+  return lock.runExclusive(
+    async () => {
+      logger.info(`Thread ${reqTxId} acquired lock`);
+      if (lastProcessedTxs.includes(txid)) {
+        // if txid is already processed skip launching thread
+        logger.info(`Thread ${reqTxId} released lock`);
+        return;
+      }
+      await pool.exec('processRequestLock', [reqTxId, reqUserAddr, currentRegistration, address], {
+        on: (payload) => handleWorkerEvents(payload, txid),
+      });
 
-const stopPool = () => pool.terminate();
+      logger.info(`Thread ${reqTxId} released lock`);
+      return;
+    }
+  );
+}
 
-const handleWorkerEvents = (payload: { type: 'info' | 'error'; message: string }) => {
+const handleWorkerEvents = (payload: { type: 'info' | 'error' | 'result'; message: string | boolean }, txid: string) => {
   if (payload.type === 'error') {
     logger.error(payload.message);
-  } else {
+  } else if (payload.type === 'info') {
     logger.info(payload.message);
+  } else {
+    const result = payload.message;
+    if (typeof result === 'string') {
+      // save latest tx id only for successful processed requests
+      lastProcessedTxs.push(txid);  
+    }
   }
 };
 
@@ -202,9 +221,16 @@ const start = async () => {
       }
     }
 
-    const threadPromises: workerpool.Promise<Promise<boolean | string>, Error>[] = [];
+    const mostRecent: IEdge[] =[];
+    newRequestTxs.forEach(tx => {
+      if (!tx.node.block ||tx.node.block?.height >= parseInt(CONFIG.startBlockHeight, 10)) {
+        mostRecent.push(tx);
+      } else {
+        lastProcessedTxs.push(tx.node.id); // ignore old txs
+      }
+    });
 
-    for (const edge of newRequestTxs) {
+    for (const edge of mostRecent) {
       logger.info(`Processing request ${edge.node.id} ...`);
       // Check if request already answered:
       const reqTxId = edge.node.tags.find((tag) => tag.name === INFERENCE_TRANSACTION_TAG)?.value;
@@ -219,25 +245,13 @@ const start = async () => {
       );
 
       if (reqTxId && reqUserAddr && currentRegistration && registrationIdx >= 0) {
-        threadPromises.push(
-          startThread(reqTxId, reqUserAddr, currentRegistration, mutexes[registrationIdx]),
-        );
+        startThread(reqTxId, reqUserAddr, currentRegistration, mutexes[registrationIdx], edge.node.id);
       } else {
         logger.error('No Registration, inference Tx or userAddr found for request. Skipping...');
         // skip requests without inference transaction tag
       }
     }
     logger.info(pool.stats());
-    // await pool excution
-    const results = await Promise.all(threadPromises);
-    // filter only successful processed requests
-    const successfulProcessedRequests = newRequestTxs.filter((el) =>
-      results.includes(
-        el.node.tags.find((tag) => tag.name === INFERENCE_TRANSACTION_TAG)?.value as string,
-      ),
-    );
-    // save latest tx id only for successful processed requests
-    lastProcessedTxs.push(...successfulProcessedRequests.map((el) => el.node.id));
   } catch (e) {
     logger.error(`Errored with: ${e}`);
   }
@@ -255,7 +269,6 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   try {
     tempRegistrations = await findRegistrations();
   } catch (err) {
-    stopPool();
     logger.error('Error Fetching Operator Registrations');
     logger.info('Shutting down...');
 
@@ -267,7 +280,6 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
       await validateRegistration(tx);
     }
   } catch (err) {
-    stopPool();
     logger.error('Error Fetching Model Owners for registrations');
     logger.info('Shutting down...');
 
@@ -275,7 +287,6 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   if (registrations.length === 0) {
-    stopPool();
     logger.error('No registrations found. Shutting down...');
     process.exit(1);
   }

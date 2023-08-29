@@ -186,6 +186,8 @@ const sendToBundlr = async (
   requestTransaction,
   conversationIdentifier,
   scriptId,
+  scriptName,
+  scriptCurator
 ) => {
   const type = Array.isArray(responses) ? 'image/png' : 'audio/wav';
 
@@ -202,6 +204,8 @@ const sendToBundlr = async (
     { name: 'Custom-App-Name', value: 'Fair Protocol' },
     { name: 'Custom-App-Version', value: appVersion },
     { name: SCRIPT_TRANSACTION_TAG, value: scriptId },
+    { name: SCRIPT_CURATOR_TAG, value: scriptCurator },
+    { name: SCRIPT_NAME_TAG, value: scriptName },
     { name: SCRIPT_USER_TAG, value: userAddress },
     { name: REQUEST_TRANSACTION_TAG, value: requestTransaction },
     { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
@@ -225,7 +229,7 @@ const sendToBundlr = async (
       }),
     },
     { name: 'Title', value: 'Fair Protocol NFT' },
-    { name: 'Description', value: prompt }, // use request prompt
+    { name: 'Description', value:  prompt.length > 1000 ? prompt.slice(0,1000) : prompt }, // use request prompt
     { name: 'Type', value: 'Image' },
     // add license tags
     { name: 'License', value: UDL_ID },
@@ -251,7 +255,7 @@ const sendToBundlr = async (
   }
 };
 
-const inference = async function (requestTx, url, format) {
+const inference = async function (requestTx, url, format, overrideSettings) {
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
   const text = await (await requestData.blob()).text();
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
@@ -271,13 +275,18 @@ const inference = async function (requestTx, url, format) {
       'cfg_scale': 7,
       'negative_prompt': 'EasyNegative, drawn by bad-artist, sketch by bad-artist-anime, (bad_prompt:0.8), (artist name, signature, watermark:1.4), (ugly:1.2), (worst quality, poor details:1.4), bad-hands-5, badhandv4, blurry,',
       'sampler_index': 'Euler a',
+      ...(!!overrideSettings && { 'override_settings': overrideSettings}), // add override settigns if specified in config
     });
   } else {
     payload = text;
   }
 
-  const res = await fetch(`${url}/`, {
+  const res = await fetch(`${url}`, {
     method: 'POST',
+    ...(format === 'webui' && { headers: {
+      'accept': 'application/json',
+      'Content-Type': 'application/json'
+    }}),
     body: payload,
   });
   const tempData = await res.json();
@@ -444,7 +453,7 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     return false;
   }
 
-  const inferenceResult = await inference(requestTx, registration.url, registration.payloadFormat);
+  const inferenceResult = await inference(requestTx, registration.url, registration.payloadFormat, registration.overrideSettings);
   workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(inferenceResult)}` });
 
   await sendToBundlr(
@@ -454,19 +463,25 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     requestTx.node.owner.address,
     requestTx.node.id,
     conversationIdentifier,
-    registration.scriptId
+    registration.scriptId,
+    registration.scripName,
+    registration.scriptCurator
   );
 
   return requestId;
 };
 
-const processRequestLock = async (requestId, reqUserAddr, registration, address, lock) => {
-  workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestId}...` });
-  await lock.runExclusive(async () => {
-    workerpool.workerEmit({ type: 'info', message: `Thread ${requestId} acquired lock` });
-    await processRequest(requestId, reqUserAddr, registration, address);
-    workerpool.workerEmit({ type: 'info', message: `Thread ${requestId} released lock` });
-  });
+const processRequestLock = async (requestId, reqUserAddr, registration, address) => {
+  try {
+    workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestId}...` });
+    
+    const result = await processRequest(requestId, reqUserAddr, registration, address);
+    
+    workerpool.workerEmit({ type: 'result', message: result });
+  } catch (e) {
+    workerpool.workerEmit({ type: 'error', message: `Thread ${requestId} released with error: ${e}` });
+    workerpool.workerEmit({ type: 'result', message: false });
+  }
 };
 
 workerpool.worker({

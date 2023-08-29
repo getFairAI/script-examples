@@ -82,6 +82,7 @@ export interface OperatorParams {
   registrationTx: IEdge;
   url: string;
   payloadFormat: payloadFormatOptions;
+  overrideSettings?: unknown;
 }
 
 export interface ServerResponse {
