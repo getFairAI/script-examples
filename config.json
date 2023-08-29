@@ -1,13 +1,27 @@
 {
   "urls": {
-    "scriptTx1": {
+    "MnXiGR9-j9DgZjFSW1g0GNRtoPDNpq01F64jHF77Xhw": {
+      "name": "dreamshaper",
       "url": "http://127.0.0.1:8088",
-      "payloadFormat": "webui"
+      "payloadFormat": "default"
     },
-    "scriptTx2": {
+    "hjHcLFTEDjzVUyJD0VlkD2OzRlU7yFxxQGzIhXDfMiY": {
+      "name": "3d",
+      "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+      "payloadFormat": "webui",
+      "override_settings": {
+        "filter_nsfw": "false",
+        "sd_model_checkpoint": "disneyPixarCartoon_v10.safetensors [732d0dd2cf]",
+        "sd_vae": "MoistMix.vae.pt",
+        "CLIP_stop_at_last_layers": 2
+      }
+    },
+    "o_cXAH5pm1x9J_x9IS63QnqVL1qFIKgmF3A5wOc_Xu0": {
+      "name": "vits",
       "url": "http://127.0.0.1:8089",
       "payloadFormat": "default"
     }
   },
+  "startBlockHeight": "1250542",
   "sleepTimeSeconds": 7
 }
