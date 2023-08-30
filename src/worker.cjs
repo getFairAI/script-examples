@@ -44,7 +44,7 @@ const MARKETPLACE_PERCENTAGE_FEE = 0.15;
 const CURATOR_PERCENTAGE_FEE = 0.025;
 const CREATOR_PERCENTAGE_FEE = 0.025;
 const U_CONTRACT_ID = 'KTzTXT_ANmF84fWEKHzWURD1LWd9QaFR9yfYUwH2Lxw';
-const ATOMIC_TOKEN_CONTRACT_ID = '37n5Z9NZUUPuXPdbbjXa2iYb9Wl39nAjkaSoz5DsxZQ';
+const ATOMIC_TOKEN_CONTRACT_ID = 'h9v17KHV4SXwdW2-JHU6a23f6R0YtbXZJJht8LfP8QM';
 const UDL_ID = 'yRj4a5KMctX_uOmKWCFJIjmY8DeJcusVk6-HzLiM_t8';
 const MAX_STR_SIZE = 1000;
 
@@ -223,7 +223,7 @@ const sendToBundlr = async (
     {
       name: 'Init-State',
       value: JSON.stringify({
-        owner: userAddress,
+        firstOwner: userAddress,
         canEvolve: false,
         balances: {
           [userAddress]: 1,
