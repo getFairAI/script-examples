@@ -299,7 +299,7 @@ const inference = async function (requestTx, scriptId, url, format, settings) {
   let payload;
   if (format === 'webui') {
     payload = JSON.stringify({
-      ...(settings && { settings }),
+      ...(settings && { ...settings }),
       prompt: settings?.prompt ? `${settings?.prompt}${text}` : text,
     });
   } else {
