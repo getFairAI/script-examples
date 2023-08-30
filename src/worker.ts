@@ -242,7 +242,7 @@ const sendToBundlr = async (
     {
       name: 'Init-State',
       value: JSON.stringify({
-        owner: userAddress,
+        firstOwner: userAddress,
         canEvolve: false,
         balances: {
           [userAddress]: 1,
