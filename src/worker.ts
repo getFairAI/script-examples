@@ -24,6 +24,8 @@ import {
   ServerResponse,
   payloadFormatOptions,
   ITransactions,
+  IOptionalSettings,
+  InferenceResult,
 } from './interfaces';
 import {
   APP_NAME_TAG,
@@ -194,14 +196,16 @@ const queryCheckUserPayment = async (
 };
 
 const sendToBundlr = async (
-  responses: string[] | string,
-  prompt: string,
+  inferenceResult: InferenceResult,
   appVersion: string,
   userAddress: string,
   requestTransaction: string,
   conversationIdentifier: string,
   registration: OperatorParams,
 ) => {
+  let responses = inferenceResult.imgPaths as string[] ?? inferenceResult.audioPath as string;
+  const prompt = inferenceResult.prompt;
+
   const type = Array.isArray(responses) ? 'image/png' : 'audio/wav';
 
   // Get loaded balance in atomic units
@@ -258,14 +262,19 @@ const sendToBundlr = async (
   responses = Array.isArray(responses) ? responses : [responses];
 
   try {
+    let i = 0;
     for (const response of responses) {
+      const currentImageSeed = inferenceResult.seeds ? inferenceResult.seeds[i] : null;
+      if (currentImageSeed) {
+        tags.push({ name: 'Inference-Seed', value: currentImageSeed });
+      }
       const transaction = await bundlr.uploadFile(response, { tags });
       workerpool.workerEmit({
         type: 'info',
         message: `Data uploaded ==> https://arweave.net/${transaction.id}`,
       });
       try {
-        const { contractTxId } = await warp.register(transaction.id, 'node1'); // must use same node as uploaded data
+        const { contractTxId } = await warp.register(transaction.id, 'node2'); // must use same node as uploaded data
         workerpool.workerEmit({
           type: 'info',
           message: `Token Registered ==> https://arweave.net/${contractTxId}`,
@@ -273,6 +282,7 @@ const sendToBundlr = async (
       } catch (e) {
         workerpool.workerEmit({ type: 'error', message: `Could not register token: ${e}` });
       }
+      i++;
     }
   } catch (e) {
     // throw error to be handled by caller
@@ -280,7 +290,33 @@ const sendToBundlr = async (
   }
 };
 
-const inference = async function (requestTx: IEdge, url: string, format: payloadFormatOptions, overrideSettings: unknown) {
+const fetchSeed = async (url: string, imageStr: string) => {
+  try {
+    const infoUrl = url.replace('/txt2img', '/png-info');
+    
+    const secRes = await fetch(infoUrl, {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ image: `data:image/png;base64,${imageStr}` }),
+    });
+
+    const result: { info: string, items: { parameters: string }} = await secRes.json();
+    const seedStrStartIdx = result.info.indexOf('Seed:');
+    const seedStrEndIdx = result.info.indexOf(',', seedStrStartIdx); // search for next comma after 'Seed:' substring
+
+    const seedStr = result.info.substring(seedStrStartIdx, seedStrEndIdx);
+    const seed = seedStr.split('Seed:')[1].trim();
+
+    return seed;
+  } catch (e) {
+    return '';
+  }
+};
+
+const inference = async function (requestTx: IEdge, scriptId: string, url: string, format: payloadFormatOptions, settings?: IOptionalSettings) {
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
   const text = await (await requestData.blob()).text();
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
@@ -288,26 +324,14 @@ const inference = async function (requestTx: IEdge, url: string, format: payload
   let payload;
   if (format === 'webui') {
     payload = JSON.stringify({
-      'enable_hr': 'true',
-      'denoising_strength': 0.5,
-      'hr_scale': 2,
-      'hr_upscaler': 'Latent',
-      'hr_second_pass_steps': 20,
-      prompt: `masterpiece, best quality, ${text}`,
-      seed: -1,
-      'n_iter': 4,
-      steps: 20,
-      'cfg_scale': 7,
-      'negative_prompt':
-        'EasyNegative, drawn by bad-artist, sketch by bad-artist-anime, (bad_prompt:0.8), (artist name, signature, watermark:1.4), (ugly:1.2), (worst quality, poor details:1.4), bad-hands-5, badhandv4, blurry,',
-      'sampler_index': 'Euler a',
-      ...(!!overrideSettings && { 'override_settings': overrideSettings}), // add override settigns if specified in config
+      ...(settings && { settings }),
+      prompt: settings?.prompt ? `${settings?.prompt}${text}` : text,
     });
   } else {
     payload = text;
   }
 
-  const res = await fetch(`${url}`, {
+  const res = await fetch(url, {
     method: 'POST',
     ...(format === 'webui' && { headers: {
       'accept': 'application/json',
@@ -318,11 +342,19 @@ const inference = async function (requestTx: IEdge, url: string, format: payload
   const tempData: ServerResponse = await res.json();
 
   if (tempData.images) {
-    const imgPaths = tempData.images.map((el, i) => {
-      fs.writeFileSync(`output_${requestTx.node.id}_${i}.png`, Buffer.from(el, 'base64'));
-      return `./output_${requestTx.node.id}_${i}.png`;
-    });
-    return { imgPaths, prompt: text };
+    let i = 0;
+    const imgPaths: string[] = [], imgSeeds: string[] = [];
+
+    for (const el of tempData.images) {
+      fs.writeFileSync(`output_${scriptId}_${i}.png`, Buffer.from(el, 'base64'));
+      imgPaths.push(`./output_${scriptId}_${i}.png`);
+  
+      const seed = await fetchSeed(url, el);
+      imgSeeds.push(seed);
+      i++;
+    }
+
+    return { imgPaths, prompt: text, seeds: imgSeeds };
   } else if (tempData.imgPaths) {
     return {
       imgPaths: tempData.imgPaths,
@@ -502,15 +534,14 @@ const processRequest = async (
     return false;
   }
 
-  const inferenceResult = await inference(requestTx, registration.url, registration.payloadFormat, registration.overrideSettings);
+  const inferenceResult = await inference(requestTx, registration.scriptId, registration.url, registration.payloadFormat, registration.settings);
   workerpool.workerEmit({
     type: 'info',
     message: `Inference Result: ${JSON.stringify(inferenceResult)}`,
   });
 
   await sendToBundlr(
-    inferenceResult.imgPaths ?? inferenceResult.audioPath,
-    inferenceResult.prompt,
+    inferenceResult,
     appVersion,
     requestTx.node.owner.address,
     requestTx.node.id,
