@@ -82,7 +82,7 @@ export interface OperatorParams {
   registrationTx: IEdge;
   url: string;
   payloadFormat: payloadFormatOptions;
-  overrideSettings?: unknown;
+  settings?: IOptionalSettings;
 }
 
 export interface ServerResponse {
@@ -94,4 +94,10 @@ export interface ServerResponse {
 export interface UrlConfig {
   url: string;
   payloadFormat: payloadFormatOptions;
+  settings?:IOptionalSettings
+}
+
+export interface IOptionalSettings {
+  [key: string ]: string;
+  prompt: string;
 }

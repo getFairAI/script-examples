@@ -24,6 +24,7 @@ import {
   ServerResponse,
   payloadFormatOptions,
   ITransactions,
+  IOptionalSettings,
 } from './interfaces';
 import {
   APP_NAME_TAG,
@@ -265,7 +266,7 @@ const sendToBundlr = async (
         message: `Data uploaded ==> https://arweave.net/${transaction.id}`,
       });
       try {
-        const { contractTxId } = await warp.register(transaction.id, 'node1'); // must use same node as uploaded data
+        const { contractTxId } = await warp.register(transaction.id, 'node2'); // must use same node as uploaded data
         workerpool.workerEmit({
           type: 'info',
           message: `Token Registered ==> https://arweave.net/${contractTxId}`,
@@ -280,7 +281,7 @@ const sendToBundlr = async (
   }
 };
 
-const inference = async function (requestTx: IEdge, url: string, format: payloadFormatOptions, overrideSettings: unknown) {
+const inference = async function (requestTx: IEdge, scriptId: string, url: string, format: payloadFormatOptions, settings?: IOptionalSettings) {
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
   const text = await (await requestData.blob()).text();
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
@@ -288,20 +289,8 @@ const inference = async function (requestTx: IEdge, url: string, format: payload
   let payload;
   if (format === 'webui') {
     payload = JSON.stringify({
-      'enable_hr': 'true',
-      'denoising_strength': 0.5,
-      'hr_scale': 2,
-      'hr_upscaler': 'Latent',
-      'hr_second_pass_steps': 20,
-      prompt: `masterpiece, best quality, ${text}`,
-      seed: -1,
-      'n_iter': 4,
-      steps: 20,
-      'cfg_scale': 7,
-      'negative_prompt':
-        'EasyNegative, drawn by bad-artist, sketch by bad-artist-anime, (bad_prompt:0.8), (artist name, signature, watermark:1.4), (ugly:1.2), (worst quality, poor details:1.4), bad-hands-5, badhandv4, blurry,',
-      'sampler_index': 'Euler a',
-      ...(!!overrideSettings && { 'override_settings': overrideSettings}), // add override settigns if specified in config
+      ...(settings && { settings }),
+      prompt: settings?.prompt ? `${settings?.prompt}${text}` : text,
     });
   } else {
     payload = text;
@@ -319,8 +308,8 @@ const inference = async function (requestTx: IEdge, url: string, format: payload
 
   if (tempData.images) {
     const imgPaths = tempData.images.map((el, i) => {
-      fs.writeFileSync(`output_${requestTx.node.id}_${i}.png`, Buffer.from(el, 'base64'));
-      return `./output_${requestTx.node.id}_${i}.png`;
+      fs.writeFileSync(`output_${scriptId}_${i}.png`, Buffer.from(el, 'base64'));
+      return `./output_${scriptId}_${i}.png`;
     });
     return { imgPaths, prompt: text };
   } else if (tempData.imgPaths) {
@@ -502,7 +491,7 @@ const processRequest = async (
     return false;
   }
 
-  const inferenceResult = await inference(requestTx, registration.url, registration.payloadFormat, registration.overrideSettings);
+  const inferenceResult = await inference(requestTx, registration.scriptId, registration.url, registration.payloadFormat, registration.settings);
   workerpool.workerEmit({
     type: 'info',
     message: `Inference Result: ${JSON.stringify(inferenceResult)}`,

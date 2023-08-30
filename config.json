@@ -9,11 +9,25 @@
       "name": "3d",
       "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
       "payloadFormat": "webui",
-      "override_settings": {
-        "filter_nsfw": "false",
-        "sd_model_checkpoint": "disneyPixarCartoon_v10.safetensors [732d0dd2cf]",
-        "sd_vae": "MoistMix.vae.pt",
-        "CLIP_stop_at_last_layers": 2
+      "settings": {
+        "enable_hr": "true",
+        "denoising_strength": 0.5,
+        "hr_scale": 2,
+        "hr_upscaler": "Latent",
+        "hr_second_pass_steps": 20,
+        "prompt": "masterpiece, best quality,}",
+        "seed": -1,
+        "n_iter": 4,
+        "steps": 20,
+        "cfg_scale": 7,
+        "negative_prompt": "EasyNegative, drawn by bad-artist, sketch by bad-artist-anime, (bad_prompt:0.8), (artist name, signature, watermark:1.4), (ugly:1.2), (worst quality, poor details:1.4), bad-hands-5, badhandv4, blurry,",
+        "sampler_index": "Euler a",
+        "override_settings": {
+          "filter_nsfw": "false",
+          "sd_model_checkpoint": "disneyPixarCartoon_v10.safetensors [732d0dd2cf]",
+          "sd_vae": "MoistMix.vae.pt",
+          "CLIP_stop_at_last_layers": 2
+        }
       }
     },
     "o_cXAH5pm1x9J_x9IS63QnqVL1qFIKgmF3A5wOc_Xu0": {
