@@ -91,6 +91,13 @@ export interface ServerResponse {
   audioPath?: string;
 }
 
+export interface InferenceResult {
+  imgPaths?: string[];
+  seeds?: string[];
+  audioPath?: string;
+  prompt: string;
+}
+
 export interface UrlConfig {
   url: string;
   payloadFormat: payloadFormatOptions;
