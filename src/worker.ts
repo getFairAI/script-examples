@@ -324,7 +324,7 @@ const inference = async function (requestTx: IEdge, scriptId: string, url: strin
   let payload;
   if (format === 'webui') {
     payload = JSON.stringify({
-      ...(settings && { settings }),
+      ...(settings && { ...settings }),
       prompt: settings?.prompt ? `${settings?.prompt}${text}` : text,
     });
   } else {
