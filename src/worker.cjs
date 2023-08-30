@@ -284,8 +284,8 @@ const inference = async function (requestTx, scriptId, url, format, settings) {
 
   if (tempData.images) {
     const imgPaths = tempData.images.map((el, i)=>{
-      fs.writeFileSync(`output_${requestTx.node.id}_${i}.png`, Buffer.from(el, 'base64'));
-      return `./output_${requestTx.node.id}_${i}.png`;
+      fs.writeFileSync(`output_${scriptId}_${i}.png`, Buffer.from(el, 'base64'));
+      return `./output_${scriptId}_${i}.png`;
     });
     return { imgPaths, prompt: text };
   } else if (tempData.imgPaths) {
