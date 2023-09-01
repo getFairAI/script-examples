@@ -15,6 +15,7 @@
  */
 
 const fs = require('fs');
+const crypto = require('crypto');
 const NodeBundlr = require('@bundlr-network/client');
 const { WarpFactory } = require('warp-contracts');
 const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
@@ -281,7 +282,16 @@ const sendToBundlr = async (
 
         // replace title tag with asset name
         tags.splice(titleIdx, 1, { name: 'Title', value: assetName });
+      } else {
+        const hash = crypto.createHash('sha256').update(requestTransaction).update(i.toString()).digest('base64');
+        const title = `Fair Protocol Atomic Asset [${hash.slice(0, 10)}]`;
+        // find title tag index
+        const titleIdx = tags.findIndex((tag) => tag.name === 'Title');
+
+        // replace title tag with asset name
+        tags.splice(titleIdx, 1, { name: 'Title', value: title });
       }
+
       const transaction = await bundlr.uploadFile(response, { tags });
       workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${transaction.id}` });
       try {
