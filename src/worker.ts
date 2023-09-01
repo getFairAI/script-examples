@@ -15,6 +15,7 @@
  */
 
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { WarpFactory } from 'warp-contracts';
 import { DeployPlugin } from 'warp-contracts-plugin-deploy';
 import { JWKInterface } from 'arweave/node/lib/wallet';
@@ -54,7 +55,8 @@ import {
   NODE2_BUNDLR_URL,
   UDL_ID,
   MAX_STR_SIZE,
-  ASSET_NAMES_TAG
+  ASSET_NAMES_TAG,
+  NEGATIVE_PROMPT_TAG
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -203,7 +205,7 @@ const getAssetName = (idx: number, assetNames?: string) => {
 
   try {
     const names: string[] = JSON.parse(assetNames);
-    const validNames = names.filter((assetName) => assetName.length > 0);
+    const validNames = names.filter((assetName) => assetName.length > 0).map((assetName) => assetName.trim());
 
     if (idx < validNames.length) {
       return validNames[idx];
@@ -300,6 +302,14 @@ const sendToBundlr = async (
 
         // replace title tag with asset name
         tags.splice(titleIdx, 1, { name: 'Title', value: assetName });
+      } else {
+        const hash = crypto.createHash('sha256').update(requestTransaction).update(i.toString()).digest('base64');
+        const title = `Fair Protocol Atomic Asset [${hash.slice(0, 10)}]`;
+        // find title tag index
+        const titleIdx = tags.findIndex((tag) => tag.name === 'Title');
+
+        // replace title tag with asset name
+        tags.splice(titleIdx, 1, { name: 'Title', value: title });
       }
 
       const transaction = await bundlr.uploadFile(response, { tags });
@@ -350,17 +360,26 @@ const fetchSeed = async (url: string, imageStr: string) => {
   }
 };
 
-const inference = async function (requestTx: IEdge, scriptId: string, url: string, format: payloadFormatOptions, settings?: IOptionalSettings) {
+const inference = async function (requestTx: IEdge, scriptId: string, url: string, format: payloadFormatOptions, settings?: IOptionalSettings, negativePrompt?: string) {
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
   const text = await (await requestData.blob()).text();
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
 
   let payload;
   if (format === 'webui') {
-    payload = JSON.stringify({
+    const webuiPayload: IOptionalSettings = {
       ...(settings && { ...settings }),
       prompt: settings?.prompt ? `${settings?.prompt}${text}` : text,
-    });
+    };
+
+    if (negativePrompt && webuiPayload['negative_prompt']) {
+      webuiPayload['negative_prompt'] = `${webuiPayload['negative_prompt']} ${negativePrompt}`;
+    } else if (negativePrompt) {
+      webuiPayload['negative_prompt'] = negativePrompt;
+    } else {
+      // ignore
+    }
+    payload = JSON.stringify(webuiPayload);
   } else {
     payload = text;
   }
@@ -569,7 +588,8 @@ const processRequest = async (
   }
 
   const assetNames = requestTx.node.tags.find((tag) => tag.name === ASSET_NAMES_TAG)?.value;
-  const inferenceResult = await inference(requestTx, registration.scriptId, registration.url, registration.payloadFormat, registration.settings);
+  const negativePrompt = requestTx.node.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
+  const inferenceResult = await inference(requestTx, registration.scriptId, registration.url, registration.payloadFormat, registration.settings, negativePrompt);
   workerpool.workerEmit({
     type: 'info',
     message: `Inference Result: ${JSON.stringify(inferenceResult)}`,
