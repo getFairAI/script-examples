@@ -37,6 +37,7 @@ export const SEQUENCE_OWNER_TAG = 'Sequencer-Owner';
 export const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
 export const SCRIPT_TRANSACTION_TAG = 'Script-Transaction';
 export const ASSET_NAMES_TAG = 'Asset-Names';
+export const NEGATIVE_PROMPT_TAG = 'Negative-Prompt';
 
 export const SCRIPT_INFERENCE_REQUEST = 'Script Inference Request';
 export const CANCEL_OPERATION = 'Operator Cancellation';
