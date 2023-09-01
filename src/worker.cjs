@@ -36,6 +36,7 @@ const CONTRACT_TAG = 'Contract';
 const INPUT_TAG = 'Input';
 const SEQUENCE_OWNER_TAG = 'Sequencer-Owner';
 const SCRIPT_TRANSACTION_TAG = 'Script-Transaction';
+const ASSET_NAMES_TAG = 'Asset-Names';
 const NET_ARWEAVE_URL = 'https://arweave.net';
 const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
 const secondInMS = 1000;
@@ -182,6 +183,27 @@ const queryCheckUserPayment = async (
   return parseQueryResult(result);
 };
 
+const getAssetName = (idx, assetNames) => {
+  if (!assetNames) {
+    return undefined;
+  }
+
+  try {
+    const names = JSON.parse(assetNames);
+    const validNames = names.filter((assetName) => assetName.length > 0);
+
+    if (idx < validNames.length) {
+      return validNames[idx];
+    } else {
+      const divider = (idx % validNames.length);
+
+      return validNames[divider];
+    }
+  } catch (error) {
+    return undefined;
+  }
+};
+
 const sendToBundlr = async (
   inferenceResult,
   appVersion,
@@ -189,6 +211,7 @@ const sendToBundlr = async (
   requestTransaction,
   conversationIdentifier,
   registration,
+  assetNames
 ) => {
   let responses = inferenceResult.imgPaths ?? inferenceResult.audioPath;
   const prompt = inferenceResult.prompt;
@@ -204,7 +227,7 @@ const sendToBundlr = async (
   const convertedBalance = bundlr.utils.fromAtomic(atomicBalance);
   workerpool.workerEmit({ type: 'info', message: `node balance (converted) = ${convertedBalance}` });
 
-  const tags = [
+  const commonTags = [
     { name: 'Custom-App-Name', value: 'Fair Protocol' },
     { name: 'Custom-App-Version', value: appVersion },
     { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
@@ -228,11 +251,11 @@ const sendToBundlr = async (
         balances: {
           [userAddress]: 1,
         },
-        name: 'Fair Protocol NFT',
-        ticker: 'FNFT',
+        name: 'Fair Protocol Atomic Asset',
+        ticker: 'FPAA',
       }),
     },
-    { name: 'Title', value: 'Fair Protocol NFT' },
+    { name: 'Title', value: 'Fair Protocol Atomic Asset' },
     { name: 'Description', value:  prompt.length > MAX_STR_SIZE ? prompt.slice(0, MAX_STR_SIZE) : prompt }, // use request prompt
     { name: 'Type', value: 'Image' },
     // add license tags
@@ -245,9 +268,19 @@ const sendToBundlr = async (
   try {
     let i = 0;
     for (const response of responses) {
+      const tags = [ ...commonTags ];
       const currentImageSeed = inferenceResult.seeds ? inferenceResult.seeds[i] : null;
       if (currentImageSeed) {
         tags.push({ name: 'Inference-Seed', value: currentImageSeed });
+      }
+
+      const assetName = getAssetName(i, assetNames);
+      if (assetName) {
+        // find title tag index
+        const titleIdx = tags.findIndex((tag) => tag.name === 'Title');
+
+        // replace title tag with asset name
+        tags.splice(titleIdx, 1, { name: 'Title', value: assetName });
       }
       const transaction = await bundlr.uploadFile(response, { tags });
       workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${transaction.id}` });
@@ -486,6 +519,8 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     return false;
   }
 
+  const assetNames = requestTx.node.tags.find((tag) => tag.name === ASSET_NAMES_TAG)?.value;
+
   const inferenceResult = await inference(requestTx,registration.scriptId, registration.url, registration.payloadFormat, registration.settings);
   workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(inferenceResult)}` });
 
@@ -495,7 +530,8 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     requestTx.node.owner.address,
     requestTx.node.id,
     conversationIdentifier,
-    registration
+    registration,
+    assetNames
   );
 
   return requestId;

@@ -53,7 +53,8 @@ import {
   U_CONTRACT_ID,
   NODE2_BUNDLR_URL,
   UDL_ID,
-  MAX_STR_SIZE
+  MAX_STR_SIZE,
+  ASSET_NAMES_TAG
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -195,6 +196,27 @@ const queryCheckUserPayment = async (
   return parseQueryResult(result);
 };
 
+const getAssetName = (idx: number, assetNames?: string) => {
+  if (!assetNames) {
+    return undefined;
+  }
+
+  try {
+    const names: string[] = JSON.parse(assetNames);
+    const validNames = names.filter((assetName) => assetName.length > 0);
+
+    if (idx < validNames.length) {
+      return validNames[idx];
+    } else {
+      const divider = (idx % validNames.length);
+
+      return validNames[divider];
+    }
+  } catch (error) {
+    return undefined;
+  }
+};
+
 const sendToBundlr = async (
   inferenceResult: InferenceResult,
   appVersion: string,
@@ -202,6 +224,7 @@ const sendToBundlr = async (
   requestTransaction: string,
   conversationIdentifier: string,
   registration: OperatorParams,
+  assetNames?: string,
 ) => {
   let responses = inferenceResult.imgPaths as string[] ?? inferenceResult.audioPath as string;
   const prompt = inferenceResult.prompt;
@@ -223,7 +246,7 @@ const sendToBundlr = async (
     message: `node balance (converted) = ${convertedBalance}`,
   });
 
-  const tags = [
+  const commonTags = [
     { name: 'Custom-App-Name', value: 'Fair Protocol' },
     { name: 'Custom-App-Version', value: appVersion },
     { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
@@ -247,11 +270,11 @@ const sendToBundlr = async (
         balances: {
           [userAddress]: 1,
         },
-        name: 'Fair Protocol NFT',
-        ticker: 'FNFT',
+        name: 'Fair Protocol Atomic Asset',
+        ticker: 'FPAA',
       }),
     },
-    { name: 'Title', value: 'Fair Protocol NFT' },
+    { name: 'Title', value: 'Fair Protocol Atomic Asset' },
     { name: 'Description', value:  prompt.length > MAX_STR_SIZE ? prompt.slice(0,MAX_STR_SIZE) : prompt }, // use request prompt
     { name: 'Type', value: 'Image' },
     // add license tags
@@ -264,10 +287,21 @@ const sendToBundlr = async (
   try {
     let i = 0;
     for (const response of responses) {
+      const tags = [ ...commonTags ];
       const currentImageSeed = inferenceResult.seeds ? inferenceResult.seeds[i] : null;
       if (currentImageSeed) {
         tags.push({ name: 'Inference-Seed', value: currentImageSeed });
       }
+
+      const assetName = getAssetName(i, assetNames);
+      if (assetName) {
+        // find title tag index
+        const titleIdx = tags.findIndex((tag) => tag.name === 'Title');
+
+        // replace title tag with asset name
+        tags.splice(titleIdx, 1, { name: 'Title', value: assetName });
+      }
+
       const transaction = await bundlr.uploadFile(response, { tags });
       workerpool.workerEmit({
         type: 'info',
@@ -534,6 +568,7 @@ const processRequest = async (
     return false;
   }
 
+  const assetNames = requestTx.node.tags.find((tag) => tag.name === ASSET_NAMES_TAG)?.value;
   const inferenceResult = await inference(requestTx, registration.scriptId, registration.url, registration.payloadFormat, registration.settings);
   workerpool.workerEmit({
     type: 'info',
@@ -546,7 +581,8 @@ const processRequest = async (
     requestTx.node.owner.address,
     requestTx.node.id,
     conversationIdentifier,
-    registration
+    registration,
+    assetNames,
   );
 
   return requestId;
