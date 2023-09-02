@@ -224,7 +224,7 @@ const getAssetName = (idx: number, assetNames?: string) => {
   }
 };
 
-const sendToBundlr = async (
+const getGeneralTags = (
   inferenceResult: InferenceResult,
   userAddress: string,
   requestTransaction: string,
@@ -232,35 +232,16 @@ const sendToBundlr = async (
   conversationIdentifier: string,
   registration: OperatorParams,
 ) => {
-  let responses = inferenceResult.imgPaths as string[] ?? inferenceResult.audioPath as string;
-  const type = Array.isArray(responses) ? 'image/png' : 'audio/wav';
-  // turn into array to use same code for single and multiple responses
-  responses = Array.isArray(responses) ? responses : [responses];
+  const type = inferenceResult.imgPaths ? 'image/png' : 'audio/wav';
 
-  // Get loaded balance in atomic units
-  const atomicBalance = await bundlr.getLoadedBalance();
-
-  workerpool.workerEmit({
-    type: 'info',
-    message: `node balance (atomic units) = ${atomicBalance}`,
-  });
-
-  // Convert balance to an easier to read format
-  const convertedBalance = bundlr.utils.fromAtomic(atomicBalance);
-  workerpool.workerEmit({
-    type: 'info',
-    message: `node balance (converted) = ${convertedBalance}`,
-  });
-
-  const appVersion = requestTags.find((tag) => tag.name === 'App-Version')?.value as string;
-  const assetNames = requestTags.find((tag) => tag.name === ASSET_NAMES_TAG)?.value as string;
-  const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value || registration.modelName;
+  const appVersion = requestTags.find((tag) => tag.name === 'App-Version')?.value;
+  const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}${inferenceResult.prompt}` : inferenceResult.prompt;
   if (prompt.length > MAX_STR_SIZE) {
     prompt = prompt.substring(0, MAX_STR_SIZE);
   }
 
-  const settingsNegativePrompt = registration.settings && registration.settings['negative_prompt'];
+  const settingsNegativePrompt = registration.settings?.['negative_prompt'];
   const requestNegativePrompt = requestTags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
 
   let negativePrompt;
@@ -276,9 +257,9 @@ const sendToBundlr = async (
 
   let description = requestTags.find((tag) => tag.name === DESCRIPTION_TAG)?.value;
 
-  const commonTags = [
+  const generalTags = [
     { name: 'Custom-App-Name', value: 'Fair Protocol' },
-    { name: 'Custom-App-Version', value: appVersion },
+    { name: 'Custom-App-Version', value: appVersion as string },
     { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
     { name: SCRIPT_CURATOR_TAG, value: registration.scriptCurator },
     { name: SCRIPT_NAME_TAG, value: registration.scriptName },
@@ -316,26 +297,58 @@ const sendToBundlr = async (
     { name: INDEXED_BY_TAG, value: 'ucm' },
     { name: TOPIC_AI_TAG, value: 'ai-generated' }
   ];
+
   // optional tags
 
-  if (description) {
-    if (description?.length >= MAX_STR_SIZE) {
-      description = description?.substring(0, MAX_STR_SIZE);
-    }
-    commonTags.push({ name: DESCRIPTION_TAG, value: description });
+  if (description && description?.length > MAX_STR_SIZE) {
+    description = description?.substring(0, MAX_STR_SIZE);
+    generalTags.push({ name: DESCRIPTION_TAG, value: description });
+  } else if (description) {
+    generalTags.push({ name: DESCRIPTION_TAG, value: description });
+  } else {
+    // ignore
   }
 
-  if (negativePrompt) {
-    if (negativePrompt?.length >= MAX_STR_SIZE) {
-      negativePrompt = negativePrompt?.substring(0, MAX_STR_SIZE);
-    }
-    commonTags.push({ name: NEGATIVE_PROMPT_TAG, value: negativePrompt });
+  if (negativePrompt && negativePrompt?.length >= MAX_STR_SIZE) {
+    negativePrompt = negativePrompt?.substring(0, MAX_STR_SIZE);
+    generalTags.push({ name: NEGATIVE_PROMPT_TAG, value: negativePrompt });
+  } else if (negativePrompt) {
+    generalTags.push({ name: NEGATIVE_PROMPT_TAG, value: negativePrompt });
+  } else {
+    // ignore
   }
 
+  return generalTags;
+};
+
+const sendToBundlr = async (
+  inferenceResult: InferenceResult,
+  userAddress: string,
+  requestTransaction: string,
+  requestTags: { name: string; value: string }[],
+  conversationIdentifier: string,
+  registration: OperatorParams,
+) => {
+  let responses = inferenceResult.imgPaths as string[] ?? inferenceResult.audioPath as string;
+  // turn into array to use same code for single and multiple responses
+  responses = Array.isArray(responses) ? responses : [responses];
+
+  // Get loaded balance in atomic units
+  const atomicBalance = await bundlr.getLoadedBalance();
+
+  workerpool.workerEmit({ type: 'info', message: `node balance (atomic units) = ${atomicBalance}` });
+
+  // Convert balance to an easier to read format
+  const convertedBalance = bundlr.utils.fromAtomic(atomicBalance);
+  workerpool.workerEmit({ type: 'info', message: `node balance (converted) = ${convertedBalance}` });
+
+  const generalTags = getGeneralTags(inferenceResult, userAddress, requestTransaction, requestTags, conversationIdentifier, registration);
+
+  const assetNames = requestTags.find((tag) => tag.name === ASSET_NAMES_TAG)?.value;
   try {
     let i = 0;
     for (const response of responses) {
-      const tags = [ ...commonTags ];
+      const tags = [ ...generalTags ];
       const currentImageSeed = inferenceResult.seeds ? inferenceResult.seeds[i] : null;
       if (currentImageSeed) {
         tags.push({ name: 'Inference-Seed', value: currentImageSeed });
