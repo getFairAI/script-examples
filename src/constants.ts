@@ -48,6 +48,7 @@ export const INIT_STATE_TAG = 'Init-State';
 export const CUSTOM_APP_NAME_TAG = 'Custom-App-Name';
 export const CUSTOM_APP_VERSION_TAG = 'Custom-App-Version';
 export const INFERENCE_SEED_TAG = 'Inference-Seed';
+export const N_IMAGES_TAG = 'N-Images';
 
 export const NOT_OVERRIDABLE_TAGS = [
   CUSTOM_APP_NAME_TAG,
@@ -71,7 +72,7 @@ export const NOT_OVERRIDABLE_TAGS = [
   SCRIPT_USER_TAG,
   CONTENT_TYPE_TAG,
   SCRIPT_OPERATOR_TAG,
-  CONVERSATION_IDENTIFIER_TAG
+  CONVERSATION_IDENTIFIER_TAG,
 ];
 
 export const SCRIPT_INFERENCE_REQUEST = 'Script Inference Request';

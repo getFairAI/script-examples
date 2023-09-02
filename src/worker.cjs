@@ -51,6 +51,7 @@ const INFERENCE_SEED_TAG = 'Inference-Seed';
 const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
 const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
 const SCRIPT_OPERATOR_TAG = 'Script-Operator';
+const N_IMAGES_TAG = 'N-Images';
 
 const NOT_OVERRIDABLE_TAGS = [
   CUSTOM_APP_NAME_TAG,
@@ -487,7 +488,13 @@ const fetchSeed = async (url, imageStr) => {
   }
 };
 
-const inference = async function (requestTx, scriptId, url, format, settings, negativePrompt) {
+
+const inference = async function (requestTx, registration, negativePrompt, nImages) {
+  const scriptId = registration.scriptId;
+  const url = registration.url;
+  const settings = registration.settings;
+  const format = registration.payloadFormat;
+
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
   const text = await (await requestData.blob()).text();
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
@@ -509,6 +516,12 @@ const inference = async function (requestTx, scriptId, url, format, settings, ne
       // ignore
     }
 
+    if (nImages && parseInt(nImages, 10) > 0 && parseInt(nImages, 10) <= 10) {
+      webuiPayload['n_iter'] = nImages;
+    } else {
+      // ignore
+    }
+  
     payload = JSON.stringify(webuiPayload);
   } else {
     payload = text;
@@ -695,8 +708,8 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
   }
 
   const negativePrompt = requestTx.node.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
-
-  const inferenceResult = await inference(requestTx,registration.scriptId, registration.url, registration.payloadFormat, registration.settings, negativePrompt);
+  const nImages = requestTx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value;
+  const inferenceResult = await inference(requestTx, registration, negativePrompt, nImages);
   workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(inferenceResult)}` });
 
   await sendToBundlr(
