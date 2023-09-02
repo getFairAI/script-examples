@@ -39,9 +39,16 @@ const SEQUENCE_OWNER_TAG = 'Sequencer-Owner';
 const SCRIPT_TRANSACTION_TAG = 'Script-Transaction';
 const ASSET_NAMES_TAG = 'Asset-Names';
 const NEGATIVE_PROMPT_TAG = 'Negative-Prompt';
+const PROMPT_TAG = 'Prompt';
+const INDEXED_BY_TAG = 'Indexed-By';
+const TOPIC_AI_TAG = 'topic:ai-generated';
+const MODEL_NAME_TAG = 'Model-Name';
+const DESCRIPTION_TAG = 'Description';
+
 const NET_ARWEAVE_URL = 'https://arweave.net';
 const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
-const secondInMS = 1000;
+
+
 const VAULT_ADDRESS = 'tXd-BOaxmxtgswzwMLnryROAYlX5uDC9-XK2P4VNCQQ';
 const MARKETPLACE_PERCENTAGE_FEE = 0.15;
 const CURATOR_PERCENTAGE_FEE = 0.025;
@@ -49,7 +56,9 @@ const CREATOR_PERCENTAGE_FEE = 0.025;
 const U_CONTRACT_ID = 'KTzTXT_ANmF84fWEKHzWURD1LWd9QaFR9yfYUwH2Lxw';
 const ATOMIC_TOKEN_CONTRACT_ID = 'h9v17KHV4SXwdW2-JHU6a23f6R0YtbXZJJht8LfP8QM';
 const UDL_ID = 'yRj4a5KMctX_uOmKWCFJIjmY8DeJcusVk6-HzLiM_t8';
+
 const MAX_STR_SIZE = 1000;
+const secondInMS = 1000;
 
 const JWK = JSON.parse(fs.readFileSync('wallet.json').toString());
 // initailze the bundlr SDK
@@ -208,17 +217,18 @@ const getAssetName = (idx, assetNames) => {
 
 const sendToBundlr = async (
   inferenceResult,
-  appVersion,
   userAddress,
   requestTransaction,
+  requestTags,
   conversationIdentifier,
   registration,
-  assetNames
 ) => {
   let responses = inferenceResult.imgPaths ?? inferenceResult.audioPath;
-  const prompt = inferenceResult.prompt;
 
   const type = Array.isArray(responses) ? 'image/png' : 'audio/wav';
+
+  // turn into array to use same code for single and multiple responses
+  responses = Array.isArray(responses) ? responses : [responses];
 
   // Get loaded balance in atomic units
   const atomicBalance = await bundlr.getLoadedBalance();
@@ -228,6 +238,30 @@ const sendToBundlr = async (
   // Convert balance to an easier to read format
   const convertedBalance = bundlr.utils.fromAtomic(atomicBalance);
   workerpool.workerEmit({ type: 'info', message: `node balance (converted) = ${convertedBalance}` });
+
+  const appVersion = requestTags.find((tag) => tag.name === 'App-Version')?.value;
+  const assetNames = requestTags.find((tag) => tag.name === ASSET_NAMES_TAG)?.value;
+  const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value || registration.modelName;
+  let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}${inferenceResult.prompt}` : inferenceResult.prompt;
+  if (prompt.length > MAX_STR_SIZE) {
+    prompt = prompt.substring(0, MAX_STR_SIZE);
+  }
+
+  const settingsNegativePrompt = registration.settings && registration.settings['negative_prompt'];
+  const requestNegativePrompt = requestTags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
+
+  let negativePrompt;
+  if (settingsNegativePrompt && requestNegativePrompt) {
+    negativePrompt = `${settingsNegativePrompt} ${requestNegativePrompt}`;
+  } else if (settingsNegativePrompt) {
+    negativePrompt = settingsNegativePrompt;
+  } else if (requestNegativePrompt) {
+    negativePrompt = requestNegativePrompt;
+  } else {
+    // ignore
+  }
+
+  let description = requestTags.find((tag) => tag.name === DESCRIPTION_TAG)?.value;
 
   const commonTags = [
     { name: 'Custom-App-Name', value: 'Fair Protocol' },
@@ -259,13 +293,33 @@ const sendToBundlr = async (
     },
     { name: 'Title', value: 'Fair Protocol Atomic Asset' },
     { name: 'Description', value:  prompt.length > MAX_STR_SIZE ? prompt.slice(0, MAX_STR_SIZE) : prompt }, // use request prompt
-    { name: 'Type', value: 'Image' },
+    { name: 'Type', value: 'image' },
     // add license tags
     { name: 'License', value: UDL_ID },
     { name: 'Commercial-Use', value: 'Allowed' },
+    { name: 'Derivation', value: 'Allowed-With-License-Passthrough' },
+    // add extra tags
+    { name: MODEL_NAME_TAG, value: modelName },
+    { name: PROMPT_TAG, value: prompt },
+    { name: INDEXED_BY_TAG, value: 'ucm' },
+    { name: TOPIC_AI_TAG, value: 'ai-generated' }
   ];
-  // turn into array to use same code for single and multiple responses
-  responses = Array.isArray(responses) ? responses : [responses];
+
+  // optional tags
+
+  if (description) {
+    if (description?.length >= MAX_STR_SIZE) {
+      description = description?.substring(0, MAX_STR_SIZE);
+    }
+    commonTags.push({ name: DESCRIPTION_TAG, value: description });
+  }
+
+  if (negativePrompt) {
+    if (negativePrompt?.length >= MAX_STR_SIZE) {
+      negativePrompt = negativePrompt?.substring(0, MAX_STR_SIZE);
+    }
+    commonTags.push({ name: NEGATIVE_PROMPT_TAG, value: negativePrompt });
+  }
 
   try {
     let i = 0;
@@ -542,7 +596,6 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     return false;
   }
 
-  const assetNames = requestTx.node.tags.find((tag) => tag.name === ASSET_NAMES_TAG)?.value;
   const negativePrompt = requestTx.node.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
 
   const inferenceResult = await inference(requestTx,registration.scriptId, registration.url, registration.payloadFormat, registration.settings, negativePrompt);
@@ -550,12 +603,11 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
 
   await sendToBundlr(
     inferenceResult,
-    appVersion,
     requestTx.node.owner.address,
     requestTx.node.id,
+    requestTx.node.tags,
     conversationIdentifier,
     registration,
-    assetNames
   );
 
   return requestId;

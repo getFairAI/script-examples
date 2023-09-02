@@ -27,9 +27,9 @@ import {
 } from './constants';
 import {
   queryTransactionsReceived,
-  getModelOwner,
   queryOperatorRegistrations,
   isRegistrationCancelled,
+  getModelOwnerAndName,
 } from './queries';
 import { JWKInterface } from 'arweave/node/lib/wallet';
 import workerpool from 'workerpool';
@@ -114,9 +114,14 @@ const validateRegistration = async (tx: IEdge) => {
     hasErrors = true;
   }
 
-  const modelOwner = await getModelOwner(scriptName as string, scriptCurator as string);
+  const { creatorAddr: modelOwner, modelName } = await getModelOwnerAndName(scriptName as string, scriptCurator as string);
   if (!modelOwner) {
     logger.error(`Could not find Model Owner for registration '${txid}'. Ignoring...`);
+    hasErrors = true;
+  }
+
+  if (!modelName) {
+    logger.error(`Could not find Model Name for registration '${txid}'. Ignoring...`);
     hasErrors = true;
   }
 
@@ -137,6 +142,7 @@ const validateRegistration = async (tx: IEdge) => {
     registrations.push({
       ...urlConf,
       modelOwner,
+      modelName,
       scriptId: scriptId as string,
       operatorFee: opFee,
       scriptName: scriptName as string,

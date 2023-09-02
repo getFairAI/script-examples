@@ -74,6 +74,7 @@ export interface ITransactions {
 export type payloadFormatOptions = 'webui' | 'default';
 
 export interface OperatorParams {
+  modelName: string;
   modelOwner: string;
   operatorFee: number;
   scriptName: string;

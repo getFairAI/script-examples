@@ -38,6 +38,11 @@ export const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
 export const SCRIPT_TRANSACTION_TAG = 'Script-Transaction';
 export const ASSET_NAMES_TAG = 'Asset-Names';
 export const NEGATIVE_PROMPT_TAG = 'Negative-Prompt';
+export const PROMPT_TAG = 'Prompt';
+export const INDEXED_BY_TAG = 'Indexed-By';
+export const TOPIC_AI_TAG = 'topic:ai-generated';
+export const MODEL_NAME_TAG = 'Model-Name';
+export const DESCRIPTION_TAG = 'Description';
 
 export const SCRIPT_INFERENCE_REQUEST = 'Script Inference Request';
 export const CANCEL_OPERATION = 'Operator Cancellation';
