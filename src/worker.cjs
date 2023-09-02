@@ -344,16 +344,20 @@ const getGeneralTags = (
   const customUserTags = requestTags.find((tag) => tag.name === USER_CUSOM_TAGS_TAG)?.value;
   if (customUserTags) {
     try {
-      const customTags= JSON.parse(customUserTags);
+      const customTags = JSON.parse(customUserTags);
       // filter custom tags to remove not overridavble ones
-      customTags.filter((tag) => !NOT_OVERRIDABLE_TAGS.includes(tag.name)).map((customTag) => {
+      for (const customTag of customTags) {
+        const isOverridable = !NOT_OVERRIDABLE_TAGS.includes(customTag.name);
         const tagIdx = generalTags.findIndex((tag) => tag.name === customTag.name);
-        if (tagIdx >= 0) {
+
+        if (tagIdx >= 0 && isOverridable) {
           generalTags.splice(tagIdx, 1, customTag);
-        } else {
+        } else if (isOverridable) {
           generalTags.push(customTag);
+        } else {
+          // ignore
         }
-      });
+      }
     } catch (err) {
       // ignore custom tags if invalid
     }
