@@ -43,6 +43,36 @@ export const INDEXED_BY_TAG = 'Indexed-By';
 export const TOPIC_AI_TAG = 'topic:ai-generated';
 export const MODEL_NAME_TAG = 'Model-Name';
 export const DESCRIPTION_TAG = 'Description';
+export const USER_CUSOM_TAGS_TAG = 'User-Custom-Tags';
+export const INIT_STATE_TAG = 'Init-State';
+export const CUSTOM_APP_NAME_TAG = 'Custom-App-Name';
+export const CUSTOM_APP_VERSION_TAG = 'Custom-App-Version';
+export const INFERENCE_SEED_TAG = 'Inference-Seed';
+
+export const NOT_OVERRIDABLE_TAGS = [
+  CUSTOM_APP_NAME_TAG,
+  CUSTOM_APP_VERSION_TAG,
+  SCRIPT_NAME_TAG,
+  SCRIPT_CURATOR_TAG,
+  OPERATION_NAME_TAG,
+  SCRIPT_TRANSACTION_TAG,
+  INFERENCE_TRANSACTION_TAG,
+  REQUEST_TRANSACTION_TAG,
+  RESPONSE_TRANSACTION_TAG,
+  REGISTRATION_TRANSACTION_TAG,
+  CONTRACT_TAG,
+  INPUT_TAG,
+  SEQUENCE_OWNER_TAG,
+  UNIX_TIME_TAG,
+  MODEL_NAME_TAG,
+  PROMPT_TAG,
+  NEGATIVE_PROMPT_TAG,
+  INFERENCE_SEED_TAG,
+  SCRIPT_USER_TAG,
+  CONTENT_TYPE_TAG,
+  SCRIPT_OPERATOR_TAG,
+  CONVERSATION_IDENTIFIER_TAG
+];
 
 export const SCRIPT_INFERENCE_REQUEST = 'Script Inference Request';
 export const CANCEL_OPERATION = 'Operator Cancellation';
