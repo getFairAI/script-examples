@@ -44,6 +44,38 @@ const INDEXED_BY_TAG = 'Indexed-By';
 const TOPIC_AI_TAG = 'topic:ai-generated';
 const MODEL_NAME_TAG = 'Model-Name';
 const DESCRIPTION_TAG = 'Description';
+const USER_CUSOM_TAGS_TAG = 'User-Custom-Tags';
+const CUSTOM_APP_NAME_TAG = 'Custom-App-Name';
+const CUSTOM_APP_VERSION_TAG = 'Custom-App-Version';
+const INFERENCE_SEED_TAG = 'Inference-Seed';
+const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
+const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
+const SCRIPT_OPERATOR_TAG = 'Script-Operator';
+
+const NOT_OVERRIDABLE_TAGS = [
+  CUSTOM_APP_NAME_TAG,
+  CUSTOM_APP_VERSION_TAG,
+  SCRIPT_NAME_TAG,
+  SCRIPT_CURATOR_TAG,
+  OPERATION_NAME_TAG,
+  SCRIPT_TRANSACTION_TAG,
+  INFERENCE_TRANSACTION_TAG,
+  REQUEST_TRANSACTION_TAG,
+  RESPONSE_TRANSACTION_TAG,
+  REGISTRATION_TRANSACTION_TAG,
+  CONTRACT_TAG,
+  INPUT_TAG,
+  SEQUENCE_OWNER_TAG,
+  UNIX_TIME_TAG,
+  MODEL_NAME_TAG,
+  PROMPT_TAG,
+  NEGATIVE_PROMPT_TAG,
+  INFERENCE_SEED_TAG,
+  SCRIPT_USER_TAG,
+  CONTENT_TYPE_TAG,
+  SCRIPT_OPERATOR_TAG,
+  CONVERSATION_IDENTIFIER_TAG
+];
 
 const NET_ARWEAVE_URL = 'https://arweave.net';
 const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
@@ -308,6 +340,25 @@ const getGeneralTags = (
   } else {
     // ignore
   }
+
+  const customUserTags = requestTags.find((tag) => tag.name === USER_CUSOM_TAGS_TAG)?.value;
+  if (customUserTags) {
+    try {
+      const customTags= JSON.parse(customUserTags);
+      // filter custom tags to remove not overridavble ones
+      customTags.filter((tag) => !NOT_OVERRIDABLE_TAGS.includes(tag.name)).map((customTag) => {
+        const tagIdx = generalTags.findIndex((tag) => tag.name === customTag.name);
+        if (tagIdx >= 0) {
+          generalTags.splice(tagIdx, 1, customTag);
+        } else {
+          generalTags.push(customTag);
+        }
+      });
+    } catch (err) {
+      // ignore custom tags if invalid
+    }
+  }
+
 
   return generalTags;
 };

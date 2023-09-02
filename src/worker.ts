@@ -61,7 +61,9 @@ import {
   DESCRIPTION_TAG,
   INDEXED_BY_TAG,
   TOPIC_AI_TAG,
-  MAX_STR_SIZE
+  MAX_STR_SIZE,
+  USER_CUSOM_TAGS_TAG,
+  NOT_OVERRIDABLE_TAGS
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -316,6 +318,24 @@ const getGeneralTags = (
     generalTags.push({ name: NEGATIVE_PROMPT_TAG, value: negativePrompt });
   } else {
     // ignore
+  }
+
+  const customUserTags = requestTags.find((tag) => tag.name === USER_CUSOM_TAGS_TAG)?.value;
+  if (customUserTags) {
+    try {
+      const customTags: { name: string, value: string }[] = JSON.parse(customUserTags);
+      // filter custom tags to remove not overridavble ones
+      customTags.filter((tag) => !NOT_OVERRIDABLE_TAGS.includes(tag.name)).map((customTag) => {
+        const tagIdx = generalTags.findIndex((tag) => tag.name === customTag.name);
+        if (tagIdx >= 0) {
+          generalTags.splice(tagIdx, 1, customTag);
+        } else {
+          generalTags.push(customTag);
+        }
+      });
+    } catch (err) {
+      // ignore custom tags if invalid
+    }
   }
 
   return generalTags;
