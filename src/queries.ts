@@ -249,7 +249,7 @@ export const queryCheckUserPayment = async (
   return parseQueryResult(result);
 };
 
-export const getModelOwner = async (scriptName: string, scriptCurator: string) => {
+export const getModelOwnerAndName = async (scriptName: string, scriptCurator: string) => {
   const tags = [
     {
       name: OPERATION_NAME_TAG,
@@ -283,12 +283,17 @@ export const getModelOwner = async (scriptName: string, scriptCurator: string) =
   const tx = parseQueryResult(result)[0];
 
   const creatorAddr = tx.node.tags.find((tag) => tag.name === 'Model-Creator')?.value;
+  const modelName = tx.node.tags.find((tag) => tag.name === 'Model-Name')?.value;
 
   if (!creatorAddr) {
     throw new Error('Model creator not found');
   }
 
-  return creatorAddr;
+  if (!modelName) {
+    throw new Error('Model name not found');
+  }
+
+  return { creatorAddr, modelName };
 };
 
 export const isRegistrationCancelled = async (txid: string, opAddress: string) => {
