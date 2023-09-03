@@ -32,7 +32,6 @@ import {
   APP_NAME_TAG,
   APP_VERSION_TAG,
   ATOMIC_TOKEN_CONTRACT_ID,
-  CONTENT_TYPE_TAG,
   CONVERSATION_IDENTIFIER_TAG,
   CREATOR_PERCENTAGE_FEE,
   CURATOR_PERCENTAGE_FEE,
@@ -234,8 +233,6 @@ const getGeneralTags = (
   conversationIdentifier: string,
   registration: OperatorParams,
 ) => {
-  const type = inferenceResult.imgPaths ? 'image/png' : 'audio/wav';
-
   const appVersion = requestTags.find((tag) => tag.name === 'App-Version')?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}${inferenceResult.prompt}` : inferenceResult.prompt;
@@ -262,19 +259,33 @@ const getGeneralTags = (
   const generalTags = [
     { name: 'Custom-App-Name', value: 'Fair Protocol' },
     { name: 'Custom-App-Version', value: appVersion as string },
-    { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
-    { name: SCRIPT_CURATOR_TAG, value: registration.scriptCurator },
+    // add logic tags
+    { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
+    { name: MODEL_NAME_TAG, value: modelName },
     { name: SCRIPT_NAME_TAG, value: registration.scriptName },
+    { name: SCRIPT_CURATOR_TAG, value: registration.scriptCurator },
+    { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
     { name: SCRIPT_USER_TAG, value: userAddress },
     { name: REQUEST_TRANSACTION_TAG, value: requestTransaction },
-    { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
+    { name: PROMPT_TAG, value: prompt },
     { name: CONVERSATION_IDENTIFIER_TAG, value: conversationIdentifier },
-    { name: CONTENT_TYPE_TAG, value: type },
-    { name: UNIX_TIME_TAG, value: (Date.now() / secondInMS).toString() },
+    
     // add atomic token tags
     { name: APP_NAME_TAG, value: 'SmartWeaveContract' },
     { name: APP_VERSION_TAG, value: '0.3.0' },
     { name: 'Contract-Src', value: ATOMIC_TOKEN_CONTRACT_ID }, // use contract source here
+    {
+      name: 'Contract-Manifest',
+      value: JSON.stringify({
+        evaluationOptions: {
+          sourceType: 'redstone-sequencer',
+          allowBigInt: true,
+          internalWrites: true,
+          unsafeClient: 'skip',
+          useConstructor: false
+        }
+      }),
+    },
     {
       name: 'Init-State',
       value: JSON.stringify({
@@ -287,35 +298,43 @@ const getGeneralTags = (
         ticker: 'FPAA',
       }),
     },
+    // ans 110 tags discoverability
     { name: 'Title', value: 'Fair Protocol Atomic Asset' },
     { name: 'Type', value: 'image' },
+    { name: INDEXED_BY_TAG, value: 'ucm' },
+  
     // add license tags
     { name: 'License', value: UDL_ID },
-    { name: 'Commercial-Use', value: 'Allowed' },
     { name: 'Derivation', value: 'Allowed-With-License-Passthrough' },
+    { name: 'Commercial-Use', value: 'Allowed' },
     // add extra tags
-    { name: MODEL_NAME_TAG, value: modelName },
-    { name: PROMPT_TAG, value: prompt },
-    { name: INDEXED_BY_TAG, value: 'ucm' },
+
+    { name: UNIX_TIME_TAG, value: (Date.now() / secondInMS).toString() },
     { name: TOPIC_AI_TAG, value: 'ai-generated' }
   ];
-
+  
+  
   // optional tags
 
   if (description && description?.length > MAX_STR_SIZE) {
     description = description?.substring(0, MAX_STR_SIZE);
-    generalTags.push({ name: DESCRIPTION_TAG, value: description });
+    // insert after title tag
+    const descriptionIdx = generalTags.findIndex((tag) => tag.name === 'Title') + 1;
+    generalTags.splice(descriptionIdx, 0, { name: DESCRIPTION_TAG, value: description });
   } else if (description) {
-    generalTags.push({ name: DESCRIPTION_TAG, value: description });
+    const descriptionIdx = generalTags.findIndex((tag) => tag.name === 'Title') + 1;
+    generalTags.splice(descriptionIdx, 0, { name: DESCRIPTION_TAG, value: description });
   } else {
     // ignore
   }
 
   if (negativePrompt && negativePrompt?.length >= MAX_STR_SIZE) {
     negativePrompt = negativePrompt?.substring(0, MAX_STR_SIZE);
-    generalTags.push({ name: NEGATIVE_PROMPT_TAG, value: negativePrompt });
+    const negativePromptIdx = generalTags.findIndex((tag) => tag.name === 'Prompt') + 1;
+    generalTags.splice(negativePromptIdx, 0, { name: NEGATIVE_PROMPT_TAG, value: negativePrompt });
   } else if (negativePrompt) {
-    generalTags.push({ name: NEGATIVE_PROMPT_TAG, value: negativePrompt });
+    const negativePromptIdx = generalTags.findIndex((tag) => tag.name === 'Prompt') + 1;
+    generalTags.splice(negativePromptIdx, 0, { name: NEGATIVE_PROMPT_TAG, value: negativePrompt });
   } else {
     // ignore
   }
@@ -323,7 +342,7 @@ const getGeneralTags = (
   const customUserTags = requestTags.find((tag) => tag.name === USER_CUSOM_TAGS_TAG)?.value;
   if (customUserTags) {
     try {
-      const customTags: { name: string, value: string }[] = JSON.parse(customUserTags);
+      const customTags = JSON.parse(customUserTags);
       // filter custom tags to remove not overridavble ones
       for (const customTag of customTags) {
         const isOverridable = !NOT_OVERRIDABLE_TAGS.includes(customTag.name);
@@ -332,7 +351,9 @@ const getGeneralTags = (
         if (tagIdx >= 0 && isOverridable) {
           generalTags.splice(tagIdx, 1, customTag);
         } else if (isOverridable) {
-          generalTags.push(customTag);
+          // insert afer unix time tag
+          const unixTimeIdx = generalTags.findIndex((tag) => tag.name === UNIX_TIME_TAG) + 1;
+          generalTags.splice(unixTimeIdx, 0, customTag);
         } else {
           // ignore
         }
@@ -341,6 +362,7 @@ const getGeneralTags = (
       // ignore custom tags if invalid
     }
   }
+
 
   return generalTags;
 };
@@ -375,8 +397,11 @@ const sendToBundlr = async (
       const tags = [ ...generalTags ];
       const currentImageSeed = inferenceResult.seeds ? inferenceResult.seeds[i] : null;
       if (currentImageSeed) {
-        tags.push({ name: 'Inference-Seed', value: currentImageSeed });
+        // insert after negative prompt tag
+        const inferenceSeedIdx = tags.findIndex((tag) => tag.name === NEGATIVE_PROMPT_TAG) + 1;
+        tags.splice(inferenceSeedIdx, 0, { name: 'Inference-Seed', value: currentImageSeed });
       }
+
 
       const assetName = getAssetName(i, assetNames);
       if (assetName) {
