@@ -257,7 +257,7 @@ const getGeneralTags = (
 ) => {
   const appVersion = requestTags.find((tag) => tag.name === 'App-Version')?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
-  let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}${inferenceResult.prompt}` : inferenceResult.prompt;
+  let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}, ${inferenceResult.prompt}` : inferenceResult.prompt;
   if (prompt.length > MAX_STR_SIZE) {
     prompt = prompt.substring(0, MAX_STR_SIZE);
   }
@@ -267,7 +267,7 @@ const getGeneralTags = (
 
   let negativePrompt;
   if (settingsNegativePrompt && requestNegativePrompt) {
-    negativePrompt = `${settingsNegativePrompt} ${requestNegativePrompt}`;
+    negativePrompt = `${settingsNegativePrompt}, ${requestNegativePrompt}`;
   } else if (settingsNegativePrompt) {
     negativePrompt = settingsNegativePrompt;
   } else if (requestNegativePrompt) {

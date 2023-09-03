@@ -1,9 +1,108 @@
 {
   "urls": {
     "MnXiGR9-j9DgZjFSW1g0GNRtoPDNpq01F64jHF77Xhw": {
-      "name": "dreamshaper",
-      "url": "http://127.0.0.1:8088",
-      "payloadFormat": "default"
+      "name": "dreamShaper-8",
+      "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+      "payloadFormat": "webui",
+      "settings": {
+        "enable_hr": "true",
+        "denoising_strength": 0.55,
+        "hr_scale": 2,
+        "hr_upscaler": "Latent",
+        "hr_second_pass_steps": 20,
+        "seed": -1,
+        "n_iter": 4,
+        "steps": 30,
+        "cfg_scale": 8,
+        "width": 512,
+        "height": 768,
+        "negative_prompt": "BadDream, FastNegativeV2",
+        "sampler_index": "DPM++ SDE Karras",
+        "override_settings": {
+          "sd_model_checkpoint": "dreamshaper_8.safetensors [879db523c3]",
+          "sd_vae": "None",
+          "CLIP_stop_at_last_layers": 2
+        },
+        "alwayson_scripts": {
+          "ADetailer": {
+            "args": [
+	      {
+                "ad_model": "face_yolov8n.pt",
+                "ad_mask_blur": 4,
+                "ad_confidence": 0.3,
+                "ad_dilate_erode": 4,
+                "ad_inpaint_only_masked_padding": 0,
+                "ad_negative_prompt": "BadDream",
+                "ad_denoising_strength": 0.27,
+                "ad_inpaint_only_masked": true
+              },
+	      {
+                "ad_model": "hand_yolov8n.pt",
+                "ad_prompt": "beautiful hands",
+                "ad_mask_blur": 4,
+                "ad_confidence": 0.3,
+                "ad_dilate_erode": 4,
+                "ad_inpaint_only_masked_padding": 0,
+                "ad_negative_prompt": "BadDream",
+                "ad_denoising_strength": 0.4,
+                "ad_inpaint_only_masked": true
+              }
+            ]
+          }
+        }
+      }
+    },
+    "...DreamShaper XL...": {
+      "name": "dreamShaper-8",
+      "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+      "payloadFormat": "webui",
+      "settings": {
+        "enable_hr": "true",
+        "denoising_strength": 0.55,
+        "hr_scale": 2,
+        "hr_upscaler": "Latent",
+        "hr_second_pass_steps": 20,
+        "seed": -1,
+        "n_iter": 4,
+        "steps": 30,
+        "cfg_scale": 8,
+        "width": 512,
+        "height": 768,
+        "negative_prompt": "embedding:BadDream, embedding:FastNegativeV2",
+        "sampler_index": "DPM++ SDE Karras",
+        "override_settings": {
+          "sd_model_checkpoint": "dreamshaperXL10_alpha2Xl10.safetensors [0f1b80cfe8]",
+          "sd_vae": "None",
+          "CLIP_stop_at_last_layers": 2
+        },
+        "alwayson_scripts": {
+          "ADetailer": {
+            "args": [
+	      {
+                "ad_model": "face_yolov8n.pt",
+                "ad_mask_blur": 4,
+                "ad_confidence": 0.3,
+                "ad_dilate_erode": 4,
+                "ad_inpaint_only_masked_padding": 0,
+                "ad_negative_prompt": "BadDream",
+                "ad_denoising_strength": 0.27,
+                "ad_inpaint_only_masked": true
+              },
+	      {
+                "ad_model": "hand_yolov8n.pt",
+                "ad_prompt": "beautiful hands",
+                "ad_mask_blur": 4,
+                "ad_confidence": 0.3,
+                "ad_dilate_erode": 4,
+                "ad_inpaint_only_masked_padding": 0,
+                "ad_negative_prompt": "BadDream",
+                "ad_denoising_strength": 0.4,
+                "ad_inpaint_only_masked": true
+              }
+            ]
+          }
+        }
+      }
     },
     "hjHcLFTEDjzVUyJD0VlkD2OzRlU7yFxxQGzIhXDfMiY": {
       "name": "3d",
@@ -11,16 +110,16 @@
       "payloadFormat": "webui",
       "settings": {
         "enable_hr": "true",
-        "denoising_strength": 0.5,
+        "denoising_strength": 0.3,
         "hr_scale": 2,
         "hr_upscaler": "Latent",
         "hr_second_pass_steps": 20,
-        "prompt": "masterpiece, best quality, ",
+        "prompt": "masterpiece, best quality",
         "seed": -1,
         "n_iter": 4,
         "steps": 20,
         "cfg_scale": 7,
-        "negative_prompt": "EasyNegative, drawn by bad-artist, sketch by bad-artist-anime, (bad_prompt:0.8), (artist name, signature, watermark:1.4), (ugly:1.2), (worst quality, poor details:1.4), bad-hands-5, badhandv4, blurry,",
+        "negative_prompt": "EasyNegative, drawn by bad-artist, sketch by bad-artist-anime, (artist name, signature, watermark:1.4), (ugly:1.2), (worst quality, poor details:1.4), bad-hands-5, badhandv4, blurry, (worst quality, low quality:1.4), watermark, signature",
         "sampler_index": "Euler a",
         "override_settings": {
           "sd_model_checkpoint": "disneyPixarCartoon_v10.safetensors [732d0dd2cf]",
