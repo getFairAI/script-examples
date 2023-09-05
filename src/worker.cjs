@@ -366,6 +366,7 @@ const getGeneralTags = (
     try {
       const customTags = JSON.parse(customUserTags);
       // filter custom tags to remove not overridavble ones
+      let newTagsIdx = 1;
       for (const customTag of customTags) {
         const isOverridable = !NOT_OVERRIDABLE_TAGS.includes(customTag.name);
         const tagIdx = generalTags.findIndex((tag) => tag.name === customTag.name);
@@ -374,8 +375,11 @@ const getGeneralTags = (
           generalTags.splice(tagIdx, 1, customTag);
         } else if (isOverridable) {
           // insert afer unix time tag
-          const unixTimeIdx = generalTags.findIndex((tag) => tag.name === UNIX_TIME_TAG) + 1;
+          const unixTimeIdx = generalTags.findIndex((tag) => tag.name === UNIX_TIME_TAG) + newTagsIdx;
           generalTags.splice(unixTimeIdx, 0, customTag);
+
+          // only increment if tag was added after unixtimestamp tag
+          newTagsIdx++;
         } else {
           // ignore
         }
