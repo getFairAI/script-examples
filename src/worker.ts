@@ -23,7 +23,6 @@ import {
   IEdge,
   OperatorParams,
   ServerResponse,
-  payloadFormatOptions,
   ITransactions,
   IOptionalSettings,
   InferenceResult,
@@ -62,7 +61,8 @@ import {
   TOPIC_AI_TAG,
   MAX_STR_SIZE,
   USER_CUSOM_TAGS_TAG,
-  NOT_OVERRIDABLE_TAGS
+  NOT_OVERRIDABLE_TAGS,
+  N_IMAGES_TAG
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -472,12 +472,9 @@ const fetchSeed = async (url: string, imageStr: string) => {
   }
 };
 
-const inference = async function (requestTx: IEdge, scriptId: string, url: string, format: payloadFormatOptions, settings?: IOptionalSettings, negativePrompt?: string) {
-  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
-  const text = await (await requestData.blob()).text();
-  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
-
+const parsePayload = (format: string, text: string, settings?: IOptionalSettings, negativePrompt?: string, nImages?: string) => {
   let payload;
+
   if (format === 'webui') {
     const webuiPayload: IOptionalSettings = {
       ...(settings && { ...settings }),
@@ -491,10 +488,31 @@ const inference = async function (requestTx: IEdge, scriptId: string, url: strin
     } else {
       // ignore
     }
+
+    const maxImages = 10;
+
+    if (nImages && parseInt(nImages, maxImages) > 0 && parseInt(nImages, maxImages) <= maxImages) {
+      webuiPayload['n_iter'] = nImages;
+    } else {
+      // ignore
+    }
+  
     payload = JSON.stringify(webuiPayload);
   } else {
     payload = text;
   }
+
+  return payload;
+};
+
+const inference = async function (requestTx: IEdge, registration: OperatorParams, negativePrompt?: string, nImages?: string) {
+  const { scriptId, url, settings, payloadFormat: format } = registration;
+
+  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
+  const text = await (await requestData.blob()).text();
+  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
+
+  const payload = parsePayload(format, text, settings, negativePrompt, nImages);
 
   const res = await fetch(url, {
     method: 'POST',
@@ -700,7 +718,8 @@ const processRequest = async (
   }
 
   const negativePrompt = requestTx.node.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
-  const inferenceResult = await inference(requestTx, registration.scriptId, registration.url, registration.payloadFormat, registration.settings, negativePrompt);
+  const nImages = requestTx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value;
+  const inferenceResult = await inference(requestTx, registration, negativePrompt, nImages);
   workerpool.workerEmit({
     type: 'info',
     message: `Inference Result: ${JSON.stringify(inferenceResult)}`,
