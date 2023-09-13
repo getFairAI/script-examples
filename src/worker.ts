@@ -472,17 +472,9 @@ const fetchSeed = async (url: string, imageStr: string) => {
   }
 };
 
-const inference = async function (requestTx: IEdge, registration: OperatorParams, negativePrompt?: string, nImages?: string) {
-  const scriptId = registration.scriptId;
-  const url = registration.url;
-  const settings = registration.settings;
-  const format = registration.payloadFormat;
-
-  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
-  const text = await (await requestData.blob()).text();
-  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
-
+const parsePayload = (format: string, text: string, settings?: IOptionalSettings, negativePrompt?: string, nImages?: string) => {
   let payload;
+
   if (format === 'webui') {
     const webuiPayload: IOptionalSettings = {
       ...(settings && { ...settings }),
@@ -497,7 +489,9 @@ const inference = async function (requestTx: IEdge, registration: OperatorParams
       // ignore
     }
 
-    if (nImages && parseInt(nImages, 10) > 0 && parseInt(nImages, 10) <= 10) {
+    const maxImages = 10;
+
+    if (nImages && parseInt(nImages, maxImages) > 0 && parseInt(nImages, maxImages) <= maxImages) {
       webuiPayload['n_iter'] = nImages;
     } else {
       // ignore
@@ -507,6 +501,18 @@ const inference = async function (requestTx: IEdge, registration: OperatorParams
   } else {
     payload = text;
   }
+
+  return payload;
+};
+
+const inference = async function (requestTx: IEdge, registration: OperatorParams, negativePrompt?: string, nImages?: string) {
+  const { scriptId, url, settings, payloadFormat: format } = registration;
+
+  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
+  const text = await (await requestData.blob()).text();
+  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
+
+  const payload = parsePayload(format, text, settings, negativePrompt, nImages);
 
   const res = await fetch(url, {
     method: 'POST',

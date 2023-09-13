@@ -489,22 +489,12 @@ const fetchSeed = async (url, imageStr) => {
 };
 
 
-const inference = async function (requestTx, registration, negativePrompt, nImages) {
-  const scriptId = registration.scriptId;
-  const url = registration.url;
-  const settings = registration.settings;
-  const format = registration.payloadFormat;
-
-  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
-  const text = await (await requestData.blob()).text();
-  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
-
+const parsePayload = (format, text, settings, negativePrompt, nImages) => {
   let payload;
+
   if (format === 'webui') {
     const webuiPayload = {
-      ...(settings && {
-        ...settings,
-      }),
+      ...(settings && { ...settings }),
       prompt: settings?.prompt ? `${settings?.prompt}${text}` : text,
     };
 
@@ -516,7 +506,9 @@ const inference = async function (requestTx, registration, negativePrompt, nImag
       // ignore
     }
 
-    if (nImages && parseInt(nImages, 10) > 0 && parseInt(nImages, 10) <= 10) {
+    const maxImages = 10;
+
+    if (nImages && parseInt(nImages, maxImages) > 0 && parseInt(nImages, maxImages) <= maxImages) {
       webuiPayload['n_iter'] = nImages;
     } else {
       // ignore
@@ -526,6 +518,18 @@ const inference = async function (requestTx, registration, negativePrompt, nImag
   } else {
     payload = text;
   }
+
+  return payload;
+};
+
+const inference = async function (requestTx, registration, negativePrompt, nImages) {
+  const { scriptId, url, settings, payloadFormat: format } = registration;
+
+  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
+  const text = await (await requestData.blob()).text();
+  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
+
+  const payload = parsePayload(format, text, settings, negativePrompt, nImages);
 
   const res = await fetch(url, {
     method: 'POST',

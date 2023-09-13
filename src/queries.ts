@@ -115,9 +115,9 @@ export const queryTransactionsReceived = async (
       return false;
     } else {
       const inputObj = JSON.parse(input);
-      const feeIdx = scriptIds.indexOf(tx.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value || '');
+      const feeIdx = scriptIds.indexOf(tx.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value ?? '');
       
-      const nImages = parseInt(tx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value || '0', 10);
+      const nImages = parseInt(tx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
       if (nImages > 0 && isStableDiffusion[feeIdx]) {
         return inputObj.qty === (opFees[feeIdx] * nImages * OPERATOR_PERCENTAGE_FEE).toString() && inputObj.function === 'transfer' && inputObj.target === address;
       } else {
