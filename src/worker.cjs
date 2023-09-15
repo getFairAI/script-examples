@@ -22,9 +22,11 @@ const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
 const { DeployPlugin } = require('warp-contracts-plugin-deploy');
 const workerpool = require('workerpool');
 
-const APP_VERSION_TAG = 'App-Version';
-const CONVERSATION_IDENTIFIER_TAG = 'Conversation-Identifier';
 const APP_NAME_TAG = 'App-Name';
+const APP_VERSION_TAG = 'App-Version';
+const PROTOCOL_NAME_TAG = 'Protocol-Name';
+const PROTOCOL_VERSION_TAG = 'Protocol-Version';
+const CONVERSATION_IDENTIFIER_TAG = 'Conversation-Identifier';
 const CONTENT_TYPE_TAG = 'Content-Type';
 const UNIX_TIME_TAG = 'Unix-Time';
 const SCRIPT_CURATOR_TAG = 'Script-Curator';
@@ -45,8 +47,6 @@ const TOPIC_AI_TAG = 'topic:ai-generated';
 const MODEL_NAME_TAG = 'Model-Name';
 const DESCRIPTION_TAG = 'Description';
 const USER_CUSOM_TAGS_TAG = 'User-Custom-Tags';
-const CUSTOM_APP_NAME_TAG = 'Custom-App-Name';
-const CUSTOM_APP_VERSION_TAG = 'Custom-App-Version';
 const INFERENCE_SEED_TAG = 'Inference-Seed';
 const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
 const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
@@ -54,8 +54,10 @@ const SCRIPT_OPERATOR_TAG = 'Script-Operator';
 const N_IMAGES_TAG = 'N-Images';
 
 const NOT_OVERRIDABLE_TAGS = [
-  CUSTOM_APP_NAME_TAG,
-  CUSTOM_APP_VERSION_TAG,
+  APP_NAME_TAG,
+  APP_VERSION_TAG,
+  PROTOCOL_NAME_TAG,
+  PROTOCOL_VERSION_TAG,
   SCRIPT_NAME_TAG,
   SCRIPT_CURATOR_TAG,
   OPERATION_NAME_TAG,
@@ -77,6 +79,8 @@ const NOT_OVERRIDABLE_TAGS = [
   SCRIPT_OPERATOR_TAG,
   CONVERSATION_IDENTIFIER_TAG
 ];
+
+const PROTOCOL_NAME = 'Fair Protocol';
 
 const NET_ARWEAVE_URL = 'https://arweave.net';
 const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
@@ -141,6 +145,10 @@ const parseQueryResult = (result) =>
 const queryTransactionAnswered = async (transactionId, address, scriptName, scriptcurator) => {
   const tags = [
     {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
+    {
       name: OPERATION_NAME_TAG,
       values: ['Script Inference Response'],
     },
@@ -194,6 +202,10 @@ const queryCheckUserPayment = async (
   scriptId,
 ) => {
   const tags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     {
       name: OPERATION_NAME_TAG,
       values: ['Inference Payment'],

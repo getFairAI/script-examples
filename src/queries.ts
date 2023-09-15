@@ -24,6 +24,8 @@ import {
   OPERATION_NAME_TAG,
   OPERATOR_PERCENTAGE_FEE,
   OPERATOR_REGISTRATION_AR_FEE,
+  PROTOCOL_NAME,
+  PROTOCOL_NAME_TAG,
   REGISTRATION_TRANSACTION_TAG,
   REQUEST_TRANSACTION_TAG,
   SCRIPT_CURATOR_TAG,
@@ -84,6 +86,10 @@ export const queryTransactionsReceived = async (
   after?: string,
 ) => {
   const tags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     {
       name: OPERATION_NAME_TAG,
       values: ['Inference Payment'],
@@ -169,6 +175,10 @@ export const queryTransactionAnswered = async (
 ) => {
   const tags = [
     {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
+    {
       name: OPERATION_NAME_TAG,
       values: ['Script Inference Response'],
     },
@@ -223,6 +233,10 @@ export const queryCheckUserPayment = async (
 ) => {
   const tags = [
     {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
+    {
       name: OPERATION_NAME_TAG,
       values: ['Inference Payment'],
     },
@@ -257,6 +271,10 @@ export const queryCheckUserPayment = async (
 
 export const getModelOwnerAndName = async (scriptName: string, scriptCurator: string) => {
   const tags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     {
       name: OPERATION_NAME_TAG,
       values: ['Script Creation'],
@@ -304,6 +322,10 @@ export const getModelOwnerAndName = async (scriptName: string, scriptCurator: st
 
 export const isRegistrationCancelled = async (txid: string, opAddress: string) => {
   const cancelTags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     { name: OPERATION_NAME_TAG, values: [CANCEL_OPERATION] },
     { name: REGISTRATION_TRANSACTION_TAG, values: [txid] },
   ];
@@ -351,6 +373,10 @@ export const queryOperatorRegistrations = async (address: string) => {
     qty: parseFloat(OPERATOR_REGISTRATION_AR_FEE) * U_DIVIDER,
   });
   const tags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     {
       name: OPERATION_NAME_TAG,
       values: ['Operator Registration'],

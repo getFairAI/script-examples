@@ -62,7 +62,10 @@ import {
   MAX_STR_SIZE,
   USER_CUSOM_TAGS_TAG,
   NOT_OVERRIDABLE_TAGS,
-  N_IMAGES_TAG
+  N_IMAGES_TAG,
+  PROTOCOL_NAME_TAG,
+  PROTOCOL_VERSION,
+  PROTOCOL_NAME
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -118,6 +121,10 @@ const queryTransactionAnswered = async (
 ) => {
   const tags = [
     {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
+    {
       name: OPERATION_NAME_TAG,
       values: ['Script Inference Response'],
     },
@@ -171,6 +178,10 @@ const queryCheckUserPayment = async (
   scriptId: string,
 ) => {
   const tags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     {
       name: OPERATION_NAME_TAG,
       values: ['Inference Payment'],
@@ -233,7 +244,7 @@ const getGeneralTags = (
   conversationIdentifier: string,
   registration: OperatorParams,
 ) => {
-  const appVersion = requestTags.find((tag) => tag.name === 'App-Version')?.value;
+  const appVersion = requestTags.find((tag) => tag.name === APP_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}${inferenceResult.prompt}` : inferenceResult.prompt;
   if (prompt.length > MAX_STR_SIZE) {
@@ -257,8 +268,8 @@ const getGeneralTags = (
   let description = requestTags.find((tag) => tag.name === DESCRIPTION_TAG)?.value;
 
   const generalTags = [
-    { name: 'Custom-App-Name', value: 'Fair Protocol' },
-    { name: 'Custom-App-Version', value: appVersion as string },
+    { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
+    { name: PROTOCOL_VERSION, value: appVersion as string },
     // add logic tags
     { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
     { name: MODEL_NAME_TAG, value: modelName },
@@ -704,7 +715,7 @@ const processRequest = async (
     return false;
   }
 
-  const appVersion = requestTx.node.tags.find((tag) => tag.name === 'App-Version')?.value;
+  const appVersion = requestTx.node.tags.find((tag) => tag.name === APP_VERSION_TAG)?.value;
   const conversationIdentifier = requestTx.node.tags.find(
     (tag) => tag.name === 'Conversation-Identifier',
   )?.value;
