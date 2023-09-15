@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-export const APP_VERSION_TAG = 'App-Version';
-export const CONVERSATION_IDENTIFIER_TAG = 'Conversation-Identifier';
 export const APP_NAME_TAG = 'App-Name';
+export const APP_VERSION_TAG = 'App-Version';
+export const PROTOCOL_NAME_TAG = 'Protocol-Name';
+export const PROTOCOL_VERSION_TAG = 'Protocol-Version';
+export const CONVERSATION_IDENTIFIER_TAG = 'Conversation-Identifier';
 export const CONTENT_TYPE_TAG = 'Content-Type';
 export const UNIX_TIME_TAG = 'Unix-Time';
 export const SCRIPT_CURATOR_TAG = 'Script-Curator';
@@ -45,14 +47,14 @@ export const MODEL_NAME_TAG = 'Model-Name';
 export const DESCRIPTION_TAG = 'Description';
 export const USER_CUSOM_TAGS_TAG = 'User-Custom-Tags';
 export const INIT_STATE_TAG = 'Init-State';
-export const CUSTOM_APP_NAME_TAG = 'Custom-App-Name';
-export const CUSTOM_APP_VERSION_TAG = 'Custom-App-Version';
 export const INFERENCE_SEED_TAG = 'Inference-Seed';
 export const N_IMAGES_TAG = 'N-Images';
 
 export const NOT_OVERRIDABLE_TAGS = [
-  CUSTOM_APP_NAME_TAG,
-  CUSTOM_APP_VERSION_TAG,
+  APP_NAME_TAG,
+  APP_VERSION_TAG,
+  PROTOCOL_NAME_TAG,
+  PROTOCOL_VERSION_TAG,
   SCRIPT_NAME_TAG,
   SCRIPT_CURATOR_TAG,
   OPERATION_NAME_TAG,
@@ -74,6 +76,9 @@ export const NOT_OVERRIDABLE_TAGS = [
   SCRIPT_OPERATOR_TAG,
   CONVERSATION_IDENTIFIER_TAG,
 ];
+
+export const PROTOCOL_NAME = 'Fair Protocol';
+export const PROTOCOL_VERSION = '1.0';
 
 export const SCRIPT_INFERENCE_REQUEST = 'Script Inference Request';
 export const CANCEL_OPERATION = 'Operator Cancellation';
