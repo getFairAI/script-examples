@@ -29,47 +29,47 @@ git clone --depth 1 --branch v1.5.1 https://github.com/AUTOMATIC1111/stable-diff
 
 3. Download the model file and read the license terms
 
-4. Extract the model file and put the `disneyPixarCartoon_v10.safetensors` file on the `models/Stable-diffusion` folder of the directory you downloaded the WebUI
+4. Extract the model file and put the `dreamshaper_8.safetensors` file on the `models/Stable-diffusion` folder of the directory you downloaded the WebUI
 
-5. Put the `MoistMix.vae.pt` file on the `models/VAE` folder of the directory you downloaded the WebUI
+5. Put the `BadDream.pt` and `FastNegativeV2.pt` files on the `embeddings` folder of the directory you downloaded the WebUI
 
-6. Put the `easynegative.safetensors`, `bad-hands-5.pt`, and `badhandv4.pt` files on the `embeddings` folder of the directory you downloaded the WebUI
-
-7. Navigate to the root folder of the directory you downloaded the WebUI and create a new environment
+6. Navigate to the root folder of the directory you downloaded the WebUI and create a new environment
 
 ```sh
 python3 -m venv stable-diffusion-webui-venv
 ```
 
-8. On the same directory, activate the environment created
+7. On the same directory, activate the environment created
 
 ```sh
 source stable-diffusion-webui-venv/bin/activate
 ```
 
-9. On the same directory, start the WebUI on API mode
+8. On the same directory, start the WebUI on API mode
 
 ```sh
 bash webui.sh --api
 ```
 
-10. Download the script files and extract them to some folder
+9. Download the script files and extract them to some folder
 
-11. Place your Arweave wallet file in the same folder under the name `wallet.json`
+10. Place your Arweave wallet file in the same folder under the name `wallet.json`
 
 **Note:** Wallet must have funds in Bundlr node 2
 
-12. Run the 3D Animation model script
+11. Install and run the generic model script
 
 ```bash
-ts-node 3d-animation.ts
+npm install
+npm start
 ```
 
-*Optional:* If you want to test the inference first, after putting the model in the same folder as the other files, run the test script with one of those commands instead
+**Note:** Installation is only needed on the first time
+
+*Optional:* If you want to test the inference first, after putting the model in the same folder as the other files, run the test script with this command instead
 
 ```bash
-ts-node 3d-animation-inference-test.ts
-python3 3d-animation-inference-test.py
+ts-node test-inference.ts
 ```
 
 *Optional:* Make the script always run in the background when the computer starts
@@ -77,20 +77,22 @@ python3 3d-animation-inference-test.py
 * Run this command
 
 ```sh
-sudo nano /lib/systemd/system/3d-animation-style-loop.service
+sudo nano /lib/systemd/system/generic-loop.service
 ```
 
-* put the following text into the newly created file (replace all the "user" from the text with your system username)
+**Note:** You should only run one loop for this script for each PC, even when using other models with the same configuration
+
+* Put the following text into the newly created file (replace all the "user" from the text with your system username, and replace the working directory with the folder where you have installed the script)
 
 ```conf
 [Unit]
-Description=Loop 3D Animation Style
+Description=Fair Protocol Generic Loop
 [Service]
 Type=simple
 User=user
 Environment=NODE_VERSION=18.16.1
 ExecStart=/home/user/.nvm/nvm-exec npm start
-WorkingDirectory=/home/user/Desktop/3d-animation-style
+WorkingDirectory=/home/user/Desktop/generic-loop
 Restart=on-failure
 [Install]
 WantedBy=multi-user.target
@@ -105,7 +107,7 @@ venv='/home/user/Desktop/stable-diffusion-webui/stable-diffusion-venv'
 
 * Run "sudo nano /lib/systemd/system/stable-diffusion-webui-server.service"
 
-and put the following text into the newly created file (replace all the "user" and path from the text with your system username and path where the Stable Diffusion WebUI is)
+and put the following text into the newly created file (replace all the "user" from the text with your system username, and replace the working directory with the folder where you have installed the script)
 
 ```conf
 [Unit]
@@ -128,20 +130,20 @@ sudo systemctl daemon-reload
 * Set services to start on boot
 
 ```sh
-sudo systemctl enable 3d-animation-style-loop.service
+sudo systemctl enable generic-loop.service
 sudo systemctl enable stable-diffusion-webui-server.service
 ```
 
 * Run this command
 
 ```sh
-sudo systemctl start vits-server
+sudo systemctl start generic-loop.service
 ```
 
 * Run this command
 
 ```sh
-sudo systemctl start vits-loop
+sudo systemctl start stable-diffusion-webui-server.service
 ```
 
 **Note:** To run the script after instalation, you just need to follow steps `8` and `11`.

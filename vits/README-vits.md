@@ -10,12 +10,28 @@ To use this library, you need to do:
 
     * (Optional) You can try to just jump this step, and the program will try to download the file automatically
 
-2. Download the script files and extract
+2. Download the script files and extract them to some folder
 
-3. Place your arweave wallet file in the root folder under the name `wallet.json`
-**Note:** Wallet must have funds in Bundlr node 1
+3. Place your Arweave wallet file in the same folder under the name `wallet.json`
 
-4. (Optional) Create a python virtual environment
+**Note:** Wallet must have funds in Bundlr node 2
+
+4. Install and run the generic model script
+
+```bash
+npm install
+npm start
+```
+
+**Note:** Installation is only needed on the first time
+
+*Optional:* If you want to test the inference first, after putting the model in the same folder as the other files, run the test script with this command instead
+
+```bash
+ts-node test-inference.ts
+```
+
+*Optional:* Create a python virtual environment
 ```sh
 python3 -m venv path/to/set/environment
 source path/to/set/environment/bin/activate
@@ -28,41 +44,30 @@ pip install -r requirements.txt
 
 6. Open a terminal in the scripts folder (with the python virtual environment active if using venv)
 ```sh
-python inference.py # or python inference-cpu.py
-```
-**Note:** Cpu inference is much slower than using gpu
-
-7. Using another terminal in same folder run
-```sh
-npm install
-npm start
+python vits.py
 ```
 
-*Optional:* If you want to test the inference first, after putting the model on the same folder as the other files run instead the test script with
+*Optional:* Make the script always run in the background when the computer starts
 
-```bash
-ts-node vits-inference-test.ts
-```
-
-8. (Optional) Make the script always run on background when computer starts
-
-* Run this command 
+* Run this command
 
 ```sh
-sudo nano /lib/systemd/system/vits-loop.service
+sudo nano /lib/systemd/system/generic-loop.service
 ```
-    
-and put the following text into the newly created file (replace all the "user" from the text with your system username)
+
+**Note:** You should only run one loop for this script for each PC, even when using other models with the same configuration
+
+* Put the following text into the newly created file (replace all the "user" from the text with your system username, and replace the working directory with the folder where you have installed the script)
 
 ```conf
 [Unit]
-Description=VITS Loop
+Description=Fair Protocol Generic Loop
 [Service]
 Type=simple
 User=user
 Environment=NODE_VERSION=18.16.1
 ExecStart=/home/user/.nvm/nvm-exec npm start
-WorkingDirectory=/home/user/Desktop/vits
+WorkingDirectory=/home/user/Desktop/generic-loop
 Restart=on-failure
 [Install]
 WantedBy=multi-user.target
@@ -77,7 +82,7 @@ and put the following text into the newly created file (replace all the "user" f
 Description=VITS Model Server
 [Service]
 WorkingDirectory=/home/user/Desktop/vits/
-ExecStart=/home/user/Desktop/vits/vits-env/bin/python src/inference.py
+ExecStart=/home/user/Desktop/vits/vits-env/bin/python src/vits.py
 Restart=on-failure
 [Install]
 WantedBy=multi-user.target
@@ -92,13 +97,13 @@ sudo systemctl daemon-reload
 * Run this command
 
 ```sh
-sudo systemctl start vits-server
+sudo systemctl start generic-loop.service
 ```
 
 * Run this command
 
 ```sh
-sudo systemctl start vits-loop
+sudo systemctl start vits-server.service
 ```
 
 #### This is all for today, congrats if you made this far!
