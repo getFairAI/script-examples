@@ -1,6 +1,6 @@
 {
   "urls": {
-    "MnXiGR9-j9DgZjFSW1g0GNRtoPDNpq01F64jHF77Xhw": {
+    "...DreamShaper v8...": {
       "name": "dreamShaper-8",
       "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
       "payloadFormat": "webui",
