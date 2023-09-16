@@ -33,31 +33,33 @@ git clone --depth 1 --branch v1.5.1 https://github.com/AUTOMATIC1111/stable-diff
 
 5. Put the `MoistMix.vae.pt` file on the `models/VAE` folder of the directory you downloaded the WebUI
 
-6. Navigate to the root folder of the directory you downloaded the WebUI and create a new environment
+6. Put the `easynegative.safetensors`, `bad-hands-5.pt`, and `badhandv4.pt` files on the `embeddings` folder of the directory you downloaded the WebUI
+
+7. Navigate to the root folder of the directory you downloaded the WebUI and create a new environment
 
 ```sh
 python3 -m venv stable-diffusion-webui-venv
 ```
 
-7. On the same directory, activate the environment created
+8. On the same directory, activate the environment created
 
 ```sh
 source stable-diffusion-webui-venv/bin/activate
 ```
 
-8. On the same directory, start the WebUI on API mode
+9. On the same directory, start the WebUI on API mode
 
 ```sh
 bash webui.sh --api
 ```
 
-9. Download the script files and extract them to some folder
+10. Download the script files and extract them to some folder
 
-10. Place your Arweave wallet file in the same folder under the name `wallet.json`
+11. Place your Arweave wallet file in the same folder under the name `wallet.json`
 
-**Note:** Wallet must have funds in Bundlr node 1
+**Note:** Wallet must have funds in Bundlr node 2
 
-11. Run the 3D Animation model script
+12. Run the 3D Animation model script
 
 ```bash
 ts-node 3d-animation.ts
@@ -82,7 +84,7 @@ sudo nano /lib/systemd/system/3d-animation-style-loop.service
 
 ```conf
 [Unit]
-Description= Loop 3D Animation Style
+Description=Loop 3D Animation Style
 [Service]
 Type=simple
 User=user
