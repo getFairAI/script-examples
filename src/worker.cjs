@@ -501,7 +501,7 @@ const fetchSeed = async (url, imageStr) => {
 };
 
 
-const parsePayload = (format, text, settings, negativePrompt, nImages) => {
+const parsePayload = (format, text, settings, negativePrompt) => {
   let payload;
 
   if (format === 'webui') {
@@ -518,13 +518,8 @@ const parsePayload = (format, text, settings, negativePrompt, nImages) => {
       // ignore
     }
 
-    const maxImages = 10;
-
-    if (nImages && parseInt(nImages, maxImages) > 0 && parseInt(nImages, maxImages) <= maxImages) {
-      webuiPayload['n_iter'] = nImages;
-    } else {
-      // ignore
-    }
+    // force n_iter 1
+    webuiPayload['n_iter'] = 1;
   
     payload = JSON.stringify(webuiPayload);
   } else {
@@ -534,15 +529,7 @@ const parsePayload = (format, text, settings, negativePrompt, nImages) => {
   return payload;
 };
 
-const inference = async function (requestTx, registration, negativePrompt, nImages) {
-  const { scriptId, url, settings, payloadFormat: format } = registration;
-
-  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
-  const text = await (await requestData.blob()).text();
-  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
-
-  const payload = parsePayload(format, text, settings, negativePrompt, nImages);
-
+const runInference = async (url, format, payload, scriptId, text) => {
   const res = await fetch(url, {
     method: 'POST',
     ...(format === 'webui' && { headers: {
@@ -579,6 +566,40 @@ const inference = async function (requestTx, registration, negativePrompt, nImag
     };
   } else {
     throw new Error('Invalid response from server');
+  }
+};
+
+const inference = async function (requestTx, registration, nImages, cid, negativePrompt) {
+  const { scriptId, url, settings, payloadFormat: format } = registration;
+
+  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
+  const text = await (await requestData.blob()).text();
+  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
+
+  const payload = parsePayload(format, text, settings, negativePrompt);
+
+  const maxImages = 10;
+
+  let nIters =  format === 'webui' ? settings['n_iter'] || 4 : 1;
+
+  if (format === 'webui' && nImages && nImages > 0 && nImages <= maxImages) {
+    nIters = nImages;
+  } else {
+    // use default
+  }
+
+  for (let i = 0;i++; i< nIters) {
+    const result = await runInference(url, format, payload, scriptId, text);
+    workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(result)}` });
+
+    await sendToBundlr(
+      result,
+      requestTx.node.owner.address,
+      requestTx.node.id,
+      requestTx.node.tags,
+      cid,
+      registration,
+    );
   }
 };
 
@@ -699,13 +720,22 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     return requestId;
   }
 
+  const nImages = parseInt(requestTx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
+
+  let operatorFee = registration.operatorFee;
+  if (nImages > 0 && registration.payloadFormat === 'webui') {
+    operatorFee = registration.operatorFee * nImages; 
+  } else if (registration.payloadFormat === 'webui') {
+    operatorFee = registration.operatorFee * 4;
+  }
+
   if (
     !(await checkUserPaidInferenceFees(
       requestTx.node.id,
       reqUserAddr,
       registration.modelOwner,
       registration.scriptCurator,
-      registration.operatorFee,
+      operatorFee,
       registration.scriptId,
     ))
   ) {
@@ -724,18 +754,7 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
   }
 
   const negativePrompt = requestTx.node.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
-  const nImages = requestTx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value;
-  const inferenceResult = await inference(requestTx, registration, negativePrompt, nImages);
-  workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(inferenceResult)}` });
-
-  await sendToBundlr(
-    inferenceResult,
-    requestTx.node.owner.address,
-    requestTx.node.id,
-    requestTx.node.tags,
-    conversationIdentifier,
-    registration,
-  );
+  await inference(requestTx, registration, nImages, conversationIdentifier, negativePrompt);
 
   return requestId;
 };
