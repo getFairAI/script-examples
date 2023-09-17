@@ -53,11 +53,13 @@ bash webui.sh --api
 
 9. Download the script files and extract them to some folder
 
-10. Place your Arweave wallet file in the same folder under the name `wallet.json`
+10. Open the `config.json` file and replace the "...DreamShaper v8..." with the transaction ID of the Model Script, inside the comas. You can find it on the Studio application, on the Operators flow, where you downloaded the needed files for this installation, with the button "copy to clipboard"
+
+11. Place your Arweave wallet file in the same folder under the name `wallet.json`
 
 **Note:** Wallet must have funds in Bundlr node 2
 
-11. Install and run the generic model script
+12. Install and run the generic model script
 
 ```bash
 npm install

@@ -12,11 +12,13 @@ To use this library, you need to do:
 
 2. Download the script files and extract them to some folder
 
-3. Place your Arweave wallet file in the same folder under the name `wallet.json`
+3. Open the `config.json` file and replace the "...VITS..." with the transaction ID of the Model Script, inside the comas. You can find it on the Studio application, on the Operators flow, where you downloaded the needed files for this installation, with the button "copy to clipboard"
+
+4. Place your Arweave wallet file in the same folder under the name `wallet.json`
 
 **Note:** Wallet must have funds in Bundlr node 2
 
-4. Install and run the generic model script
+5. Install and run the generic model script
 
 ```bash
 npm install
@@ -37,12 +39,12 @@ python3 -m venv path/to/set/environment
 source path/to/set/environment/bin/activate
 ```
 
-5. Install Requirements
+6. Install Requirements
 ```
 pip install -r requirements.txt
 ```
 
-6. Open a terminal in the scripts folder (with the python virtual environment active if using venv)
+7. Open a terminal in the scripts folder (with the python virtual environment active if using venv)
 ```sh
 python vits.py
 ```

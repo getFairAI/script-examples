@@ -1,8 +1,11 @@
 {
-  "url": "http://127.0.0.1:8089",
-  "sleepTimeSeconds": 7,
-  "scriptCurator": "wGT06tKaEGXuF6QR2dXqqmO7B_TF41rELP4D1IX4-IA",
-  "scriptName": "Audio Generation v1",
-  "vaultAddress": "tXd-BOaxmxtgswzwMLnryROAYlX5uDC9-XK2P4VNCQQ",
-  "nPreviousBlocks": 1
+  "urls": {
+    "...VITS...": {
+      "name": "vits",
+      "url": "http://127.0.0.1:8089",
+      "payloadFormat": "default"
+    }
+  },
+  "startBlockHeight": "1250542",
+  "sleepTimeSeconds": 7
 }

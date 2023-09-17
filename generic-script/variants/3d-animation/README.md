@@ -55,13 +55,13 @@ bash webui.sh --api
 
 10. Download the script files and extract them to some folder
 
-11. Open the `config.json` file and replace the "...3d Animation Style..." with the transaction ID of the Model Script, inside the comas. You can find it on the  Example: ""
+11. Open the `config.json` file and replace the "...3d Animation Style..." with the transaction ID of the Model Script, inside the comas. You can find it on the Studio application, on the Operators flow, where you downloaded the needed files for this installation, with the button "copy to clipboard"
 
-11. Place your Arweave wallet file in the same folder under the name `wallet.json`
+12. Place your Arweave wallet file in the same folder under the name `wallet.json`
 
 **Note:** Wallet must have funds in Bundlr node 2
 
-12. Install and run the generic model script
+13. Install and run the generic model script
 
 ```bash
 npm install
