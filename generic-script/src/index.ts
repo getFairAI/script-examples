@@ -196,11 +196,13 @@ const start = async () => {
   try {
     const scriptIds = registrations.map((reg) => reg.scriptId);
     const operatorFees = registrations.map((reg) => reg.operatorFee);
+    const isStableDifusion = registrations.map((reg) => reg.payloadFormat === 'webui');
     // request only new txs
     const { requestTxs, hasNextPage } = await queryTransactionsReceived(
       address,
       operatorFees,
       scriptIds,
+      isStableDifusion,
     );
 
     const newRequestTxs = requestTxs.filter(
@@ -218,6 +220,7 @@ const start = async () => {
             address,
             operatorFees,
             scriptIds,
+            isStableDifusion,
             newRequestTxs[newRequestTxs.length - 1].cursor,
           );
 

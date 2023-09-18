@@ -20,9 +20,12 @@ import {
   CONTRACT_TAG,
   INFERENCE_TRANSACTION_TAG,
   INPUT_TAG,
+  N_IMAGES_TAG,
   OPERATION_NAME_TAG,
   OPERATOR_PERCENTAGE_FEE,
   OPERATOR_REGISTRATION_AR_FEE,
+  PROTOCOL_NAME,
+  PROTOCOL_NAME_TAG,
   REGISTRATION_TRANSACTION_TAG,
   REQUEST_TRANSACTION_TAG,
   SCRIPT_CURATOR_TAG,
@@ -79,19 +82,14 @@ export const queryTransactionsReceived = async (
   address: string,
   opFees: number[],
   scriptIds: string[],
+  isStableDiffusion: boolean[],
   after?: string,
 ) => {
-  const paymentInputs = opFees.map((opFee) => {
-    const feeShare = opFee * OPERATOR_PERCENTAGE_FEE;
-
-    return JSON.stringify({
-      function: 'transfer',
-      target: address,
-      qty: feeShare.toString(),
-    });
-  });
-
   const tags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     {
       name: OPERATION_NAME_TAG,
       values: ['Inference Payment'],
@@ -99,10 +97,6 @@ export const queryTransactionsReceived = async (
     {
       name: SCRIPT_TRANSACTION_TAG,
       values: scriptIds,
-    },
-    {
-      name: INPUT_TAG,
-      values: paymentInputs,
     },
     {
       name: CONTRACT_TAG,
@@ -119,8 +113,26 @@ export const queryTransactionsReceived = async (
     variables: { first: 10, tags, after },
   });
 
+  // filter txs with incorrect payments
+  const validPaymens = parseQueryResult(result).filter((tx) => {
+    const input = tx.node.tags.find((tag) => tag.name === INPUT_TAG)?.value;
+
+    if (!input) {
+      return false;
+    } else {
+      const inputObj = JSON.parse(input);
+      const feeIdx = scriptIds.indexOf(tx.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value ?? '');
+      
+      const nImages = parseInt(tx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
+      if (nImages > 0 && isStableDiffusion[feeIdx]) {
+        return inputObj.qty === (opFees[feeIdx] * nImages * OPERATOR_PERCENTAGE_FEE).toString() && inputObj.function === 'transfer' && inputObj.target === address;
+      } else {
+        return inputObj.qty === (opFees[feeIdx] * OPERATOR_PERCENTAGE_FEE).toString()&& inputObj.function === 'transfer' && inputObj.target === address;
+      }
+    }
+  });
   return {
-    requestTxs: parseQueryResult(result),
+    requestTxs: validPaymens,
     hasNextPage: result.data.transactions.pageInfo.hasNextPage,
   };
 };
@@ -162,6 +174,10 @@ export const queryTransactionAnswered = async (
   scriptcurator: string,
 ) => {
   const tags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     {
       name: OPERATION_NAME_TAG,
       values: ['Script Inference Response'],
@@ -217,6 +233,10 @@ export const queryCheckUserPayment = async (
 ) => {
   const tags = [
     {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
+    {
       name: OPERATION_NAME_TAG,
       values: ['Inference Payment'],
     },
@@ -251,6 +271,10 @@ export const queryCheckUserPayment = async (
 
 export const getModelOwnerAndName = async (scriptName: string, scriptCurator: string) => {
   const tags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     {
       name: OPERATION_NAME_TAG,
       values: ['Script Creation'],
@@ -298,6 +322,10 @@ export const getModelOwnerAndName = async (scriptName: string, scriptCurator: st
 
 export const isRegistrationCancelled = async (txid: string, opAddress: string) => {
   const cancelTags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     { name: OPERATION_NAME_TAG, values: [CANCEL_OPERATION] },
     { name: REGISTRATION_TRANSACTION_TAG, values: [txid] },
   ];
@@ -345,6 +373,10 @@ export const queryOperatorRegistrations = async (address: string) => {
     qty: parseFloat(OPERATOR_REGISTRATION_AR_FEE) * U_DIVIDER,
   });
   const tags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     {
       name: OPERATION_NAME_TAG,
       values: ['Operator Registration'],

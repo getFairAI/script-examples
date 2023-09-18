@@ -22,9 +22,11 @@ const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
 const { DeployPlugin } = require('warp-contracts-plugin-deploy');
 const workerpool = require('workerpool');
 
-const APP_VERSION_TAG = 'App-Version';
-const CONVERSATION_IDENTIFIER_TAG = 'Conversation-Identifier';
 const APP_NAME_TAG = 'App-Name';
+const APP_VERSION_TAG = 'App-Version';
+const PROTOCOL_NAME_TAG = 'Protocol-Name';
+const PROTOCOL_VERSION_TAG = 'Protocol-Version';
+const CONVERSATION_IDENTIFIER_TAG = 'Conversation-Identifier';
 const CONTENT_TYPE_TAG = 'Content-Type';
 const UNIX_TIME_TAG = 'Unix-Time';
 const SCRIPT_CURATOR_TAG = 'Script-Curator';
@@ -45,16 +47,17 @@ const TOPIC_AI_TAG = 'topic:ai-generated';
 const MODEL_NAME_TAG = 'Model-Name';
 const DESCRIPTION_TAG = 'Description';
 const USER_CUSOM_TAGS_TAG = 'User-Custom-Tags';
-const CUSTOM_APP_NAME_TAG = 'Custom-App-Name';
-const CUSTOM_APP_VERSION_TAG = 'Custom-App-Version';
 const INFERENCE_SEED_TAG = 'Inference-Seed';
 const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
 const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
 const SCRIPT_OPERATOR_TAG = 'Script-Operator';
+const N_IMAGES_TAG = 'N-Images';
 
 const NOT_OVERRIDABLE_TAGS = [
-  CUSTOM_APP_NAME_TAG,
-  CUSTOM_APP_VERSION_TAG,
+  APP_NAME_TAG,
+  APP_VERSION_TAG,
+  PROTOCOL_NAME_TAG,
+  PROTOCOL_VERSION_TAG,
   SCRIPT_NAME_TAG,
   SCRIPT_CURATOR_TAG,
   OPERATION_NAME_TAG,
@@ -77,14 +80,16 @@ const NOT_OVERRIDABLE_TAGS = [
   CONVERSATION_IDENTIFIER_TAG
 ];
 
+const PROTOCOL_NAME = 'Fair Protocol';
+
 const NET_ARWEAVE_URL = 'https://arweave.net';
 const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
 
 
 const VAULT_ADDRESS = 'tXd-BOaxmxtgswzwMLnryROAYlX5uDC9-XK2P4VNCQQ';
-const MARKETPLACE_PERCENTAGE_FEE = 0.15;
-const CURATOR_PERCENTAGE_FEE = 0.025;
-const CREATOR_PERCENTAGE_FEE = 0.025;
+const MARKETPLACE_PERCENTAGE_FEE = 0.1;
+const CURATOR_PERCENTAGE_FEE = 0.05;
+const CREATOR_PERCENTAGE_FEE = 0.15;
 const U_CONTRACT_ID = 'KTzTXT_ANmF84fWEKHzWURD1LWd9QaFR9yfYUwH2Lxw';
 const ATOMIC_TOKEN_CONTRACT_ID = 'h9v17KHV4SXwdW2-JHU6a23f6R0YtbXZJJht8LfP8QM';
 const UDL_ID = 'yRj4a5KMctX_uOmKWCFJIjmY8DeJcusVk6-HzLiM_t8';
@@ -140,6 +145,10 @@ const parseQueryResult = (result) =>
 const queryTransactionAnswered = async (transactionId, address, scriptName, scriptcurator) => {
   const tags = [
     {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
+    {
       name: OPERATION_NAME_TAG,
       values: ['Script Inference Response'],
     },
@@ -193,6 +202,10 @@ const queryCheckUserPayment = async (
   scriptId,
 ) => {
   const tags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
     {
       name: OPERATION_NAME_TAG,
       values: ['Inference Payment'],
@@ -255,7 +268,7 @@ const getGeneralTags = (
   conversationIdentifier,
   registration,
 ) => {
-  const appVersion = requestTags.find((tag) => tag.name === 'App-Version')?.value;
+  const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}, ${inferenceResult.prompt}` : inferenceResult.prompt;
   if (prompt.length > MAX_STR_SIZE) {
@@ -279,8 +292,8 @@ const getGeneralTags = (
   let description = requestTags.find((tag) => tag.name === DESCRIPTION_TAG)?.value;
 
   const generalTags = [
-    { name: 'Custom-App-Name', value: 'Fair Protocol' },
-    { name: 'Custom-App-Version', value: appVersion },
+    { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
+    { name: PROTOCOL_VERSION_TAG, value: protocolVersion },
     // add logic tags
     { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
     { name: MODEL_NAME_TAG, value: modelName },
@@ -366,6 +379,7 @@ const getGeneralTags = (
     try {
       const customTags = JSON.parse(customUserTags);
       // filter custom tags to remove not overridavble ones
+      let newTagsIdx = 1;
       for (const customTag of customTags) {
         const isOverridable = !NOT_OVERRIDABLE_TAGS.includes(customTag.name);
         const tagIdx = generalTags.findIndex((tag) => tag.name === customTag.name);
@@ -374,8 +388,11 @@ const getGeneralTags = (
           generalTags.splice(tagIdx, 1, customTag);
         } else if (isOverridable) {
           // insert afer unix time tag
-          const unixTimeIdx = generalTags.findIndex((tag) => tag.name === UNIX_TIME_TAG) + 1;
+          const unixTimeIdx = generalTags.findIndex((tag) => tag.name === UNIX_TIME_TAG) + newTagsIdx;
           generalTags.splice(unixTimeIdx, 0, customTag);
+
+          // only increment if tag was added after unixtimestamp tag
+          newTagsIdx++;
         } else {
           // ignore
         }
@@ -483,17 +500,13 @@ const fetchSeed = async (url, imageStr) => {
   }
 };
 
-const inference = async function (requestTx, scriptId, url, format, settings, negativePrompt) {
-  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
-  const text = await (await requestData.blob()).text();
-  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
 
+const parsePayload = (format, text, settings, negativePrompt) => {
   let payload;
+
   if (format === 'webui') {
     const webuiPayload = {
-      ...(settings && {
-        ...settings,
-      }),
+      ...(settings && { ...settings }),
       prompt: settings?.prompt ? `${settings?.prompt}${text}` : text,
     };
 
@@ -505,11 +518,18 @@ const inference = async function (requestTx, scriptId, url, format, settings, ne
       // ignore
     }
 
+    // force n_iter 1
+    webuiPayload['n_iter'] = 1;
+  
     payload = JSON.stringify(webuiPayload);
   } else {
     payload = text;
   }
 
+  return payload;
+};
+
+const runInference = async (url, format, payload, scriptId, text) => {
   const res = await fetch(url, {
     method: 'POST',
     ...(format === 'webui' && { headers: {
@@ -546,6 +566,40 @@ const inference = async function (requestTx, scriptId, url, format, settings, ne
     };
   } else {
     throw new Error('Invalid response from server');
+  }
+};
+
+const inference = async function (requestTx, registration, nImages, cid, negativePrompt) {
+  const { scriptId, url, settings, payloadFormat: format } = registration;
+
+  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
+  const text = await (await requestData.blob()).text();
+  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
+
+  const payload = parsePayload(format, text, settings, negativePrompt);
+
+  const maxImages = 10;
+
+  let nIters =  format === 'webui' ? settings['n_iter'] || 4 : 1;
+
+  if (format === 'webui' && nImages && nImages > 0 && nImages <= maxImages) {
+    nIters = nImages;
+  } else {
+    // use default
+  }
+
+  for (let i = 0; i < nIters; i++) {
+    const result = await runInference(url, format, payload, scriptId, text);
+    workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(result)}` });
+
+    await sendToBundlr(
+      result,
+      requestTx.node.owner.address,
+      requestTx.node.id,
+      requestTx.node.tags,
+      cid,
+      registration,
+    );
   }
 };
 
@@ -666,13 +720,22 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     return requestId;
   }
 
+  const nImages = parseInt(requestTx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
+
+  let operatorFee = registration.operatorFee;
+  if (nImages > 0 && registration.payloadFormat === 'webui') {
+    operatorFee = registration.operatorFee * nImages; 
+  } else if (registration.payloadFormat === 'webui') {
+    operatorFee = registration.operatorFee * 4;
+  }
+
   if (
     !(await checkUserPaidInferenceFees(
       requestTx.node.id,
       reqUserAddr,
       registration.modelOwner,
       registration.scriptCurator,
-      registration.operatorFee,
+      operatorFee,
       registration.scriptId,
     ))
   ) {
@@ -680,29 +743,18 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     return false;
   }
 
-  const appVersion = requestTx.node.tags.find((tag) => tag.name === 'App-Version')?.value;
+  const protocolVersion = requestTx.node.tags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const conversationIdentifier = requestTx.node.tags.find(
     (tag) => tag.name === 'Conversation-Identifier',
   )?.value;
-  if (!appVersion || !conversationIdentifier) {
+  if (!protocolVersion || !conversationIdentifier) {
     // If the request doesn't have the necessary tags, skip
     workerpool.workerEmit({ type: 'error', message: `Request ${requestId} does not have the necessary tags.` });
     return false;
   }
 
   const negativePrompt = requestTx.node.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
-
-  const inferenceResult = await inference(requestTx,registration.scriptId, registration.url, registration.payloadFormat, registration.settings, negativePrompt);
-  workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(inferenceResult)}` });
-
-  await sendToBundlr(
-    inferenceResult,
-    requestTx.node.owner.address,
-    requestTx.node.id,
-    requestTx.node.tags,
-    conversationIdentifier,
-    registration,
-  );
+  await inference(requestTx, registration, nImages, conversationIdentifier, negativePrompt);
 
   return requestId;
 };
