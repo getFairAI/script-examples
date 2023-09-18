@@ -120,15 +120,7 @@ export const queryTransactionsReceived = async (
     if (!input) {
       return false;
     } else {
-      const inputObj = JSON.parse(input);
-      const feeIdx = scriptIds.indexOf(tx.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value ?? '');
-      
-      const nImages = parseInt(tx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
-      if (nImages > 0 && isStableDiffusion[feeIdx]) {
-        return inputObj.qty === (opFees[feeIdx] * nImages * OPERATOR_PERCENTAGE_FEE).toString() && inputObj.function === 'transfer' && inputObj.target === address;
-      } else {
-        return inputObj.qty === (opFees[feeIdx] * OPERATOR_PERCENTAGE_FEE).toString()&& inputObj.function === 'transfer' && inputObj.target === address;
-      }
+      return validateInput(input, tx, opFees, scriptIds, isStableDiffusion, address);
     }
   });
   return {
@@ -136,6 +128,28 @@ export const queryTransactionsReceived = async (
     hasNextPage: result.data.transactions.pageInfo.hasNextPage,
   };
 };
+
+const validateInput = (
+  input: string,
+  tx: IEdge, opFees: number[],
+  scriptIds: string[],
+  isStableDiffusion: boolean[],
+  address: string
+) => {
+  const inputObj = JSON.parse(input);
+  const feeIdx = scriptIds.indexOf(tx.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value ?? '');
+  const nImages = parseInt(tx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
+
+  if (nImages > 0 && isStableDiffusion[feeIdx]) {
+    return inputObj.qty === (opFees[feeIdx] * nImages * OPERATOR_PERCENTAGE_FEE).toString() && inputObj.function === 'transfer' && inputObj.target === address;
+  } else if (isStableDiffusion[feeIdx]) {
+    // default images for stable diffusion config is 4
+    const defaultNImgs = 4;
+    return inputObj.qty === (opFees[feeIdx] * defaultNImgs * OPERATOR_PERCENTAGE_FEE).toString() && inputObj.function === 'transfer' && inputObj.target === address;
+  } else {
+    return inputObj.qty === (opFees[feeIdx] * OPERATOR_PERCENTAGE_FEE).toString()&& inputObj.function === 'transfer' && inputObj.target === address;
+  }
+}; 
 
 export const getRequest = async (transactionId: string) => {
   const result = await clientGateway.query({
