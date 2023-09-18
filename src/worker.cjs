@@ -268,7 +268,7 @@ const getGeneralTags = (
   conversationIdentifier,
   registration,
 ) => {
-  const appVersion = requestTags.find((tag) => tag.name === 'App-Version')?.value;
+  const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}, ${inferenceResult.prompt}` : inferenceResult.prompt;
   if (prompt.length > MAX_STR_SIZE) {
@@ -292,8 +292,8 @@ const getGeneralTags = (
   let description = requestTags.find((tag) => tag.name === DESCRIPTION_TAG)?.value;
 
   const generalTags = [
-    { name: 'Custom-App-Name', value: 'Fair Protocol' },
-    { name: 'Custom-App-Version', value: appVersion },
+    { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
+    { name: PROTOCOL_VERSION_TAG, value: protocolVersion },
     // add logic tags
     { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
     { name: MODEL_NAME_TAG, value: modelName },
@@ -588,7 +588,7 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
     // use default
   }
 
-  for (let i = 0;i++; i< nIters) {
+  for (let i = 0; i < nIters; i++) {
     const result = await runInference(url, format, payload, scriptId, text);
     workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(result)}` });
 
@@ -743,11 +743,11 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     return false;
   }
 
-  const appVersion = requestTx.node.tags.find((tag) => tag.name === 'App-Version')?.value;
+  const protocolVersion = requestTx.node.tags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const conversationIdentifier = requestTx.node.tags.find(
     (tag) => tag.name === 'Conversation-Identifier',
   )?.value;
-  if (!appVersion || !conversationIdentifier) {
+  if (!protocolVersion || !conversationIdentifier) {
     // If the request doesn't have the necessary tags, skip
     workerpool.workerEmit({ type: 'error', message: `Request ${requestId} does not have the necessary tags.` });
     return false;

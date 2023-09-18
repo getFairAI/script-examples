@@ -64,7 +64,8 @@ import {
   N_IMAGES_TAG,
   PROTOCOL_NAME_TAG,
   PROTOCOL_VERSION,
-  PROTOCOL_NAME
+  PROTOCOL_NAME,
+  PROTOCOL_VERSION_TAG
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -243,7 +244,7 @@ const getGeneralTags = (
   conversationIdentifier: string,
   registration: OperatorParams,
 ) => {
-  const appVersion = requestTags.find((tag) => tag.name === APP_VERSION_TAG)?.value;
+  const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}${inferenceResult.prompt}` : inferenceResult.prompt;
   if (prompt.length > MAX_STR_SIZE) {
@@ -268,7 +269,7 @@ const getGeneralTags = (
 
   const generalTags = [
     { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
-    { name: PROTOCOL_VERSION, value: appVersion as string },
+    { name: PROTOCOL_VERSION, value: protocolVersion as string },
     // add logic tags
     { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
     { name: MODEL_NAME_TAG, value: modelName },
@@ -569,7 +570,7 @@ const inference = async function (requestTx: IEdge, registration: OperatorParams
     // use default
   }
 
-  for (let i = 0;i++; i< nIters) {
+  for (let i = 0;i< nIters; i++) {
     const result = await runInference(url, format, payload, scriptId, text);
     workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(result)}` });
 
@@ -744,11 +745,11 @@ const processRequest = async (
     return false;
   }
 
-  const appVersion = requestTx.node.tags.find((tag) => tag.name === APP_VERSION_TAG)?.value;
+  const protocolVersion = requestTx.node.tags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const conversationIdentifier = requestTx.node.tags.find(
     (tag) => tag.name === 'Conversation-Identifier',
   )?.value;
-  if (!appVersion || !conversationIdentifier) {
+  if (!protocolVersion || !conversationIdentifier) {
     // If the request doesn't have the necessary tags, skip
     workerpool.workerEmit({
       type: 'error',
