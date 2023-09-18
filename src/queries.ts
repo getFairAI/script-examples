@@ -126,6 +126,10 @@ export const queryTransactionsReceived = async (
       const nImages = parseInt(tx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
       if (nImages > 0 && isStableDiffusion[feeIdx]) {
         return inputObj.qty === (opFees[feeIdx] * nImages * OPERATOR_PERCENTAGE_FEE).toString() && inputObj.function === 'transfer' && inputObj.target === address;
+      } if (isStableDiffusion[feeIdx]) {
+        // default images for stable diffusion config is 4
+        const defaultNImgs = 4;
+        return inputObj.qty === (opFees[feeIdx] * defaultNImgs * OPERATOR_PERCENTAGE_FEE).toString() && inputObj.function === 'transfer' && inputObj.target === address;
       } else {
         return inputObj.qty === (opFees[feeIdx] * OPERATOR_PERCENTAGE_FEE).toString()&& inputObj.function === 'transfer' && inputObj.target === address;
       }
