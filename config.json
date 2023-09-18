@@ -53,7 +53,7 @@
       }
     },
     "...DreamShaper XL...": {
-      "name": "dreamShaper-8",
+      "name": "dreamShaper-xl",
       "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
       "payloadFormat": "webui",
       "settings": {

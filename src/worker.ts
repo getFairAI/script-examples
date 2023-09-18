@@ -22,7 +22,6 @@ import { JWKInterface } from 'arweave/node/lib/wallet';
 import {
   IEdge,
   OperatorParams,
-  ServerResponse,
   ITransactions,
   IOptionalSettings,
   InferenceResult,
@@ -65,7 +64,8 @@ import {
   N_IMAGES_TAG,
   PROTOCOL_NAME_TAG,
   PROTOCOL_VERSION,
-  PROTOCOL_NAME
+  PROTOCOL_NAME,
+  PROTOCOL_VERSION_TAG
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -244,7 +244,7 @@ const getGeneralTags = (
   conversationIdentifier: string,
   registration: OperatorParams,
 ) => {
-  const appVersion = requestTags.find((tag) => tag.name === APP_VERSION_TAG)?.value;
+  const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}${inferenceResult.prompt}` : inferenceResult.prompt;
   if (prompt.length > MAX_STR_SIZE) {
@@ -269,7 +269,7 @@ const getGeneralTags = (
 
   const generalTags = [
     { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
-    { name: PROTOCOL_VERSION, value: appVersion as string },
+    { name: PROTOCOL_VERSION, value: protocolVersion as string },
     // add logic tags
     { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
     { name: MODEL_NAME_TAG, value: modelName },
@@ -483,7 +483,7 @@ const fetchSeed = async (url: string, imageStr: string) => {
   }
 };
 
-const parsePayload = (format: string, text: string, settings?: IOptionalSettings, negativePrompt?: string, nImages?: string) => {
+const parsePayload = (format: string, text: string, settings?: IOptionalSettings, negativePrompt?: string) => {
   let payload;
 
   if (format === 'webui') {
@@ -500,13 +500,8 @@ const parsePayload = (format: string, text: string, settings?: IOptionalSettings
       // ignore
     }
 
-    const maxImages = 10;
-
-    if (nImages && parseInt(nImages, maxImages) > 0 && parseInt(nImages, maxImages) <= maxImages) {
-      webuiPayload['n_iter'] = nImages;
-    } else {
-      // ignore
-    }
+    // force n_iter 1
+    webuiPayload['n_iter'] = '1';
   
     payload = JSON.stringify(webuiPayload);
   } else {
@@ -516,15 +511,7 @@ const parsePayload = (format: string, text: string, settings?: IOptionalSettings
   return payload;
 };
 
-const inference = async function (requestTx: IEdge, registration: OperatorParams, negativePrompt?: string, nImages?: string) {
-  const { scriptId, url, settings, payloadFormat: format } = registration;
-
-  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
-  const text = await (await requestData.blob()).text();
-  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
-
-  const payload = parsePayload(format, text, settings, negativePrompt, nImages);
-
+const runInference = async (url: string, format: 'webui' | 'default', payload: string, scriptId: string, text: string) => {
   const res = await fetch(url, {
     method: 'POST',
     ...(format === 'webui' && { headers: {
@@ -533,11 +520,11 @@ const inference = async function (requestTx: IEdge, registration: OperatorParams
     }}),
     body: payload,
   });
-  const tempData: ServerResponse = await res.json();
+  const tempData = await res.json();
 
   if (tempData.images) {
     let i = 0;
-    const imgPaths: string[] = [], imgSeeds: string[] = [];
+    const imgPaths = [], imgSeeds = [];
 
     for (const el of tempData.images) {
       fs.writeFileSync(`output_${scriptId}_${i}.png`, Buffer.from(el, 'base64'));
@@ -561,6 +548,40 @@ const inference = async function (requestTx: IEdge, registration: OperatorParams
     };
   } else {
     throw new Error('Invalid response from server');
+  }
+};
+
+const inference = async function (requestTx: IEdge, registration: OperatorParams, nImages: number, cid: string, negativePrompt?: string) {
+  const { scriptId, url, settings, payloadFormat: format } = registration;
+
+  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
+  const text = await (await requestData.blob()).text();
+  workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
+
+  const payload = parsePayload(format, text, settings, negativePrompt);
+
+  const maxImages = 10;
+
+  let nIters =  parseInt(format === 'webui' ? settings?.['n_iter'] || '4' : '1', 10);
+
+  if (format === 'webui' && nImages && nImages > 0 && nImages <= maxImages) {
+    nIters = nImages;
+  } else {
+    // use default
+  }
+
+  for (let i = 0;i< nIters; i++) {
+    const result = await runInference(url, format, payload, scriptId, text);
+    workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(result)}` });
+
+    await sendToBundlr(
+      result,
+      requestTx.node.owner.address,
+      requestTx.node.id,
+      requestTx.node.tags,
+      cid,
+      registration,
+    );
   }
 };
 
@@ -696,7 +717,16 @@ const processRequest = async (
       message: `Request ${requestId} has already been answered. Skipping...`,
     });
     return requestId;
-  } 
+  }
+
+  const nImages = parseInt(requestTx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
+
+  let operatorFee = registration.operatorFee;
+  if (nImages > 0 && registration.payloadFormat === 'webui') {
+    operatorFee = registration.operatorFee * nImages; 
+  } else if (registration.payloadFormat === 'webui') {
+    operatorFee = registration.operatorFee * 4;
+  }
 
   if (
     !(await checkUserPaidInferenceFees(
@@ -704,7 +734,7 @@ const processRequest = async (
       reqUserAddr,
       registration.modelOwner,
       registration.scriptCurator,
-      registration.operatorFee,
+      operatorFee,
       registration.scriptId,
     ))
   ) {
@@ -715,11 +745,11 @@ const processRequest = async (
     return false;
   }
 
-  const appVersion = requestTx.node.tags.find((tag) => tag.name === APP_VERSION_TAG)?.value;
+  const protocolVersion = requestTx.node.tags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const conversationIdentifier = requestTx.node.tags.find(
     (tag) => tag.name === 'Conversation-Identifier',
   )?.value;
-  if (!appVersion || !conversationIdentifier) {
+  if (!protocolVersion || !conversationIdentifier) {
     // If the request doesn't have the necessary tags, skip
     workerpool.workerEmit({
       type: 'error',
@@ -729,21 +759,7 @@ const processRequest = async (
   }
 
   const negativePrompt = requestTx.node.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
-  const nImages = requestTx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value;
-  const inferenceResult = await inference(requestTx, registration, negativePrompt, nImages);
-  workerpool.workerEmit({
-    type: 'info',
-    message: `Inference Result: ${JSON.stringify(inferenceResult)}`,
-  });
-
-  await sendToBundlr(
-    inferenceResult,
-    requestTx.node.owner.address,
-    requestTx.node.id,
-    requestTx.node.tags,
-    conversationIdentifier,
-    registration,
-  );
+  await inference(requestTx, registration, nImages, conversationIdentifier, negativePrompt);
 
   return requestId;
 };

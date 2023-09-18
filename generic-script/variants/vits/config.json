@@ -1,0 +1,11 @@
+{
+  "urls": {
+    "...VITS...": {
+      "name": "vits",
+      "url": "http://127.0.0.1:8089",
+      "payloadFormat": "default"
+    }
+  },
+  "startBlockHeight": "1250542",
+  "sleepTimeSeconds": 7
+}
