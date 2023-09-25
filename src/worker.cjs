@@ -52,6 +52,7 @@ const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
 const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
 const SCRIPT_OPERATOR_TAG = 'Script-Operator';
 const N_IMAGES_TAG = 'N-Images';
+const SKIP_ASSET_CREATION_TAG = 'Skip-Asset-Creation';
 
 const NOT_OVERRIDABLE_TAGS = [
   APP_NAME_TAG,
@@ -239,6 +240,19 @@ const queryCheckUserPayment = async (
   return parseQueryResult(result);
 };
 
+const registerAsset = async (transactionId) => {
+  try {
+    const { contractTxId } = await warp.register(transactionId, 'node2'); // must use same node as uploaded data
+    workerpool.workerEmit({
+      type: 'info',
+      message: `Token Registered ==> https://arweave.net/${contractTxId}`,
+    });
+  } catch (e) {
+    workerpool.workerEmit({ type: 'error', message: `Could not register token: ${e}` });
+  }
+};
+
+
 const getAssetName = (idx, assetNames) => {
   if (!assetNames) {
     return undefined;
@@ -258,6 +272,43 @@ const getAssetName = (idx, assetNames) => {
   } catch (error) {
     return undefined;
   }
+};
+
+const addAssetTags = (tags, userAddress) => {
+  const assetTagsStartIdx = tags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
+  // insert after converstaionIdentifier
+
+  const assetTags = [];
+  // add atomic token tags
+  assetTags.push({ name: APP_NAME_TAG, value: 'SmartWeaveContract' });
+  assetTags.push({ name: APP_VERSION_TAG, value: '0.3.0' });
+  assetTags.push({ name: 'Contract-Src', value: ATOMIC_TOKEN_CONTRACT_ID }); // use contract source here
+  assetTags.push({
+    name: 'Contract-Manifest',
+    value: JSON.stringify({
+      evaluationOptions: {
+        sourceType: 'redstone-sequencer',
+        allowBigInt: true,
+        internalWrites: true,
+        unsafeClient: 'skip',
+        useConstructor: false
+      }
+    }),
+  });
+  assetTags.push({
+    name: 'Init-State',
+    value: JSON.stringify({
+      firstOwner: userAddress,
+      canEvolve: false,
+      balances: {
+        [userAddress]: 1,
+      },
+      name: 'Fair Protocol Atomic Asset',
+      ticker: 'FPAA',
+    }),
+  });
+
+  tags.splice(assetTagsStartIdx, 0, ...assetTags);
 };
 
 const getGeneralTags = (
@@ -304,35 +355,6 @@ const getGeneralTags = (
     { name: REQUEST_TRANSACTION_TAG, value: requestTransaction },
     { name: PROMPT_TAG, value: prompt },
     { name: CONVERSATION_IDENTIFIER_TAG, value: conversationIdentifier },
-    
-    // add atomic token tags
-    { name: APP_NAME_TAG, value: 'SmartWeaveContract' },
-    { name: APP_VERSION_TAG, value: '0.3.0' },
-    { name: 'Contract-Src', value: ATOMIC_TOKEN_CONTRACT_ID }, // use contract source here
-    {
-      name: 'Contract-Manifest',
-      value: JSON.stringify({
-        evaluationOptions: {
-          sourceType: 'redstone-sequencer',
-          allowBigInt: true,
-          internalWrites: true,
-          unsafeClient: 'skip',
-          useConstructor: false
-        }
-      }),
-    },
-    {
-      name: 'Init-State',
-      value: JSON.stringify({
-        firstOwner: userAddress,
-        canEvolve: false,
-        balances: {
-          [userAddress]: 1,
-        },
-        name: 'Fair Protocol Atomic Asset',
-        ticker: 'FPAA',
-      }),
-    },
     // ans 110 tags discoverability
     { name: 'Title', value: 'Fair Protocol Atomic Asset' },
     { name: 'Type', value: 'image' },
@@ -347,6 +369,13 @@ const getGeneralTags = (
     { name: UNIX_TIME_TAG, value: (Date.now() / secondInMS).toString() },
     { name: TOPIC_AI_TAG, value: 'ai-generated' }
   ];
+
+  const skipAssetCreation = requestTags.find((tag) => tag.name === SKIP_ASSET_CREATION_TAG)?.value;
+
+  if (!skipAssetCreation || skipAssetCreation !== 'true') {
+    // add asset tags
+    addAssetTags(generalTags, userAddress);
+  }
   
   
   // optional tags
@@ -460,12 +489,13 @@ const sendToBundlr = async (
 
       const transaction = await bundlr.uploadFile(response, { tags });
       workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${transaction.id}` });
-      try {
-        const { contractTxId } = await warp.register(transaction.id, 'node2'); // must use same node as uploaded data
-        workerpool.workerEmit({ type: 'info', message: `Token Registered ==> https://arweave.net/${contractTxId}` });
-      } catch (e) {
-        workerpool.workerEmit({ type: 'error', message: `Could not register token: ${e}` });
+      
+      const skipAssetCreation = requestTags.find((tag) => tag.name === SKIP_ASSET_CREATION_TAG)?.value;
+
+      if (!skipAssetCreation || skipAssetCreation !== 'true') {
+        await registerAsset(transaction.id);
       }
+      
       i++;
     }
   } catch (e) {
