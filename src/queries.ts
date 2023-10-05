@@ -38,6 +38,7 @@ import {
   VAULT_ADDRESS,
 } from './constants';
 import { IEdge, ITransactions } from './interfaces';
+import CONFIG from '../config.json' assert { type: 'json' };
 
 const clientGateway = new ApolloClient({
   uri: 'https://arweave.net:443/graphql',
@@ -114,7 +115,7 @@ export const queryTransactionsReceived = async (
   });
 
   // filter txs with incorrect payments
-  const validPaymens = parseQueryResult(result).filter((tx) => {
+  const validPayments = parseQueryResult(result).filter((tx) => {
     const input = tx.node.tags.find((tag) => tag.name === INPUT_TAG)?.value;
 
     if (!input) {
@@ -123,9 +124,16 @@ export const queryTransactionsReceived = async (
       return validateInput(input, tx, opFees, scriptIds, isStableDiffusion, address);
     }
   });
+
+  const lastTx = validPayments[validPayments.length - 1];
+
+  const blockHeight = lastTx?.node?.block?.height;
+
+  const hasNextPage = blockHeight ? result.data.transactions.pageInfo.hasNextPage && blockHeight > parseInt(CONFIG.startBlockHeight, 10) : result.data.transactions.pageInfo.hasNextPage;
+
   return {
-    requestTxs: validPaymens,
-    hasNextPage: result.data.transactions.pageInfo.hasNextPage,
+    requestTxs: validPayments,
+    hasNextPage,
   };
 };
 
@@ -139,15 +147,16 @@ const validateInput = (
   const inputObj = JSON.parse(input);
   const feeIdx = scriptIds.indexOf(tx.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value ?? '');
   const nImages = parseInt(tx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
+  const numberQty = parseInt(inputObj.qty, 10);
 
   if (nImages > 0 && isStableDiffusion[feeIdx]) {
-    return inputObj.qty === (opFees[feeIdx] * nImages * OPERATOR_PERCENTAGE_FEE).toString() && inputObj.function === 'transfer' && inputObj.target === address;
+    return numberQty >= (opFees[feeIdx] * nImages * OPERATOR_PERCENTAGE_FEE) && inputObj.function === 'transfer' && inputObj.target === address;
   } else if (isStableDiffusion[feeIdx]) {
     // default images for stable diffusion config is 4
     const defaultNImgs = 4;
-    return inputObj.qty === (opFees[feeIdx] * defaultNImgs * OPERATOR_PERCENTAGE_FEE).toString() && inputObj.function === 'transfer' && inputObj.target === address;
+    return numberQty >= (opFees[feeIdx] * defaultNImgs * OPERATOR_PERCENTAGE_FEE) && inputObj.function === 'transfer' && inputObj.target === address;
   } else {
-    return inputObj.qty === (opFees[feeIdx] * OPERATOR_PERCENTAGE_FEE).toString()&& inputObj.function === 'transfer' && inputObj.target === address;
+    return numberQty >= (opFees[feeIdx] * OPERATOR_PERCENTAGE_FEE) && inputObj.function === 'transfer' && inputObj.target === address;
   }
 }; 
 

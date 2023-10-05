@@ -21,6 +21,7 @@ const { WarpFactory } = require('warp-contracts');
 const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
 const { DeployPlugin } = require('warp-contracts-plugin-deploy');
 const workerpool = require('workerpool');
+const FairSDKWeb = require('fair-protocol-sdk/node');
 
 const APP_NAME_TAG = 'App-Name';
 const APP_VERSION_TAG = 'App-Version';
@@ -52,7 +53,6 @@ const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
 const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
 const SCRIPT_OPERATOR_TAG = 'Script-Operator';
 const N_IMAGES_TAG = 'N-Images';
-const SKIP_ASSET_CREATION_TAG = 'Skip-Asset-Creation';
 
 const NOT_OVERRIDABLE_TAGS = [
   APP_NAME_TAG,
@@ -92,7 +92,6 @@ const MARKETPLACE_PERCENTAGE_FEE = 0.1;
 const CURATOR_PERCENTAGE_FEE = 0.05;
 const CREATOR_PERCENTAGE_FEE = 0.15;
 const U_CONTRACT_ID = 'KTzTXT_ANmF84fWEKHzWURD1LWd9QaFR9yfYUwH2Lxw';
-const ATOMIC_TOKEN_CONTRACT_ID = 'h9v17KHV4SXwdW2-JHU6a23f6R0YtbXZJJht8LfP8QM';
 const UDL_ID = 'yRj4a5KMctX_uOmKWCFJIjmY8DeJcusVk6-HzLiM_t8';
 
 const MAX_STR_SIZE = 1000;
@@ -199,7 +198,6 @@ const queryTransactionAnswered = async (transactionId, address, scriptName, scri
 const queryCheckUserPayment = async (
   inferenceTransaction,
   userAddress,
-  inputValues,
   scriptId,
 ) => {
   const tags = [
@@ -227,14 +225,10 @@ const queryCheckUserPayment = async (
       name: SEQUENCE_OWNER_TAG,
       values: [userAddress],
     },
-    {
-      name: INPUT_TAG,
-      values: inputValues,
-    },
   ];
   const result = await clientGateway.query({
     query: gqlQuery,
-    variables: { tags, first: 3 },
+    variables: { tags, first: 4 },
   });
 
   return parseQueryResult(result);
@@ -274,43 +268,6 @@ const getAssetName = (idx, assetNames) => {
   }
 };
 
-const addAssetTags = (tags, userAddress) => {
-  const assetTagsStartIdx = tags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
-  // insert after converstaionIdentifier
-
-  const assetTags = [];
-  // add atomic token tags
-  assetTags.push({ name: APP_NAME_TAG, value: 'SmartWeaveContract' });
-  assetTags.push({ name: APP_VERSION_TAG, value: '0.3.0' });
-  assetTags.push({ name: 'Contract-Src', value: ATOMIC_TOKEN_CONTRACT_ID }); // use contract source here
-  assetTags.push({
-    name: 'Contract-Manifest',
-    value: JSON.stringify({
-      evaluationOptions: {
-        sourceType: 'redstone-sequencer',
-        allowBigInt: true,
-        internalWrites: true,
-        unsafeClient: 'skip',
-        useConstructor: false
-      }
-    }),
-  });
-  assetTags.push({
-    name: 'Init-State',
-    value: JSON.stringify({
-      firstOwner: userAddress,
-      canEvolve: false,
-      balances: {
-        [userAddress]: 1,
-      },
-      name: 'Fair Protocol Atomic Asset',
-      ticker: 'FPAA',
-    }),
-  });
-
-  tags.splice(assetTagsStartIdx, 0, ...assetTags);
-};
-
 const getGeneralTags = (
   inferenceResult,
   userAddress,
@@ -319,6 +276,14 @@ const getGeneralTags = (
   conversationIdentifier,
   registration,
 ) => {
+  let type;
+  if (inferenceResult.imgPaths) {
+    type = 'image';
+  } else if (inferenceResult.audioPath) {
+    type = 'audio';
+  } else {
+    type = 'text';
+  }
   const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}, ${inferenceResult.prompt}` : inferenceResult.prompt;
@@ -357,7 +322,7 @@ const getGeneralTags = (
     { name: CONVERSATION_IDENTIFIER_TAG, value: conversationIdentifier },
     // ans 110 tags discoverability
     { name: 'Title', value: 'Fair Protocol Atomic Asset' },
-    { name: 'Type', value: 'image' },
+    { name: 'Type', value: type },
     { name: INDEXED_BY_TAG, value: 'ucm' },
   
     // add license tags
@@ -370,13 +335,18 @@ const getGeneralTags = (
     { name: TOPIC_AI_TAG, value: 'ai-generated' }
   ];
 
-  const skipAssetCreation = requestTags.find((tag) => tag.name === SKIP_ASSET_CREATION_TAG)?.value;
+  const generateAssets = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.generateAssets)?.value;
 
-  if (!skipAssetCreation || skipAssetCreation !== 'true') {
+  if (generateAssets && generateAssets !== 'fair-protocol') {
     // add asset tags
-    addAssetTags(generalTags, userAddress);
+    FairSDKWeb.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA');
+  } else if (generateAssets && generateAssets === 'rareweave') {
+    const rareweaveConfig = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.rareweaveConfig)?.value;
+    const royalty = rareweaveConfig ? JSON.parse(rareweaveConfig).royalty : 0;
+    FairSDKWeb.utils.addRareweaveTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'Atomic Asset Generated in Fair Protocol. Compatible with Rareweave', royalty, type);
+  } else {
+    // do not add asset tags
   }
-  
   
   // optional tags
 
@@ -490,9 +460,8 @@ const sendToBundlr = async (
       const transaction = await bundlr.uploadFile(response, { tags });
       workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${transaction.id}` });
       
-      const skipAssetCreation = requestTags.find((tag) => tag.name === SKIP_ASSET_CREATION_TAG)?.value;
-
-      if (!skipAssetCreation || skipAssetCreation !== 'true') {
+      const generateAssets = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.generateAssets)?.value;
+      if (generateAssets !== 'none') {
         await registerAsset(transaction.id);
       }
       
@@ -645,63 +614,34 @@ const checkUserPaidInferenceFees = async (
   const curatorShare = operatorFee * CURATOR_PERCENTAGE_FEE;
   const creatorShare = operatorFee * CREATOR_PERCENTAGE_FEE;
 
-  const marketpaceInput = JSON.stringify({
-    function: 'transfer',
-    target: VAULT_ADDRESS,
-    qty: parseInt(marketplaceShare.toString(), 10).toString(),
-  });
-
-  const curatorInput = JSON.stringify({
-    function: 'transfer',
-    target: curatorAddress,
-    qty: parseInt(curatorShare.toString(), 10).toString(),
-  });
-
-  const creatorInput = JSON.stringify({
-    function: 'transfer',
-    target: creatorAddress,
-    qty: parseInt(creatorShare.toString(), 10).toString(),
-  });
-
-  const paymentTxs = await queryCheckUserPayment(txid, userAddress, [
-    marketpaceInput,
-    curatorInput,
-    creatorInput,
-  ], scriptId);
+  const paymentTxs = await queryCheckUserPayment(txid, userAddress, scriptId);
   const necessaryPayments = 3;
 
   if (paymentTxs.length < necessaryPayments) {
     return false;
   } else {
-    // find marketplace payment
-    const marketplacePayment = paymentTxs.find((tx) =>
-      tx.node.tags.find((tag) => tag.name === INPUT_TAG && tag.value === marketpaceInput),
-    );
+    const validPayments = paymentTxs.filter(tx => {
+      try {
+        const inputObj = JSON.parse(tx.node.tags.find((tag) => tag.name === INPUT_TAG).value);
+        const qty = parseInt(inputObj.qty, 10);
+        if (inputObj.function !== 'transfer') {
+          return false;
+        } else if (qty >= marketplaceShare && inputObj.target === VAULT_ADDRESS) {
+          return true;
+        } else if (qty >= curatorShare && inputObj.target === curatorAddress) {
+          return true;
+        } else if (qty >= creatorShare && inputObj.target === creatorAddress) {
+          return true;
+        } else {
+          return false;
+        }
+      } catch (error) {
+        return false;
+      }     
+    });
 
-    if (!marketplacePayment) {
-      return false;
-    }
-
-    // find curator payment
-    const curatorPayment = paymentTxs.find((tx) =>
-      tx.node.tags.find((tag) => tag.name === INPUT_TAG && tag.value === curatorInput),
-    );
-
-    if (!curatorPayment) {
-      return false;
-    }
-
-    // find creator payment
-    const creatorPayment = paymentTxs.find((tx) =>
-      tx.node.tags.find((tag) => tag.name === INPUT_TAG && tag.value === creatorInput),
-    );
-
-    if (!creatorPayment) {
-      return false;
-    }
+    return validPayments.length >= necessaryPayments;
   }
-
-  return true;
 };
 
 const getRequest = async (transactionId) => {

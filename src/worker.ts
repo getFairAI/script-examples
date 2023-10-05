@@ -27,9 +27,6 @@ import {
   InferenceResult,
 } from './interfaces';
 import {
-  APP_NAME_TAG,
-  APP_VERSION_TAG,
-  ATOMIC_TOKEN_CONTRACT_ID,
   CONVERSATION_IDENTIFIER_TAG,
   CREATOR_PERCENTAGE_FEE,
   CURATOR_PERCENTAGE_FEE,
@@ -66,11 +63,11 @@ import {
   PROTOCOL_VERSION,
   PROTOCOL_NAME,
   PROTOCOL_VERSION_TAG,
-  SKIP_ASSET_CREATION_TAG
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
 import workerpool from 'workerpool';
+import FairSDKWeb from 'fair-protocol-sdk/node';
 
 const JWK: JWKInterface = JSON.parse(fs.readFileSync('wallet.json').toString());
 // initailze the bundlr SDK
@@ -175,7 +172,6 @@ const queryTransactionAnswered = async (
 const queryCheckUserPayment = async (
   inferenceTransaction: string,
   userAddress: string,
-  inputValues: string[],
   scriptId: string,
 ) => {
   const tags = [
@@ -203,14 +199,10 @@ const queryCheckUserPayment = async (
       name: SEQUENCE_OWNER_TAG,
       values: [userAddress],
     },
-    {
-      name: INPUT_TAG,
-      values: inputValues,
-    },
   ];
   const result = await clientGateway.query({
     query: gqlQuery,
-    variables: { tags, first: 3 },
+    variables: { tags, first: 4 },
   });
 
   return parseQueryResult(result);
@@ -237,43 +229,6 @@ const getAssetName = (idx: number, assetNames?: string) => {
   }
 };
 
-const addAssetTags = (tags: { name: string, value: string }[], userAddress: string) => {
-  const assetTagsStartIdx = tags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
-  // insert after converstaionIdentifier
-
-  const assetTags = [];
-  // add atomic token tags
-  assetTags.push({ name: APP_NAME_TAG, value: 'SmartWeaveContract' });
-  assetTags.push({ name: APP_VERSION_TAG, value: '0.3.0' });
-  assetTags.push({ name: 'Contract-Src', value: ATOMIC_TOKEN_CONTRACT_ID }); // use contract source here
-  assetTags.push({
-    name: 'Contract-Manifest',
-    value: JSON.stringify({
-      evaluationOptions: {
-        sourceType: 'redstone-sequencer',
-        allowBigInt: true,
-        internalWrites: true,
-        unsafeClient: 'skip',
-        useConstructor: false
-      }
-    }),
-  });
-  assetTags.push({
-    name: 'Init-State',
-    value: JSON.stringify({
-      firstOwner: userAddress,
-      canEvolve: false,
-      balances: {
-        [userAddress]: 1,
-      },
-      name: 'Fair Protocol Atomic Asset',
-      ticker: 'FPAA',
-    }),
-  });
-
-  tags.splice(assetTagsStartIdx,0, ...assetTags);
-};
-
 const getGeneralTags = (
   inferenceResult: InferenceResult,
   userAddress: string,
@@ -282,6 +237,15 @@ const getGeneralTags = (
   conversationIdentifier: string,
   registration: OperatorParams,
 ) => {
+  let type;
+  if (inferenceResult.imgPaths) {
+    type = 'image';
+  } else if (inferenceResult.audioPath) {
+    type = 'audio';
+  } else {
+    type = 'text';
+  }
+
   const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}${inferenceResult.prompt}` : inferenceResult.prompt;
@@ -320,7 +284,7 @@ const getGeneralTags = (
     { name: CONVERSATION_IDENTIFIER_TAG, value: conversationIdentifier },
     // ans 110 tags discoverability
     { name: 'Title', value: 'Fair Protocol Atomic Asset' },
-    { name: 'Type', value: 'image' },
+    { name: 'Type', value: type },
     { name: INDEXED_BY_TAG, value: 'ucm' },
   
     // add license tags
@@ -333,11 +297,17 @@ const getGeneralTags = (
     { name: TOPIC_AI_TAG, value: 'ai-generated' }
   ];
 
-  const skipAssetCreation = requestTags.find((tag) => tag.name === SKIP_ASSET_CREATION_TAG)?.value;
+  const generateAssets = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.generateAssets)?.value;
 
-  if (!skipAssetCreation || skipAssetCreation !== 'true') {
+  if (generateAssets && generateAssets !== 'fair-protocol') {
     // add asset tags
-    addAssetTags(generalTags, userAddress);
+    FairSDKWeb.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA');
+  } else if (generateAssets && generateAssets === 'rareweave') {
+    const rareweaveConfig = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.rareweaveConfig)?.value;
+    const royalty = rareweaveConfig ? JSON.parse(rareweaveConfig).royalty : 0;
+    FairSDKWeb.utils.addRareweaveTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'Atomic Asset Generated in Fair Protocol. Compatible with Rareweave', royalty, type);
+  } else {
+    // do not add asset tags
   }
   
   // optional tags
@@ -468,9 +438,8 @@ const sendToBundlr = async (
         message: `Data uploaded ==> https://arweave.net/${transaction.id}`,
       });
 
-      const skipAssetCreation = requestTags.find((tag) => tag.name === SKIP_ASSET_CREATION_TAG)?.value;
-
-      if (!skipAssetCreation || skipAssetCreation !== 'true') {
+      const generateAssets = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.generateAssets)?.value;
+      if (generateAssets !== 'none') {
         await registerAsset(transaction.id);
       }
 
@@ -622,64 +591,39 @@ const checkUserPaidInferenceFees = async (
   const curatorShare = operatorFee * CURATOR_PERCENTAGE_FEE;
   const creatorShare = operatorFee * CREATOR_PERCENTAGE_FEE;
 
-  const marketpaceInput = JSON.stringify({
-    function: 'transfer',
-    target: VAULT_ADDRESS,
-    qty: parseInt(marketplaceShare.toString(), 10).toString(),
-  });
-
-  const curatorInput = JSON.stringify({
-    function: 'transfer',
-    target: curatorAddress,
-    qty: parseInt(curatorShare.toString(), 10).toString(),
-  });
-
-  const creatorInput = JSON.stringify({
-    function: 'transfer',
-    target: creatorAddress,
-    qty: parseInt(creatorShare.toString(), 10).toString(),
-  });
-
-  const paymentTxs: IEdge[] = await queryCheckUserPayment(
-    txid,
-    userAddress,
-    [marketpaceInput, curatorInput, creatorInput],
-    scriptId,
-  );
+  const paymentTxs = await queryCheckUserPayment(txid, userAddress, scriptId);
   const necessaryPayments = 3;
 
   if (paymentTxs.length < necessaryPayments) {
     return false;
   } else {
-    // find marketplace payment
-    const marketplacePayment = paymentTxs.find((tx) =>
-      tx.node.tags.find((tag) => tag.name === INPUT_TAG && tag.value === marketpaceInput),
-    );
+    const validPayments = paymentTxs.filter(tx => {
+      try {
+        const input = tx.node.tags.find((tag) => tag.name === INPUT_TAG)?.value;
+        if (!input) {
+          return false;
+        }
 
-    if (!marketplacePayment) {
-      return false;
-    }
+        const inputObj = JSON.parse(input);
+        const qty = parseInt(inputObj.qty, 10);
+        if (inputObj.function !== 'transfer') {
+          return false;
+        } else if (qty >= marketplaceShare && inputObj.target === VAULT_ADDRESS) {
+          return true;
+        } else if (qty >= curatorShare && inputObj.target === curatorAddress) {
+          return true;
+        } else if (qty >= creatorShare && inputObj.target === creatorAddress) {
+          return true;
+        } else {
+          return false;
+        }
+      } catch (error) {
+        return false;
+      }     
+    });
 
-    // find curator payment
-    const curatorPayment = paymentTxs.find((tx) =>
-      tx.node.tags.find((tag) => tag.name === INPUT_TAG && tag.value === curatorInput),
-    );
-
-    if (!curatorPayment) {
-      return false;
-    }
-
-    // find creator payment
-    const creatorPayment = paymentTxs.find((tx) =>
-      tx.node.tags.find((tag) => tag.name === INPUT_TAG && tag.value === creatorInput),
-    );
-
-    if (!creatorPayment) {
-      return false;
-    }
+    return validPayments.length >= necessaryPayments;
   }
-
-  return true;
 };
 
 const getRequest = async (transactionId: string) => {
