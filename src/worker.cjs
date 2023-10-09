@@ -168,7 +168,7 @@ const queryTransactionAnswered = async (transactionId, address, scriptName, scri
   const result = await clientGateway.query({
     query: gql`
       query TransactionAnswered($tags: [TagFilter!], $owner: String!) {
-        transactions(first: 1, tags: $tags, owners: [$owner], sort: HEIGHT_DESC) {
+        transactions(first: 100, tags: $tags, owners: [$owner], sort: HEIGHT_DESC) {
           edges {
             node {
               id
