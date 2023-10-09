@@ -14,7 +14,7 @@
     "arweave": "^1.13.0",
     "async-mutex": "^0.4.0",
     "bundle-require": "^4.0.1",
-    "fair-protocol-sdk": "file:fair-protocol-sdk-2.0.tgz",
+    "fair-protocol-sdk": "https://arweave.net/P7y0f_hwmgkva-dsWFQq6kN7ANSgD8iYjvc30Xe0VMI",
     "graphql": "^16.6.0",
     "pino": "^8.12.1",
     "request": "^2.88.2",
