@@ -242,7 +242,7 @@ const start = async () => {
       logger.info(`Processing request ${edge.node.id} ...`);
       // Check if request already answered:
       const reqTxId = edge.node.tags.find((tag) => tag.name === INFERENCE_TRANSACTION_TAG)?.value;
-      const reqUserAddr = edge.node.tags.find((tag) => tag.name === SEQUENCE_OWNER_TAG)?.value;
+      const reqUserAddr = edge.node.tags.find((tag) => tag.name === SEQUENCE_OWNER_TAG)?.value ?? edge.node.owner.address;
       const currentRegistration = registrations.find(
         (reg) =>
           reg.scriptId === edge.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value,

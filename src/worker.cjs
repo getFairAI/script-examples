@@ -21,7 +21,7 @@ const { WarpFactory } = require('warp-contracts');
 const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
 const { DeployPlugin } = require('warp-contracts-plugin-deploy');
 const workerpool = require('workerpool');
-const FairSDKWeb = require('fair-protocol-sdk/node');
+const FairSDK = require('fair-protocol-sdk/cjs').default;
 
 const APP_NAME_TAG = 'App-Name';
 const APP_VERSION_TAG = 'App-Version';
@@ -226,6 +226,7 @@ const queryCheckUserPayment = async (
       values: [userAddress],
     },
   ];
+
   const result = await clientGateway.query({
     query: gqlQuery,
     variables: { tags, first: 4 },
@@ -335,15 +336,15 @@ const getGeneralTags = (
     { name: TOPIC_AI_TAG, value: 'ai-generated' }
   ];
 
-  const generateAssets = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.generateAssets)?.value;
+  const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
 
-  if (generateAssets && generateAssets !== 'fair-protocol') {
+  if (!generateAssets || generateAssets === 'fair-protocol') {
     // add asset tags
-    FairSDKWeb.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA');
+    FairSDK.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA');
   } else if (generateAssets && generateAssets === 'rareweave') {
-    const rareweaveConfig = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.rareweaveConfig)?.value;
+    const rareweaveConfig = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.rareweaveConfig)?.value;
     const royalty = rareweaveConfig ? JSON.parse(rareweaveConfig).royalty : 0;
-    FairSDKWeb.utils.addRareweaveTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'Atomic Asset Generated in Fair Protocol. Compatible with Rareweave', royalty, type);
+    FairSDK.utils.addRareweaveTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'Atomic Asset Generated in Fair Protocol. Compatible with Rareweave', royalty, type);
   } else {
     // do not add asset tags
   }
@@ -460,8 +461,9 @@ const sendToBundlr = async (
       const transaction = await bundlr.uploadFile(response, { tags });
       workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${transaction.id}` });
       
-      const generateAssets = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.generateAssets)?.value;
-      if (generateAssets !== 'none') {
+      const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
+      if (!generateAssets || generateAssets !== 'none') {
+        // if there is no generate assets tag or it is not none, register the asset
         await registerAsset(transaction.id);
       }
       
@@ -683,20 +685,33 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     return false;
   }
 
-  const responseTxs = await queryTransactionAnswered(requestId, address, registration.scriptName, registration.scriptCurator);
-  if (responseTxs.length > 0) {
-    // If the request has already been answered, we don't need to do anything
-    workerpool.workerEmit({ type: 'info', message: `Request ${requestId} has already been answered. Skipping...` });
-    return requestId;
-  }
-
   const nImages = parseInt(requestTx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
 
   let operatorFee = registration.operatorFee;
+  let necessaryAnswers = 1;
   if (nImages > 0 && registration.payloadFormat === 'webui') {
-    operatorFee = registration.operatorFee * nImages; 
+    operatorFee = registration.operatorFee * nImages;
+    necessaryAnswers = nImages;
   } else if (registration.payloadFormat === 'webui') {
     operatorFee = registration.operatorFee * 4;
+    necessaryAnswers = 4;
+  }
+
+  const responseTxs = await queryTransactionAnswered(
+    requestId,
+    address,
+    registration.scriptName,
+    registration.scriptCurator,
+  );
+  if (responseTxs.length > 0  && responseTxs.length >= necessaryAnswers) {
+    // If the request has already been answered, we don't need to do anything
+    workerpool.workerEmit({ type: 'info', message: `Request ${requestId} has already been answered. Skipping...` });
+    return requestId;
+  } else if (responseTxs.length > 0 && responseTxs.length < necessaryAnswers) {
+    workerpool.workerEmit({
+      type: 'info',
+      message: `Request ${requestId} has missing answers. Processing...`,
+    });
   }
 
   if (
@@ -723,8 +738,9 @@ const processRequest = async (requestId, reqUserAddr, registration, address) => 
     return false;
   }
 
+  const missingInferences = necessaryAnswers - responseTxs.length;
   const negativePrompt = requestTx.node.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
-  await inference(requestTx, registration, nImages, conversationIdentifier, negativePrompt);
+  await inference(requestTx, registration, missingInferences, conversationIdentifier, negativePrompt);
 
   return requestId;
 };

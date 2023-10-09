@@ -18,7 +18,6 @@ import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
 import {
   CANCEL_OPERATION,
   CONTRACT_TAG,
-  INFERENCE_TRANSACTION_TAG,
   INPUT_TAG,
   N_IMAGES_TAG,
   OPERATION_NAME_TAG,
@@ -70,6 +69,9 @@ const gqlQuery = gql`
           block {
             height
           }
+          owner {
+            address
+          }
         }
       }
     }
@@ -111,7 +113,7 @@ export const queryTransactionsReceived = async (
 
   const result = await clientGateway.query({
     query: gqlQuery,
-    variables: { first: 10, tags, after },
+    variables: { first: 100, tags, after },
   });
 
   // filter txs with incorrect payments
@@ -243,50 +245,6 @@ export const queryTransactionAnswered = async (
       }
     `,
     variables: { tags, owner: address },
-  });
-
-  return parseQueryResult(result);
-};
-
-export const queryCheckUserPayment = async (
-  inferenceTransaction: string,
-  userAddress: string,
-  inputValues: string[],
-  scriptId: string,
-) => {
-  const tags = [
-    {
-      name: PROTOCOL_NAME_TAG,
-      values: [ PROTOCOL_NAME ],
-    },
-    {
-      name: OPERATION_NAME_TAG,
-      values: ['Inference Payment'],
-    },
-    {
-      name: SCRIPT_TRANSACTION_TAG,
-      values: [scriptId],
-    },
-    {
-      name: INFERENCE_TRANSACTION_TAG,
-      values: [inferenceTransaction],
-    },
-    {
-      name: CONTRACT_TAG,
-      values: [U_CONTRACT_ID],
-    },
-    {
-      name: SEQUENCE_OWNER_TAG,
-      values: [userAddress],
-    },
-    {
-      name: INPUT_TAG,
-      values: inputValues,
-    },
-  ];
-  const result = await clientGateway.query({
-    query: gqlQuery,
-    variables: { tags, first: 3 },
   });
 
   return parseQueryResult(result);

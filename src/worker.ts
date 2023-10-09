@@ -115,7 +115,7 @@ const queryTransactionAnswered = async (
   transactionId: string,
   address: string,
   scriptName: string,
-  scriptcurator: string,
+  scriptcurator: string
 ) => {
   const tags = [
     {
@@ -139,10 +139,11 @@ const queryTransactionAnswered = async (
       values: [transactionId],
     },
   ];
+
   const result = await clientGateway.query({
     query: gql`
       query TransactionAnswered($tags: [TagFilter!], $owner: String!) {
-        transactions(first: 1, tags: $tags, owners: [$owner], sort: HEIGHT_DESC) {
+        transactions(first: 100, tags: $tags, owners: [$owner], sort: HEIGHT_DESC) {
           edges {
             node {
               id
@@ -185,7 +186,7 @@ const queryCheckUserPayment = async (
     },
     {
       name: SCRIPT_TRANSACTION_TAG,
-      values: [scriptId],
+      values: [ scriptId ],
     },
     {
       name: INFERENCE_TRANSACTION_TAG,
@@ -200,6 +201,7 @@ const queryCheckUserPayment = async (
       values: [userAddress],
     },
   ];
+
   const result = await clientGateway.query({
     query: gqlQuery,
     variables: { tags, first: 4 },
@@ -299,7 +301,8 @@ const getGeneralTags = (
 
   const generateAssets = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.generateAssets)?.value;
 
-  if (generateAssets && generateAssets !== 'fair-protocol') {
+  if (!generateAssets || generateAssets === 'fair-protocol') {
+    // add fair protocol tags if there is no specified generate assets tag to mantain retrocompatibility
     // add asset tags
     FairSDKWeb.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA');
   } else if (generateAssets && generateAssets === 'rareweave') {
@@ -439,7 +442,9 @@ const sendToBundlr = async (
       });
 
       const generateAssets = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.generateAssets)?.value;
-      if (generateAssets !== 'none') {
+
+      if (!generateAssets || generateAssets !== 'none') {
+        // if there is no generate assets tag or it is not none, register the asset
         await registerAsset(transaction.id);
       }
 
@@ -673,28 +678,37 @@ const processRequest = async (
     return false;
   }
 
+  const nImages = parseInt(requestTx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
+
+  let operatorFee = registration.operatorFee;
+  let necessaryAnswers = 1;
+  if (nImages > 0 && registration.payloadFormat === 'webui') {
+    operatorFee = registration.operatorFee * nImages; 
+    necessaryAnswers = nImages;
+  } else if (registration.payloadFormat === 'webui') {
+    operatorFee = registration.operatorFee * 4;
+    necessaryAnswers = 4;
+  }
+
   const responseTxs: IEdge[] = await queryTransactionAnswered(
     requestId,
     address,
     registration.scriptName,
     registration.scriptCurator,
   );
-  if (responseTxs.length > 0) {
+
+  if (responseTxs.length > 0 && responseTxs.length >= necessaryAnswers) {
     // If the request has already been answered, we don't need to do anything
     workerpool.workerEmit({
       type: 'info',
       message: `Request ${requestId} has already been answered. Skipping...`,
     });
     return requestId;
-  }
-
-  const nImages = parseInt(requestTx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
-
-  let operatorFee = registration.operatorFee;
-  if (nImages > 0 && registration.payloadFormat === 'webui') {
-    operatorFee = registration.operatorFee * nImages; 
-  } else if (registration.payloadFormat === 'webui') {
-    operatorFee = registration.operatorFee * 4;
+  } else if (responseTxs.length > 0 && responseTxs.length < necessaryAnswers) {
+    workerpool.workerEmit({
+      type: 'info',
+      message: `Request ${requestId} has missing answers. Processing...`,
+    });
   }
 
   if (
@@ -727,8 +741,10 @@ const processRequest = async (
     return false;
   }
 
+  const missingInferences = necessaryAnswers - responseTxs.length;
   const negativePrompt = requestTx.node.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
-  await inference(requestTx, registration, nImages, conversationIdentifier, negativePrompt);
+
+  await inference(requestTx, registration, missingInferences, conversationIdentifier, negativePrompt);
 
   return requestId;
 };
