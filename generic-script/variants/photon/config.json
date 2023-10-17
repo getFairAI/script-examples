@@ -1,0 +1,27 @@
+{
+  "urls": {
+    "...Photon...": {
+      "name": "Photon - v1",
+      "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+      "payloadFormat": "webui",
+      "settings": {
+        "enable_hr": false,
+        "seed": -1,
+        "n_iter": 4,
+        "steps": 20,
+        "cfg_scale": 6,
+        "width": 512,
+        "height": 768,
+        "negative_prompt": "cartoon, painting, illustration, (worst quality, low quality, normal quality:2)",
+        "sampler_index": "DPM++ 2M Karras",
+        "override_settings": {
+          "sd_model_checkpoint": "photon_v1.safetensors [ec41bd2a82]",
+          "sd_vae": "None",
+          "CLIP_stop_at_last_layers": 1
+        }
+      }
+    }
+  },
+  "startBlockHeight": "1250542",
+  "sleepTimeSeconds": 7
+}

@@ -1,4 +1,4 @@
-# Instructions on how to install DreamShaper SDXL1.0
+# Instructions on how to install Photon - v1
 
 ## Notes
 
@@ -29,9 +29,7 @@ git clone --depth 1 --branch v1.5.1 https://github.com/AUTOMATIC1111/stable-diff
 
 3. Download the model file and read the license terms
 
-4. Extract the model file and put the `dreamshaperXL10_alpha2Xl10.safetensors` file on the `models/Stable-diffusion` folder of the directory you downloaded the WebUI
-
-5. Put the `BadDream.pt` and `FastNegativeV2.pt` files on the `embeddings` folder of the directory you downloaded the WebUI
+4. Extract the model file and put the `photon_v1.safetensors` file on the `models/Stable-diffusion` folder of the directory you downloaded the WebUI
 
 6. Navigate to the root folder of the directory you downloaded the WebUI and create a new environment
 
@@ -51,17 +49,15 @@ source stable-diffusion-webui-venv/bin/activate
 bash webui.sh --api
 ```
 
-9. Install the ADetailer Extension (A1111) by navigating on your favourite browser to "http://localhost:7860/", clicking the "Extensions" tab, clicking "Install from URL", pasting the following URL "https://github.com/Bing-su/adetailer", and clicking on the "Install" button. After the installation is complete, navigate to the "Installed" section. Click "Apply and restart UI" from there to restart the User Interface. This step guarantees the extension's successful installation. Once the installation is successful, you can locate the downloaded extension in the "\stable-diffusion-webui\extensions" folder. In this case, you should see a folder called "adetailer".
+9. Download the script files and extract them to some folder
 
-10. Download the script files and extract them to some folder
+10. Open the `config.json` file and replace the "...Copax TimeLessXL..." with the transaction ID of the Model Script, inside the comas. You can find it on the Studio application, on the Operators flow, where you downloaded the needed files for this installation, with the button "copy to clipboard"
 
-11. Open the `config.json` file and replace the "...DreamShaper XL..." with the transaction ID of the Model Script, inside the comas. You can find it on the Studio application, on the Operators flow, where you downloaded the needed files for this installation, with the button "copy to clipboard"
-
-12. Place your Arweave wallet file in the same folder under the name `wallet.json`
+11. Place your Arweave wallet file in the same folder under the name `wallet.json`
 
 **Note:** Wallet must have funds in Bundlr node 2
 
-13. Install and run the generic model script
+12. Install and run the generic model script
 
 ```bash
 npm install
@@ -150,6 +146,6 @@ sudo systemctl start generic-loop.service
 sudo systemctl start stable-diffusion-webui-server.service
 ```
 
-**Note:** To run the script after instalation, you just need to follow steps `8` and `13`.
+**Note:** To run the script after instalation, you just need to follow steps `8` and `12`.
 
 ### This is all for today, congrats if you made it this far!

@@ -51,15 +51,17 @@ source stable-diffusion-webui-venv/bin/activate
 bash webui.sh --api
 ```
 
-9. Download the script files and extract them to some folder
+9. Install the ADetailer Extension (A1111) by navigating on your favourite browser to "http://localhost:7860/", clicking the "Extensions" tab, clicking "Install from URL", pasting the following URL "https://github.com/Bing-su/adetailer", and clicking on the "Install" button. After the installation is complete, navigate to the "Installed" section. Click "Apply and restart UI" from there to restart the User Interface. This step guarantees the extension's successful installation. Once the installation is successful, you can locate the downloaded extension in the "\stable-diffusion-webui\extensions" folder. In this case, you should see a folder called "adetailer".
 
-10. Open the `config.json` file and replace the "...DreamShaper v8..." with the transaction ID of the Model Script, inside the comas. You can find it on the Studio application, on the Operators flow, where you downloaded the needed files for this installation, with the button "copy to clipboard"
+10. Download the script files and extract them to some folder
 
-11. Place your Arweave wallet file in the same folder under the name `wallet.json`
+11. Open the `config.json` file and replace the "...DreamShaper v8..." with the transaction ID of the Model Script, inside the comas. You can find it on the Studio application, on the Operators flow, where you downloaded the needed files for this installation, with the button "copy to clipboard"
+
+12. Place your Arweave wallet file in the same folder under the name `wallet.json`
 
 **Note:** Wallet must have funds in Bundlr node 2
 
-12. Install and run the generic model script
+13. Install and run the generic model script
 
 ```bash
 npm install
@@ -148,6 +150,6 @@ sudo systemctl start generic-loop.service
 sudo systemctl start stable-diffusion-webui-server.service
 ```
 
-**Note:** To run the script after instalation, you just need to follow steps `8` and `11`.
+**Note:** To run the script after instalation, you just need to follow steps `8` and `13`.
 
 ### This is all for today, congrats if you made it this far!
