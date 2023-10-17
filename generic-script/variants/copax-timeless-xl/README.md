@@ -1,4 +1,4 @@
-# Instructions on how to install DreamShaper SDXL1.0
+# Instructions on how to install Copax TimeLessXL - SDXL1.0
 
 ## Notes
 
@@ -29,9 +29,7 @@ git clone --depth 1 --branch v1.5.1 https://github.com/AUTOMATIC1111/stable-diff
 
 3. Download the model file and read the license terms
 
-4. Extract the model file and put the `dreamshaperXL10_alpha2Xl10.safetensors` file on the `models/Stable-diffusion` folder of the directory you downloaded the WebUI
-
-5. Put the `BadDream.pt` and `FastNegativeV2.pt` files on the `embeddings` folder of the directory you downloaded the WebUI
+4. Extract the model file and put the `copaxTimelessxlSDXL1_v7.safetensors` file on the `models/Stable-diffusion` folder of the directory you downloaded the WebUI
 
 6. Navigate to the root folder of the directory you downloaded the WebUI and create a new environment
 
@@ -55,7 +53,7 @@ bash webui.sh --api
 
 10. Download the script files and extract them to some folder
 
-11. Open the `config.json` file and replace the "...DreamShaper XL..." with the transaction ID of the Model Script, inside the comas. You can find it on the Studio application, on the Operators flow, where you downloaded the needed files for this installation, with the button "copy to clipboard"
+11. Open the `config.json` file and replace the "...Copax TimeLessXL..." with the transaction ID of the Model Script, inside the comas. You can find it on the Studio application, on the Operators flow, where you downloaded the needed files for this installation, with the button "copy to clipboard"
 
 12. Place your Arweave wallet file in the same folder under the name `wallet.json`
 
