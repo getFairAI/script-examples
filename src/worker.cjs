@@ -53,6 +53,7 @@ const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
 const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
 const SCRIPT_OPERATOR_TAG = 'Script-Operator';
 const N_IMAGES_TAG = 'N-Images';
+const LICENSE_CONFIG_TAG = 'License-Config';
 
 const NOT_OVERRIDABLE_TAGS = [
   APP_NAME_TAG,
@@ -350,8 +351,26 @@ const getGeneralTags = (
   } else {
     // do not add asset tags
   }
-  
+
   // optional tags
+  const licenseConfig = requestTags.find((tag) => tag.name === LICENSE_CONFIG_TAG)?.value;
+
+  if (licenseConfig) {
+    try {
+      const parsed = JSON.parse(licenseConfig);
+
+      if (!Array.isArray(parsed)) {
+        throw new Error('Invalid license config');
+      }
+
+      const licenseIdx = generalTags.findIndex((tag) => tag.name === 'License');
+      const defaultLicenseElements = 3;
+      // remove default license tags and add all parsed tags
+      generalTags.splice(licenseIdx, defaultLicenseElements, ...parsed);
+    } catch (error) {
+      // ignore
+    }
+  }
 
   if (description && description?.length > MAX_STR_SIZE) {
     description = description?.substring(0, MAX_STR_SIZE);

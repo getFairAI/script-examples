@@ -25,6 +25,7 @@ import {
   ITransactions,
   IOptionalSettings,
   InferenceResult,
+  ITag,
 } from './interfaces';
 import {
   CONVERSATION_IDENTIFIER_TAG,
@@ -63,6 +64,7 @@ import {
   PROTOCOL_VERSION,
   PROTOCOL_NAME,
   PROTOCOL_VERSION_TAG,
+  LICENSE_CONFIG_TAG,
 } from './constants';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
@@ -315,6 +317,24 @@ const getGeneralTags = (
   }
   
   // optional tags
+  const licenseConfig = requestTags.find((tag) => tag.name === LICENSE_CONFIG_TAG)?.value;
+
+  if (licenseConfig) {
+    try {
+      const parsed: ITag[] = JSON.parse(licenseConfig);
+
+      if (!Array.isArray(parsed)) {
+        throw new Error('Invalid license config');
+      }
+
+      const licenseIdx = generalTags.findIndex((tag) => tag.name === 'License');
+      const defaultLicenseElements = 3;
+      // remove default license tags and add all parsed tags
+      generalTags.splice(licenseIdx, defaultLicenseElements, ...parsed);
+    } catch (error) {
+      // ignore
+    }
+  }
 
   if (description && description?.length > MAX_STR_SIZE) {
     description = description?.substring(0, MAX_STR_SIZE);
