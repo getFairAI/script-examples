@@ -21,7 +21,7 @@ const { WarpFactory } = require('warp-contracts');
 const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
 const { DeployPlugin } = require('warp-contracts-plugin-deploy');
 const workerpool = require('workerpool');
-const FairSDK = require('fair-protocol-sdk/cjs').default;
+const FairSDK = require('@fair-protocol/sdk/cjs');
 
 const APP_NAME_TAG = 'App-Name';
 const APP_VERSION_TAG = 'App-Version';
@@ -53,6 +53,7 @@ const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
 const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
 const SCRIPT_OPERATOR_TAG = 'Script-Operator';
 const N_IMAGES_TAG = 'N-Images';
+const LICENSE_CONFIG_TAG = 'License-Config';
 
 const NOT_OVERRIDABLE_TAGS = [
   APP_NAME_TAG,
@@ -339,17 +340,37 @@ const getGeneralTags = (
   const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
 
   if (!generateAssets || generateAssets === 'fair-protocol') {
+    const appendIdx = generalTags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
     // add asset tags
-    FairSDK.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA');
+    FairSDK.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA', 1000, appendIdx);
   } else if (generateAssets && generateAssets === 'rareweave') {
+    const appendIdx = generalTags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
     const rareweaveConfig = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.rareweaveConfig)?.value;
     const royalty = rareweaveConfig ? JSON.parse(rareweaveConfig).royalty : 0;
-    FairSDK.utils.addRareweaveTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'Atomic Asset Generated in Fair Protocol. Compatible with Rareweave', royalty, type);
+    FairSDK.utils.addRareweaveTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'Atomic Asset Generated in Fair Protocol. Compatible with Rareweave', royalty, type, 1000, appendIdx);
   } else {
     // do not add asset tags
   }
-  
+
   // optional tags
+  const licenseConfig = requestTags.find((tag) => tag.name === LICENSE_CONFIG_TAG)?.value;
+
+  if (licenseConfig) {
+    try {
+      const parsed = JSON.parse(licenseConfig);
+
+      if (!Array.isArray(parsed)) {
+        throw new Error('Invalid license config');
+      }
+
+      const licenseIdx = generalTags.findIndex((tag) => tag.name === 'License');
+      const defaultLicenseElements = 3;
+      // remove default license tags and add all parsed tags
+      generalTags.splice(licenseIdx, defaultLicenseElements, ...parsed);
+    } catch (error) {
+      // ignore
+    }
+  }
 
   if (description && description?.length > MAX_STR_SIZE) {
     description = description?.substring(0, MAX_STR_SIZE);

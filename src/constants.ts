@@ -50,6 +50,7 @@ export const INIT_STATE_TAG = 'Init-State';
 export const INFERENCE_SEED_TAG = 'Inference-Seed';
 export const N_IMAGES_TAG = 'N-Images';
 export const SKIP_ASSET_CREATION_TAG = 'Skip-Asset-Creation';
+export const LICENSE_CONFIG_TAG = 'License-Config';
 
 export const NOT_OVERRIDABLE_TAGS = [
   APP_NAME_TAG,
