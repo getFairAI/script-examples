@@ -67,7 +67,7 @@ import {
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { gql, ApolloClient, InMemoryCache } from '@apollo/client/core';
 import workerpool from 'workerpool';
-import FairSDKWeb from 'fair-protocol-sdk/node';
+import FairSDK from '@fair-protocol/sdk/node';
 
 const JWK: JWKInterface = JSON.parse(fs.readFileSync('wallet.json').toString());
 // initailze the bundlr SDK
@@ -299,16 +299,17 @@ const getGeneralTags = (
     { name: TOPIC_AI_TAG, value: 'ai-generated' }
   ];
 
-  const generateAssets = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.generateAssets)?.value;
+  const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
 
   if (!generateAssets || generateAssets === 'fair-protocol') {
-    // add fair protocol tags if there is no specified generate assets tag to mantain retrocompatibility
+    const appendIdx = generalTags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
     // add asset tags
-    FairSDKWeb.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA');
+    FairSDK.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA', 1000, appendIdx);
   } else if (generateAssets && generateAssets === 'rareweave') {
-    const rareweaveConfig = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.rareweaveConfig)?.value;
+    const appendIdx = generalTags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
+    const rareweaveConfig = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.rareweaveConfig)?.value;
     const royalty = rareweaveConfig ? JSON.parse(rareweaveConfig).royalty : 0;
-    FairSDKWeb.utils.addRareweaveTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'Atomic Asset Generated in Fair Protocol. Compatible with Rareweave', royalty, type);
+    FairSDK.utils.addRareweaveTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'Atomic Asset Generated in Fair Protocol. Compatible with Rareweave', royalty, type, 1000, appendIdx);
   } else {
     // do not add asset tags
   }
@@ -441,7 +442,7 @@ const sendToBundlr = async (
         message: `Data uploaded ==> https://arweave.net/${transaction.id}`,
       });
 
-      const generateAssets = requestTags.find((tag) => tag.name === FairSDKWeb.utils.TAG_NAMES.generateAssets)?.value;
+      const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
 
       if (!generateAssets || generateAssets !== 'none') {
         // if there is no generate assets tag or it is not none, register the asset

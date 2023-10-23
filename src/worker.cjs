@@ -21,7 +21,7 @@ const { WarpFactory } = require('warp-contracts');
 const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
 const { DeployPlugin } = require('warp-contracts-plugin-deploy');
 const workerpool = require('workerpool');
-const FairSDK = require('fair-protocol-sdk/cjs').default;
+const FairSDK = require('@fair-protocol/sdk/cjs');
 
 const APP_NAME_TAG = 'App-Name';
 const APP_VERSION_TAG = 'App-Version';
@@ -339,12 +339,14 @@ const getGeneralTags = (
   const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
 
   if (!generateAssets || generateAssets === 'fair-protocol') {
+    const appendIdx = generalTags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
     // add asset tags
-    FairSDK.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA');
+    FairSDK.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA', 1000, appendIdx);
   } else if (generateAssets && generateAssets === 'rareweave') {
+    const appendIdx = generalTags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
     const rareweaveConfig = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.rareweaveConfig)?.value;
     const royalty = rareweaveConfig ? JSON.parse(rareweaveConfig).royalty : 0;
-    FairSDK.utils.addRareweaveTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'Atomic Asset Generated in Fair Protocol. Compatible with Rareweave', royalty, type);
+    FairSDK.utils.addRareweaveTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'Atomic Asset Generated in Fair Protocol. Compatible with Rareweave', royalty, type, 1000, appendIdx);
   } else {
     // do not add asset tags
   }
