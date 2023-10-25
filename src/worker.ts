@@ -575,6 +575,11 @@ const inference = async function (requestTx: IEdge, registration: OperatorParams
   const { scriptId, url, settings, payloadFormat: format } = registration;
 
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
+  const successStatusCode = 200;
+  if (requestData.status !== successStatusCode) {
+    throw new Error(`Could not retrieve Tx data from '${NET_ARWEAVE_URL}/${requestTx.node.id}'`);
+  }
+
   const text = await (await requestData.blob()).text();
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
 
