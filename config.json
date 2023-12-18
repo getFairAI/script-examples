@@ -52,7 +52,7 @@
         }
       }
     },
-    "O9-6zMyzzfxPRpM1gyMeW5yq0Aa5kU_f8MgKzFmaavc": {
+    "rQZbuif8_DJ10MIWkH01vGexrVj92-0qQ4d6POqdULo": {
       "name": "dreamShaper-xl",
       "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
       "payloadFormat": "webui",
@@ -213,11 +213,11 @@
       }
     },
     "BeVuAraT92i02GWa2f9oJ89Slu77EoYuqNfmB6lopag": {
-      "name": "vits",
+      "name": "vits", 
       "url": "http://127.0.0.1:8089",
       "payloadFormat": "default"
     }
   },
-  "startBlockHeight": "1278200",
+  "startBlockHeight": "1311671",
   "sleepTimeSeconds": 7
 }

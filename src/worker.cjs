@@ -54,6 +54,7 @@ const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
 const SCRIPT_OPERATOR_TAG = 'Script-Operator';
 const N_IMAGES_TAG = 'N-Images';
 const LICENSE_CONFIG_TAG = 'License-Config';
+const CREATOR_TAG = 'Creator';
 
 const NOT_OVERRIDABLE_TAGS = [
   APP_NAME_TAG,
@@ -79,14 +80,13 @@ const NOT_OVERRIDABLE_TAGS = [
   SCRIPT_USER_TAG,
   CONTENT_TYPE_TAG,
   SCRIPT_OPERATOR_TAG,
-  CONVERSATION_IDENTIFIER_TAG
+  CONVERSATION_IDENTIFIER_TAG,
+  CREATOR_TAG,
 ];
 
 const PROTOCOL_NAME = 'Fair Protocol';
 
 const NET_ARWEAVE_URL = 'https://arweave.net';
-const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
-
 
 const VAULT_ADDRESS = 'tXd-BOaxmxtgswzwMLnryROAYlX5uDC9-XK2P4VNCQQ';
 const MARKETPLACE_PERCENTAGE_FEE = 0.1;
@@ -101,7 +101,7 @@ const secondInMS = 1000;
 const JWK = JSON.parse(fs.readFileSync('wallet.json').toString());
 // initailze the bundlr SDK
 // const bundlr: Bundlr = new (Bundlr as any).default(
-const bundlr = new NodeBundlr(NODE2_BUNDLR_URL, 'arweave', JWK);
+const bundlr = new NodeBundlr('https://up.arweave.net', 'arweave', JWK);
 const warp = WarpFactory.forMainnet().use(new DeployPlugin());
 
 const clientGateway = new ApolloClient({
@@ -238,7 +238,7 @@ const queryCheckUserPayment = async (
 
 const registerAsset = async (transactionId) => {
   try {
-    const { contractTxId } = await warp.register(transactionId, 'node2'); // must use same node as uploaded data
+    const { contractTxId } = await warp.register(transactionId, 'arweave'); // must use same node as uploaded data
     workerpool.workerEmit({
       type: 'info',
       message: `Token Registered ==> https://arweave.net/${contractTxId}`,
@@ -279,12 +279,16 @@ const getGeneralTags = (
   registration,
 ) => {
   let type;
+  let contentType;
   if (inferenceResult.imgPaths) {
     type = 'image';
+    contentType = 'image/png';
   } else if (inferenceResult.audioPath) {
     type = 'audio';
+    contentType = 'audio/wav';
   } else {
     type = 'text';
+    contentType = 'text/plain';
   }
   const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
@@ -310,6 +314,7 @@ const getGeneralTags = (
   let description = requestTags.find((tag) => tag.name === DESCRIPTION_TAG)?.value;
 
   const generalTags = [
+    { name:'Content-Type', value: contentType },
     { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
     { name: PROTOCOL_VERSION_TAG, value: protocolVersion },
     // add logic tags
@@ -326,7 +331,8 @@ const getGeneralTags = (
     { name: 'Title', value: 'Fair Protocol Atomic Asset' },
     { name: 'Type', value: type },
     { name: INDEXED_BY_TAG, value: 'ucm' },
-  
+    { name: CREATOR_TAG, value: userAddress },
+
     // add license tags
     { name: 'License', value: UDL_ID },
     { name: 'Derivation', value: 'Allowed-With-License-Passthrough' },
@@ -402,6 +408,12 @@ const getGeneralTags = (
       // filter custom tags to remove not overridavble ones
       let newTagsIdx = 1;
       for (const customTag of customTags) {
+        if (customTag.value !== 'string') {
+          customTag.value = JSON.stringify(customTag.value);
+        } else {
+          // eslint-disable-next-line no-useless-escape
+          customTag.value = customTag.value.replaceAll('\"', '');
+        }
         const isOverridable = !NOT_OVERRIDABLE_TAGS.includes(customTag.name);
         const tagIdx = generalTags.findIndex((tag) => tag.name === customTag.name);
 
@@ -439,15 +451,6 @@ const sendToBundlr = async (
   // turn into array to use same code for single and multiple responses
   responses = Array.isArray(responses) ? responses : [responses];
 
-  // Get loaded balance in atomic units
-  const atomicBalance = await bundlr.getLoadedBalance();
-
-  workerpool.workerEmit({ type: 'info', message: `node balance (atomic units) = ${atomicBalance}` });
-
-  // Convert balance to an easier to read format
-  const convertedBalance = bundlr.utils.fromAtomic(atomicBalance);
-  workerpool.workerEmit({ type: 'info', message: `node balance (converted) = ${convertedBalance}` });
-
   const generalTags = getGeneralTags(inferenceResult, userAddress, requestTransaction, requestTags, conversationIdentifier, registration);
 
   const assetNames = requestTags.find((tag) => tag.name === ASSET_NAMES_TAG)?.value;
@@ -478,8 +481,8 @@ const sendToBundlr = async (
         // replace title tag with asset name
         tags.splice(titleIdx, 1, { name: 'Title', value: title });
       }
-
-      const transaction = await bundlr.uploadFile(response, { tags });
+      const data = Buffer.from(response, 'base64');
+      const transaction = await bundlr.upload(data, { tags });
       workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${transaction.id}` });
       
       const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
@@ -563,19 +566,14 @@ const runInference = async (url, format, payload, scriptId, text) => {
   const tempData = await res.json();
 
   if (tempData.images) {
-    let i = 0;
-    const imgPaths = [], imgSeeds = [];
+    const imgSeeds = [];
 
     for (const el of tempData.images) {
-      fs.writeFileSync(`output_${scriptId}_${i}.png`, Buffer.from(el, 'base64'));
-      imgPaths.push(`./output_${scriptId}_${i}.png`);
-  
       const seed = await fetchSeed(url, el);
       imgSeeds.push(seed);
-      i++;
     }
 
-    return { imgPaths, prompt: text, seeds: imgSeeds };
+    return { imgPaths: tempData.images, prompt: text, seeds: imgSeeds };
   } else if (tempData.imgPaths) {
     return {
       imgPaths: tempData.imgPaths,
@@ -596,7 +594,8 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
 
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
   const successStatusCode = 200;
-  if (requestData.status !== successStatusCode) {
+  const acceptedStatusCode = 202;
+  if (![successStatusCode, acceptedStatusCode].includes(requestData.status)) {
     throw new Error(`Could not retrieve Tx data from '${NET_ARWEAVE_URL}/${requestTx.node.id}'`);
   }
 
@@ -617,7 +616,8 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
 
   for (let i = 0; i < nIters; i++) {
     const result = await runInference(url, format, payload, scriptId, text);
-    workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(result)}` });
+    
+   /*  workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(result)}` }); */
 
     await sendToBundlr(
       result,
