@@ -21,6 +21,9 @@ import { default as Pino } from 'pino';
 import { IEdge, OperatorParams, UrlConfig } from './interfaces';
 import {
   INFERENCE_TRANSACTION_TAG,
+  NODE2_BUNDLR_URL,
+  PROTOCOL_NAME,
+  PROTOCOL_VERSION,
   SCRIPT_TRANSACTION_TAG,
   SEQUENCE_OWNER_TAG,
   secondInMS,
@@ -36,6 +39,7 @@ import workerpool from 'workerpool';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Mutex } from 'async-mutex';
+import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 
 const fileName = fileURLToPath(import.meta.url);
 const dirName = path.dirname(fileName);
@@ -59,6 +63,8 @@ const arweave = Arweave.init({
 let pool: workerpool.WorkerPool;
 
 const JWK: JWKInterface = JSON.parse(fs.readFileSync('wallet.json').toString());
+
+/* const lastProofTimestamp */
 
 const findRegistrations = async () => {
   const registrationTxs = await queryOperatorRegistrations(address);
@@ -270,8 +276,19 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 (async () => {
   address = await arweave.wallets.jwkToAddress(JWK);
-
-  logger.info(`Wallet address: ${address}. Fetching Registrations...`);
+  // fetch irys balance
+  const bundlr = new NodeBundlr(NODE2_BUNDLR_URL, 'arweave', JWK);
+  // Get loaded balance in atomic units
+  const atomicBalance = await bundlr.getLoadedBalance();
+  // Convert balance to an easier to read format
+  const convertedBalance = bundlr.utils.fromAtomic(atomicBalance);
+  if (convertedBalance.toNumber() < 0.1) {
+    logger.error(`Insufficient Irys balance to run operator (${convertedBalance} AR). Shutting down...`);
+    process.exit(1);
+  }
+  logger.info(`Wallet address: ${address}`);
+  logger.info(`Irys Node2 balance (converted) = ${convertedBalance} AR`);
+  logger.info('Fetching Operator Registrations...');
 
   let tempRegistrations: IEdge[] = [];
   try {
@@ -304,6 +321,28 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   // start pool
   pool = workerpool.pool(dirName + '/worker.cjs', { maxWorkers: nThreads });
   logger.info(pool.stats());
+
+  // create interval for proofs every 30 min
+  const minuteInSeconds = 60;
+  const halfHourInMinutes = 30;
+  setInterval(async () => {
+    // Get loaded balance in atomic units
+    const atomicBalance = await bundlr.getLoadedBalance();
+    // Convert balance to an easier to read format
+    const convertedBalance = bundlr.utils.fromAtomic(atomicBalance);
+
+    // dispatch tx
+    const tx = await bundlr.upload(`Operator ${address} Running`, {
+      tags: [
+        { name: 'Protocol-Name', value: PROTOCOL_NAME},
+        { name: 'Protocol-Version', value: PROTOCOL_VERSION},
+        { name: 'Operation-Name', value: 'Operator Active Proof' },
+        { name: 'Operator-Irys-Balance', value: convertedBalance.toString() },
+        { name: 'Unix-Time', value: (Date.now() / secondInMS).toString() },
+      ]
+    });
+    logger.info(`Proof of Life Transaction: ${tx.id}`);
+  }, secondInMS * minuteInSeconds * halfHourInMinutes);
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
