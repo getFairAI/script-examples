@@ -54,6 +54,7 @@ const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
 const SCRIPT_OPERATOR_TAG = 'Script-Operator';
 const N_IMAGES_TAG = 'N-Images';
 const LICENSE_CONFIG_TAG = 'License-Config';
+const CREATOR_TAG = 'Creator';
 
 const NOT_OVERRIDABLE_TAGS = [
   APP_NAME_TAG,
@@ -79,7 +80,8 @@ const NOT_OVERRIDABLE_TAGS = [
   SCRIPT_USER_TAG,
   CONTENT_TYPE_TAG,
   SCRIPT_OPERATOR_TAG,
-  CONVERSATION_IDENTIFIER_TAG
+  CONVERSATION_IDENTIFIER_TAG,
+  CREATOR_TAG,
 ];
 
 const PROTOCOL_NAME = 'Fair Protocol';
@@ -326,7 +328,8 @@ const getGeneralTags = (
     { name: 'Title', value: 'Fair Protocol Atomic Asset' },
     { name: 'Type', value: type },
     { name: INDEXED_BY_TAG, value: 'ucm' },
-  
+    { name: CREATOR_TAG, value: userAddress },
+
     // add license tags
     { name: 'License', value: UDL_ID },
     { name: 'Derivation', value: 'Allowed-With-License-Passthrough' },
@@ -402,6 +405,12 @@ const getGeneralTags = (
       // filter custom tags to remove not overridavble ones
       let newTagsIdx = 1;
       for (const customTag of customTags) {
+        if (customTag.value !== 'string') {
+          customTag.value = JSON.stringify(customTag.value);
+        } else {
+          // eslint-disable-next-line no-useless-escape
+          customTag.value = customTag.value.replaceAll('\"', '');
+        }
         const isOverridable = !NOT_OVERRIDABLE_TAGS.includes(customTag.name);
         const tagIdx = generalTags.findIndex((tag) => tag.name === customTag.name);
 
@@ -596,7 +605,8 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
 
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
   const successStatusCode = 200;
-  if (requestData.status !== successStatusCode) {
+  const acceptedStatusCode = 202;
+  if (![successStatusCode, acceptedStatusCode].includes(requestData.status)) {
     throw new Error(`Could not retrieve Tx data from '${NET_ARWEAVE_URL}/${requestTx.node.id}'`);
   }
 
