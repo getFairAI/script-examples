@@ -238,7 +238,7 @@ const queryCheckUserPayment = async (
 
 const registerAsset = async (transactionId) => {
   try {
-    const { contractTxId } = await warp.register(transactionId, 'node2'); // must use same node as uploaded data
+    const { contractTxId } = await warp.register(transactionId, 'arweave'); // must use same node as uploaded data
     workerpool.workerEmit({
       type: 'info',
       message: `Token Registered ==> https://arweave.net/${contractTxId}`,
@@ -279,12 +279,16 @@ const getGeneralTags = (
   registration,
 ) => {
   let type;
+  let contentType;
   if (inferenceResult.imgPaths) {
     type = 'image';
+    contentType = 'image/png';
   } else if (inferenceResult.audioPath) {
     type = 'audio';
+    contentType = 'audio/wav';
   } else {
     type = 'text';
+    contentType = 'text/plain';
   }
   const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
@@ -310,6 +314,7 @@ const getGeneralTags = (
   let description = requestTags.find((tag) => tag.name === DESCRIPTION_TAG)?.value;
 
   const generalTags = [
+    { name:'Content-Type', value: contentType },
     { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
     { name: PROTOCOL_VERSION_TAG, value: protocolVersion },
     // add logic tags
@@ -446,15 +451,6 @@ const sendToBundlr = async (
   // turn into array to use same code for single and multiple responses
   responses = Array.isArray(responses) ? responses : [responses];
 
-  // Get loaded balance in atomic units
-  const atomicBalance = await bundlr.getLoadedBalance();
-
-  workerpool.workerEmit({ type: 'info', message: `node balance (atomic units) = ${atomicBalance}` });
-
-  // Convert balance to an easier to read format
-  const convertedBalance = bundlr.utils.fromAtomic(atomicBalance);
-  workerpool.workerEmit({ type: 'info', message: `node balance (converted) = ${convertedBalance}` });
-
   const generalTags = getGeneralTags(inferenceResult, userAddress, requestTransaction, requestTags, conversationIdentifier, registration);
 
   const assetNames = requestTags.find((tag) => tag.name === ASSET_NAMES_TAG)?.value;
@@ -485,8 +481,8 @@ const sendToBundlr = async (
         // replace title tag with asset name
         tags.splice(titleIdx, 1, { name: 'Title', value: title });
       }
-
-      const transaction = await bundlr.uploadFile(response, { tags });
+      const data = Buffer.from(response, 'base64');
+      const transaction = await bundlr.upload(data, { tags });
       workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${transaction.id}` });
       
       const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
@@ -570,19 +566,14 @@ const runInference = async (url, format, payload, scriptId, text) => {
   const tempData = await res.json();
 
   if (tempData.images) {
-    let i = 0;
-    const imgPaths = [], imgSeeds = [];
+    const imgSeeds = [];
 
     for (const el of tempData.images) {
-      fs.writeFileSync(`output_${scriptId}_${i}.png`, Buffer.from(el, 'base64'));
-      imgPaths.push(`./output_${scriptId}_${i}.png`);
-  
       const seed = await fetchSeed(url, el);
       imgSeeds.push(seed);
-      i++;
     }
 
-    return { imgPaths, prompt: text, seeds: imgSeeds };
+    return { imgPaths: tempData.images, prompt: text, seeds: imgSeeds };
   } else if (tempData.imgPaths) {
     return {
       imgPaths: tempData.imgPaths,
@@ -625,7 +616,8 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
 
   for (let i = 0; i < nIters; i++) {
     const result = await runInference(url, format, payload, scriptId, text);
-    workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(result)}` });
+    
+   /*  workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(result)}` }); */
 
     await sendToBundlr(
       result,
