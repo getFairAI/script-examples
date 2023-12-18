@@ -87,8 +87,6 @@ const NOT_OVERRIDABLE_TAGS = [
 const PROTOCOL_NAME = 'Fair Protocol';
 
 const NET_ARWEAVE_URL = 'https://arweave.net';
-const NODE2_BUNDLR_URL = 'https://node2.bundlr.network';
-
 
 const VAULT_ADDRESS = 'tXd-BOaxmxtgswzwMLnryROAYlX5uDC9-XK2P4VNCQQ';
 const MARKETPLACE_PERCENTAGE_FEE = 0.1;
@@ -103,7 +101,7 @@ const secondInMS = 1000;
 const JWK = JSON.parse(fs.readFileSync('wallet.json').toString());
 // initailze the bundlr SDK
 // const bundlr: Bundlr = new (Bundlr as any).default(
-const bundlr = new NodeBundlr(NODE2_BUNDLR_URL, 'arweave', JWK);
+const bundlr = new NodeBundlr('https://up.arweave.net', 'arweave', JWK);
 const warp = WarpFactory.forMainnet().use(new DeployPlugin());
 
 const clientGateway = new ApolloClient({
