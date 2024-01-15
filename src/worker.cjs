@@ -429,6 +429,25 @@ const getGeneralTags = (
         } else {
           // ignore
         }
+
+        // if custom user tag is init state override Creator and Script User with firstOwner
+        if (customTag.name === 'Init-State') {
+          const firstOwner = JSON.parse(customTag.value).firstOwner;
+          const creatorIdx = generalTags.findIndex((tag) => tag.name === CREATOR_TAG);
+          const scriptUserIdx = generalTags.findIndex((tag) => tag.name === SCRIPT_USER_TAG);
+
+          if (creatorIdx >= 0) {
+            generalTags.splice(creatorIdx, 1, { name: CREATOR_TAG, value: firstOwner });
+          } else {
+            // ignore
+          }
+
+          if (scriptUserIdx >= 0) {
+            generalTags.splice(scriptUserIdx, 1, { name: SCRIPT_USER_TAG, value: firstOwner });
+          } else {
+            // ignore
+          }
+        }
       }
     } catch (err) {
       // ignore custom tags if invalid
