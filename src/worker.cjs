@@ -22,6 +22,7 @@ const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
 const { DeployPlugin } = require('warp-contracts-plugin-deploy');
 const workerpool = require('workerpool');
 const FairSDK = require('@fair-protocol/sdk/cjs');
+const pdf = require('pdf-parse');
 
 const APP_NAME_TAG = 'App-Name';
 const APP_VERSION_TAG = 'App-Version';
@@ -618,7 +619,16 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
     throw new Error(`Could not retrieve Tx data from '${NET_ARWEAVE_URL}/${requestTx.node.id}'`);
   }
 
-  const text = await (await requestData.blob()).text();
+  const contentType = requestData.headers.get('Content-Type');
+
+  let text = '';
+  if (contentType.includes('pdf')) {
+    const pdfData = await pdf(requestData.blob());
+    text = pdfData.text;
+  } else {
+    text = await (await requestData.blob()).text();
+  }
+
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
 
   const payload = parsePayload(format, text, settings, negativePrompt);
