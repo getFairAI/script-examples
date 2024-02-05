@@ -121,7 +121,10 @@ const validateRegistration = async (tx: IEdge) => {
     hasErrors = true;
   }
 
-  const { creatorAddr: modelOwner, modelName } = await getModelOwnerAndName(scriptName as string, scriptCurator as string);
+  const { creatorAddr: modelOwner, modelName } = await getModelOwnerAndName(
+    scriptName as string,
+    scriptCurator as string,
+  );
   if (!modelOwner) {
     logger.error(`Could not find Model Owner for registration '${txid}'. Ignoring...`);
     hasErrors = true;
@@ -165,12 +168,12 @@ const sendProofOfLife = async () => {
   // dispatch tx
   const tx = await bundlr.upload(`Operator ${address} Running`, {
     tags: [
-      { name: 'Protocol-Name', value: PROTOCOL_NAME},
-      { name: 'Protocol-Version', value: PROTOCOL_VERSION},
+      { name: 'Protocol-Name', value: PROTOCOL_NAME },
+      { name: 'Protocol-Version', value: PROTOCOL_VERSION },
       { name: 'Operation-Name', value: 'Operator Active Proof' },
       /* { name: 'Operator-Irys-Balance', value: convertedBalance.toString() }, */
       { name: 'Unix-Time', value: (Date.now() / secondInMS).toString() },
-    ]
+    ],
   });
   logger.info(`Proof of Life Transaction: ${tx.id}`);
 };
@@ -182,24 +185,25 @@ const startThread = (
   lock: Mutex,
   txid: string,
 ) => {
-  return lock.runExclusive(
-    async () => {
-      logger.info(`Thread ${reqTxId} acquired lock`);
-      if (lastProcessedTxs.includes(txid)) {
-        // if txid is already processed skip launching thread
-        logger.info(`Thread ${reqTxId} released lock`);
-        return;
-      }
-      await pool.exec('processRequestLock', [reqTxId, reqUserAddr, currentRegistration, address], {
-        on: (payload) => handleWorkerEvents(payload, txid),
-      });
-
+  return lock.runExclusive(async () => {
+    logger.info(`Thread ${reqTxId} acquired lock`);
+    if (lastProcessedTxs.includes(txid)) {
+      // if txid is already processed skip launching thread
       logger.info(`Thread ${reqTxId} released lock`);
+      return;
     }
-  );
+    await pool.exec('processRequestLock', [reqTxId, reqUserAddr, currentRegistration, address], {
+      on: (payload) => handleWorkerEvents(payload, txid),
+    });
+
+    logger.info(`Thread ${reqTxId} released lock`);
+  });
 };
 
-const handleWorkerEvents = (payload: { type: 'info' | 'error' | 'result'; message: string | boolean }, txid: string) => {
+const handleWorkerEvents = (
+  payload: { type: 'info' | 'error' | 'result'; message: string | boolean },
+  txid: string,
+) => {
   if (payload.type === 'error') {
     logger.error(payload.message);
   } else if (payload.type === 'info') {
@@ -208,7 +212,7 @@ const handleWorkerEvents = (payload: { type: 'info' | 'error' | 'result'; messag
     const result = payload.message;
     if (typeof result === 'string') {
       // save latest tx id only for successful processed requests
-      lastProcessedTxs.push(txid);  
+      lastProcessedTxs.push(txid);
     }
   }
 };
@@ -250,9 +254,9 @@ const start = async () => {
       }
     }
 
-    const mostRecent: IEdge[] =[];
+    const mostRecent: IEdge[] = [];
     newRequestTxs.forEach((tx) => {
-      if (!tx.node.block ||tx.node.block?.height >= parseInt(CONFIG.startBlockHeight, 10)) {
+      if (!tx.node.block || tx.node.block?.height >= parseInt(CONFIG.startBlockHeight, 10)) {
         mostRecent.push(tx);
       } else {
         lastProcessedTxs.push(tx.node.id); // ignore old txs
@@ -263,7 +267,9 @@ const start = async () => {
       logger.info(`Processing request ${edge.node.id} ...`);
       // Check if request already answered:
       const reqTxId = edge.node.tags.find((tag) => tag.name === INFERENCE_TRANSACTION_TAG)?.value;
-      const reqUserAddr = edge.node.tags.find((tag) => tag.name === SEQUENCE_OWNER_TAG)?.value ?? edge.node.owner.address;
+      const reqUserAddr =
+        edge.node.tags.find((tag) => tag.name === SEQUENCE_OWNER_TAG)?.value ??
+        edge.node.owner.address;
       const currentRegistration = registrations.find(
         (reg) =>
           reg.scriptId === edge.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value,
@@ -274,7 +280,13 @@ const start = async () => {
       );
 
       if (reqTxId && reqUserAddr && currentRegistration && registrationIdx >= 0) {
-        startThread(reqTxId, reqUserAddr, currentRegistration, mutexes[registrationIdx], edge.node.id);
+        startThread(
+          reqTxId,
+          reqUserAddr,
+          currentRegistration,
+          mutexes[registrationIdx],
+          edge.node.id,
+        );
       } else {
         logger.error('No Registration, inference Tx or userAddr found for request. Skipping...');
         // skip requests without inference transaction tag

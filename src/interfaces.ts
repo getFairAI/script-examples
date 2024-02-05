@@ -102,10 +102,10 @@ export interface InferenceResult {
 export interface UrlConfig {
   url: string;
   payloadFormat: payloadFormatOptions;
-  settings?:IOptionalSettings
+  settings?: IOptionalSettings;
 }
 
 export interface IOptionalSettings {
-  [key: string ]: string;
+  [key: string]: string;
   prompt: string;
 }
