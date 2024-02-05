@@ -22,7 +22,9 @@ const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
 const { DeployPlugin } = require('warp-contracts-plugin-deploy');
 const workerpool = require('workerpool');
 const FairSDK = require('@fair-protocol/sdk/cjs');
-const pdf = require('pdf-parse');
+const PDFParser = require('pdf2json');
+const { Transform, Readable, Writable } = require('stream');
+const pdfParser = new PDFParser(this, 1);
 
 const APP_NAME_TAG = 'App-Name';
 const APP_VERSION_TAG = 'App-Version';
@@ -609,6 +611,26 @@ const runInference = async (url, format, payload, scriptId, text) => {
   }
 };
 
+class StringifyStream extends Transform {
+  constructor(options) {
+      super(options);
+
+      this._readableState.objectMode = false;
+      this._writableState.objectMode = true;    
+  }
+
+  _transform = (obj, encoding, callback) => {
+    const onlyTexts = obj['Pages'].reduce(
+      (acc, curr) => {
+        const result = curr['Texts'].flatMap((textObj) => textObj['R'].flatMap((r) => decodeURI(r['T']).trim()));
+        acc = acc.concat(...result);
+        return acc;
+      }, []);
+    this.push(onlyTexts.join(''));
+    callback();
+  };
+}
+
 const inference = async function (requestTx, registration, nImages, cid, negativePrompt) {
   const { scriptId, url, settings, payloadFormat: format } = registration;
 
@@ -623,8 +645,56 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
 
   let text = '';
   if (contentType.includes('pdf')) {
-    const pdfData = await pdf(requestData.blob());
-    text = pdfData.text;
+    /* throw new Error('PDF NOT SUPPORTED'); */
+    try {
+      const output = new Writable();
+
+      output._write = (chunk, encoding, next) => {
+        text += chunk.toString();
+        next();
+      };
+
+      await new Promise((resolve, reject) => {
+        output.on('finish', () => {
+          output.end();
+          resolve();
+        });
+        output.on('error', (error) => reject(error));
+        
+        Readable.fromWeb(requestData.body).pipe(pdfParser.createParserStream()).pipe(new StringifyStream()).pipe(output); 
+      });
+
+      if (text === '') {
+        // empty pdf
+        const protocolVersion = requestTx.node.tags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
+        const modelName = requestTx.node.tags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
+        const errorTags = [
+          { name:'Content-Type', value: 'text/plain' },
+          { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
+          { name: PROTOCOL_VERSION_TAG, value: protocolVersion },
+          // add logic tags
+          { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
+          { name: MODEL_NAME_TAG, value: modelName },
+          { name: SCRIPT_NAME_TAG, value: registration.scriptName },
+          { name: SCRIPT_CURATOR_TAG, value: registration.scriptCurator },
+          { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
+          { name: SCRIPT_USER_TAG, value:  requestTx.node.owner.address, },
+          { name: REQUEST_TRANSACTION_TAG, value: requestTx.node.id },
+          { name: PROMPT_TAG, value: `https://arweave.net/${requestTx.node.id}` },
+          { name: CONVERSATION_IDENTIFIER_TAG, value: cid },
+          // add extra tags
+      
+          { name: UNIX_TIME_TAG, value: (Date.now() / secondInMS).toString() },
+        ];
+        await bundlr.upload('We apologise for the inconvenience but the requested file could not be parsed into audio. Please try a different format.', { tags: errorTags });
+        workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${requestTx.node.id}` });
+
+        return;
+      }
+
+      } catch (err) {
+        workerpool.workerEmit({ type: 'error', message: err.message });
+      }
   } else {
     text = await (await requestData.blob()).text();
   }
