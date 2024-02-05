@@ -91,7 +91,7 @@ export const queryTransactionsReceived = async (
   const tags = [
     {
       name: PROTOCOL_NAME_TAG,
-      values: [ PROTOCOL_NAME ],
+      values: [PROTOCOL_NAME],
     },
     {
       name: OPERATION_NAME_TAG,
@@ -131,7 +131,10 @@ export const queryTransactionsReceived = async (
 
   const blockHeight = lastTx?.node?.block?.height;
 
-  const hasNextPage = blockHeight ? result.data.transactions.pageInfo.hasNextPage && blockHeight > parseInt(CONFIG.startBlockHeight, 10) : result.data.transactions.pageInfo.hasNextPage;
+  const hasNextPage = blockHeight
+    ? result.data.transactions.pageInfo.hasNextPage &&
+      blockHeight > parseInt(CONFIG.startBlockHeight, 10)
+    : result.data.transactions.pageInfo.hasNextPage;
 
   return {
     requestTxs: validPayments,
@@ -141,26 +144,41 @@ export const queryTransactionsReceived = async (
 
 const validateInput = (
   input: string,
-  tx: IEdge, opFees: number[],
+  tx: IEdge,
+  opFees: number[],
   scriptIds: string[],
   isStableDiffusion: boolean[],
-  address: string
+  address: string,
 ) => {
   const inputObj = JSON.parse(input);
-  const feeIdx = scriptIds.indexOf(tx.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value ?? '');
+  const feeIdx = scriptIds.indexOf(
+    tx.node.tags.find((tag) => tag.name === SCRIPT_TRANSACTION_TAG)?.value ?? '',
+  );
   const nImages = parseInt(tx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
   const numberQty = parseInt(inputObj.qty, 10);
 
   if (nImages > 0 && isStableDiffusion[feeIdx]) {
-    return numberQty >= (opFees[feeIdx] * nImages * OPERATOR_PERCENTAGE_FEE) && inputObj.function === 'transfer' && inputObj.target === address;
+    return (
+      numberQty >= opFees[feeIdx] * nImages * OPERATOR_PERCENTAGE_FEE &&
+      inputObj.function === 'transfer' &&
+      inputObj.target === address
+    );
   } else if (isStableDiffusion[feeIdx]) {
     // default images for stable diffusion config is 4
     const defaultNImgs = 4;
-    return numberQty >= (opFees[feeIdx] * defaultNImgs * OPERATOR_PERCENTAGE_FEE) && inputObj.function === 'transfer' && inputObj.target === address;
+    return (
+      numberQty >= opFees[feeIdx] * defaultNImgs * OPERATOR_PERCENTAGE_FEE &&
+      inputObj.function === 'transfer' &&
+      inputObj.target === address
+    );
   } else {
-    return numberQty >= (opFees[feeIdx] * OPERATOR_PERCENTAGE_FEE) && inputObj.function === 'transfer' && inputObj.target === address;
+    return (
+      numberQty >= opFees[feeIdx] * OPERATOR_PERCENTAGE_FEE &&
+      inputObj.function === 'transfer' &&
+      inputObj.target === address
+    );
   }
-}; 
+};
 
 export const getRequest = async (transactionId: string) => {
   const result = await clientGateway.query({
@@ -201,7 +219,7 @@ export const queryTransactionAnswered = async (
   const tags = [
     {
       name: PROTOCOL_NAME_TAG,
-      values: [ PROTOCOL_NAME ],
+      values: [PROTOCOL_NAME],
     },
     {
       name: OPERATION_NAME_TAG,
@@ -254,7 +272,7 @@ export const getModelOwnerAndName = async (scriptName: string, scriptCurator: st
   const tags = [
     {
       name: PROTOCOL_NAME_TAG,
-      values: [ PROTOCOL_NAME ],
+      values: [PROTOCOL_NAME],
     },
     {
       name: OPERATION_NAME_TAG,
@@ -305,7 +323,7 @@ export const isRegistrationCancelled = async (txid: string, opAddress: string) =
   const cancelTags = [
     {
       name: PROTOCOL_NAME_TAG,
-      values: [ PROTOCOL_NAME ],
+      values: [PROTOCOL_NAME],
     },
     { name: OPERATION_NAME_TAG, values: [CANCEL_OPERATION] },
     { name: REGISTRATION_TRANSACTION_TAG, values: [txid] },
@@ -356,7 +374,7 @@ export const queryOperatorRegistrations = async (address: string) => {
   const tags = [
     {
       name: PROTOCOL_NAME_TAG,
-      values: [ PROTOCOL_NAME ],
+      values: [PROTOCOL_NAME],
     },
     {
       name: OPERATION_NAME_TAG,

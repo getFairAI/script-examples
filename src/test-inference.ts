@@ -15,7 +15,13 @@ interface TestOperatorParams {
   settings?: IOptionalSettings;
 }
 
-const parsePayload = (format: string, text: string, settings?: IOptionalSettings, negativePrompt?: string, nImages?: string) => {
+const parsePayload = (
+  format: string,
+  text: string,
+  settings?: IOptionalSettings,
+  negativePrompt?: string,
+  nImages?: string,
+) => {
   let payload;
 
   if (format === 'webui') {
@@ -39,7 +45,7 @@ const parsePayload = (format: string, text: string, settings?: IOptionalSettings
     } else {
       // ignore
     }
-  
+
     payload = JSON.stringify(webuiPayload);
   } else {
     payload = text;
@@ -48,21 +54,20 @@ const parsePayload = (format: string, text: string, settings?: IOptionalSettings
   return payload;
 };
 
-
 const fetchSeed = async (url: string, imageStr: string) => {
   try {
     const infoUrl = url.replace('/txt2img', '/png-info');
-    
+
     const secRes = await fetch(infoUrl, {
       method: 'POST',
       headers: {
-        'accept': 'application/json',
-        'Content-Type': 'application/json'
+        accept: 'application/json',
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({ image: `data:image/png;base64,${imageStr}` }),
     });
 
-    const result: { info: string, items: { parameters: string }} = await secRes.json();
+    const result: { info: string; items: { parameters: string } } = await secRes.json();
     const seedStrStartIdx = result.info.indexOf('Seed:');
     const seedStrEndIdx = result.info.indexOf(',', seedStrStartIdx); // search for next comma after 'Seed:' substring
 
@@ -75,7 +80,12 @@ const fetchSeed = async (url: string, imageStr: string) => {
   }
 };
 
-const inference = async function (text: string, registration: TestOperatorParams, negativePrompt?: string, nImages?: string) {
+const inference = async function (
+  text: string,
+  registration: TestOperatorParams,
+  negativePrompt?: string,
+  nImages?: string,
+) {
   const { scriptId, url, settings, payloadFormat: format } = registration;
 
   logger.info(`User Prompt: ${text}`);
@@ -84,22 +94,25 @@ const inference = async function (text: string, registration: TestOperatorParams
 
   const res = await fetch(url, {
     method: 'POST',
-    ...(format === 'webui' && { headers: {
-      'accept': 'application/json',
-      'Content-Type': 'application/json'
-    }}),
+    ...(format === 'webui' && {
+      headers: {
+        accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+    }),
     body: payload,
   });
   const tempData: ServerResponse = await res.json();
 
   if (tempData.images) {
     let i = 0;
-    const imgPaths: string[] = [], imgSeeds: string[] = [];
+    const imgPaths: string[] = [],
+      imgSeeds: string[] = [];
 
     for (const el of tempData.images) {
       fs.writeFileSync(`output_test${scriptId}_${i}.png`, Buffer.from(el, 'base64'));
       imgPaths.push(`./output_test${scriptId}_${i}.png`);
-  
+
       const seed = await fetchSeed(url, el);
       imgSeeds.push(seed);
       i++;
@@ -107,15 +120,19 @@ const inference = async function (text: string, registration: TestOperatorParams
 
     logger.info(JSON.stringify({ imgPaths, prompt: text, seeds: imgSeeds }));
   } else if (tempData.imgPaths) {
-    logger.info(JSON.stringify({
-      imgPaths: tempData.imgPaths,
-      prompt: text,
-    }));
+    logger.info(
+      JSON.stringify({
+        imgPaths: tempData.imgPaths,
+        prompt: text,
+      }),
+    );
   } else if (tempData.audioPath) {
-    logger.info(JSON.stringify({
-      audioPath: tempData.audioPath,
-      prompt: text,
-    }));
+    logger.info(
+      JSON.stringify({
+        audioPath: tempData.audioPath,
+        prompt: text,
+      }),
+    );
   } else {
     throw new Error('Invalid response from server');
   }
@@ -125,17 +142,15 @@ const inference = async function (text: string, registration: TestOperatorParams
 
 (async () => {
   try {
-
     const prompt = 'racoon';
     const scriptConfigId = 'hjHcLFTEDjzVUyJD0VlkD2OzRlU7yFxxQGzIhXDfMiY'; // replace this with the script config tx id
-  
+
     const registration: TestOperatorParams = {
       scriptId: 'test',
-      ...CONFIG.urls[scriptConfigId] as unknown as UrlConfig,
+      ...(CONFIG.urls[scriptConfigId] as unknown as UrlConfig),
     };
 
     await inference(prompt, registration);
-
   } catch (error) {
     logger.error(error);
   }
