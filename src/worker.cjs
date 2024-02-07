@@ -283,7 +283,8 @@ const getGeneralTags = (
 ) => {
   let type;
   let contentType;
-  if (inferenceResult.imgPaths) {
+  const inMemory = !!inferenceResult.images;
+  if (inferenceResult.imgPaths || inMemory) {
     type = 'image';
     contentType = 'image/png';
   } else if (inferenceResult.audioPath) {
@@ -317,7 +318,6 @@ const getGeneralTags = (
   let description = requestTags.find((tag) => tag.name === DESCRIPTION_TAG)?.value;
 
   const generalTags = [
-    { name:'Content-Type', value: contentType },
     { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
     { name: PROTOCOL_VERSION_TAG, value: protocolVersion },
     // add logic tags
@@ -345,6 +345,12 @@ const getGeneralTags = (
     { name: UNIX_TIME_TAG, value: (Date.now() / secondInMS).toString() },
     { name: TOPIC_AI_TAG, value: 'ai-generated' }
   ];
+
+  if (inMemory) {
+    generalTags.splice(0, 0, { name:'Content-Type', value: contentType },);
+  } else {
+    // ignore, content type will be added by irys sdk in uploadFile
+  }
 
   const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
 
@@ -469,7 +475,13 @@ const sendToBundlr = async (
   conversationIdentifier,
   registration,
 ) => {
-  let responses = inferenceResult.imgPaths ?? inferenceResult.audioPath;
+  let responses;
+  const inMemory = !!inferenceResult.images; 
+  if (inMemory) {
+    responses = inferenceResult.images.map((el) => Buffer.from(el, 'base64')); // map paths to 
+  } else {
+    responses = inferenceResult.imgPaths ?? inferenceResult.audioPath;
+  }
   // turn into array to use same code for single and multiple responses
   responses = Array.isArray(responses) ? responses : [responses];
 
@@ -503,8 +515,14 @@ const sendToBundlr = async (
         // replace title tag with asset name
         tags.splice(titleIdx, 1, { name: 'Title', value: title });
       }
-      const data = Buffer.from(response, 'base64');
-      const transaction = await bundlr.upload(data, { tags });
+      
+      let transaction;
+      if (inMemory) {
+        transaction = await bundlr.upload(response, { tags });
+      } else {
+        transaction = await bundlr.uploadFile(response, { tags });
+      }
+  
       workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${transaction.id}` });
       
       const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
@@ -595,7 +613,7 @@ const runInference = async (url, format, payload, scriptId, text) => {
       imgSeeds.push(seed);
     }
 
-    return { imgPaths: tempData.images, prompt: text, seeds: imgSeeds };
+    return { images: tempData.images, prompt: text, seeds: imgSeeds };
   } else if (tempData.imgPaths) {
     return {
       imgPaths: tempData.imgPaths,
@@ -715,8 +733,6 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
 
   for (let i = 0; i < nIters; i++) {
     const result = await runInference(url, format, payload, scriptId, text);
-    
-   /*  workerpool.workerEmit({ type: 'info', message: `Inference Result: ${JSON.stringify(result)}` }); */
 
     await sendToBundlr(
       result,
