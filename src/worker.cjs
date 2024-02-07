@@ -282,17 +282,6 @@ const getGeneralTags = (
   registration,
 ) => {
   let type;
-  let contentType;
-  if (inferenceResult.imgPaths) {
-    type = 'image';
-    contentType = 'image/png';
-  } else if (inferenceResult.audioPath) {
-    type = 'audio';
-    contentType = 'audio/wav';
-  } else {
-    type = 'text';
-    contentType = 'text/plain';
-  }
   const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}, ${inferenceResult.prompt}` : inferenceResult.prompt;
@@ -317,7 +306,6 @@ const getGeneralTags = (
   let description = requestTags.find((tag) => tag.name === DESCRIPTION_TAG)?.value;
 
   const generalTags = [
-    { name:'Content-Type', value: contentType },
     { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
     { name: PROTOCOL_VERSION_TAG, value: protocolVersion },
     // add logic tags
@@ -503,8 +491,7 @@ const sendToBundlr = async (
         // replace title tag with asset name
         tags.splice(titleIdx, 1, { name: 'Title', value: title });
       }
-      const data = Buffer.from(response, 'base64');
-      const transaction = await bundlr.upload(data, { tags });
+      const transaction = await bundlr.uploadFile(response, { tags });
       workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${transaction.id}` });
       
       const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
