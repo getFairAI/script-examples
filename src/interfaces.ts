@@ -71,7 +71,7 @@ export interface ITransactions {
   };
 }
 
-export type payloadFormatOptions = 'webui' | 'default';
+export type payloadFormatOptions = 'webui' | 'llama.cpp' | 'default';
 
 export interface OperatorParams {
   modelName: string;

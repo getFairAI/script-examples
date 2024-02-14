@@ -239,6 +239,106 @@ const queryCheckUserPayment = async (
   return parseQueryResult(result);
 };
 
+const queryPreviousMessages = async (userAddress, scriptId, cid) => {
+  const requestQueryTags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
+    {
+      name: OPERATION_NAME_TAG,
+      values: ['Script Inference Request'],
+    },
+    {
+      name: SCRIPT_TRANSACTION_TAG,
+      values: [scriptId],
+    },
+    {
+      name: CONVERSATION_IDENTIFIER_TAG,
+      values: [cid],
+    },
+  ];
+
+  const result = await clientGateway.query({
+    query: gql`
+      query FIND_BY_TAGS_WITH_OWNER($tags: [TagFilter!], $address: String!, $first: Int!, $after: String) {
+        transactions(tags: $tags, first: $first, after: $after, owners: [ $address ], sort: HEIGHT_DESC) {
+          pageInfo {
+            hasNextPage
+          }
+          edges {
+            cursor
+            node {
+              id
+              tags {
+                name
+                value
+              }
+            }
+          }
+        }
+      }
+    `,
+    variables: { tags: requestQueryTags, address: userAddress, first: 100 },
+  });
+
+  const requestIds = parseQueryResult(result).map(el => el.node.id);
+
+  // get responses
+  const responseQueryTags = [
+    {
+      name: PROTOCOL_NAME_TAG,
+      values: [ PROTOCOL_NAME ],
+    },
+    {
+      name: OPERATION_NAME_TAG,
+      values: ['Script Inference Response'],
+    },
+    {
+      name: SCRIPT_TRANSACTION_TAG,
+      values: [scriptId],
+    },
+    {
+      name: CONVERSATION_IDENTIFIER_TAG,
+      values: [cid],
+    },
+    {
+      name: REQUEST_TRANSACTION_TAG,
+      values: requestIds,
+    },
+    {
+      name: SCRIPT_USER_TAG,
+      values: [userAddress],
+    }
+  ];
+
+  const responseResult = await clientGateway.query({
+    query: gqlQuery,
+    variables: { tags: responseQueryTags, first: 100 },
+  });
+
+  const conversationData = await Promise.all(parseQueryResult(responseResult).map(async (response) => {
+    const requestFor = response.node.tags.find((tag) => tag.name === REQUEST_TRANSACTION_TAG)?.value;
+
+    const requestTimestamp = requestFor.node.tags.find((tag) => tag.name === UNIX_TIME_TAG)?.value;
+    const responseData = await fetch(`${NET_ARWEAVE_URL}/${response.node.id}`);
+    const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestFor}`);
+  
+    try {
+      const requestText = await requestData.text();
+      const responseText = await responseData.text();
+
+      return { requestText, responseText, requestTimestamp };
+    } catch (err) {
+      // ignore responses with errors
+      return { requestText: '', responseText: '', requestTimestamp };
+    }
+  }));
+
+  conversationData.sort((a, b) => b.requestTimestamp - a.requestTimestamp);
+  return conversationData.filter((a, b) => a.requestText !== '' && a.responseText !== ''); // return only valid responses and requests
+};
+
 const registerAsset = async (transactionId) => {
   try {
     const { contractTxId } = await warp.register(transactionId, 'arweave'); // must use same node as uploaded data
@@ -283,8 +383,8 @@ const getGeneralTags = (
 ) => {
   let type;
   let contentType;
-  const inMemory = !!inferenceResult.images;
-  if (inferenceResult.imgPaths || inMemory) {
+  const inMemory = !!inferenceResult.images || !!inferenceResult.content;
+  if (inferenceResult.imgPaths || inferenceResult.images) {
     type = 'image';
     contentType = 'image/png';
   } else if (inferenceResult.audioPath) {
@@ -476,9 +576,11 @@ const sendToBundlr = async (
   registration,
 ) => {
   let responses;
-  const inMemory = !!inferenceResult.images; 
-  if (inMemory) {
+  const inMemory = !!inferenceResult.images || !!inferenceResult.content;
+  if (inMemory && inferenceResult.images) {
     responses = inferenceResult.images.map((el) => Buffer.from(el, 'base64')); // map paths to 
+  } else if (inMemory && inferenceResult.content) {
+    responses = inferenceResult.content;
   } else {
     responses = inferenceResult.imgPaths ?? inferenceResult.audioPath;
   }
@@ -566,7 +668,7 @@ const fetchSeed = async (url, imageStr) => {
 };
 
 
-const parsePayload = (format, text, settings, negativePrompt) => {
+const parsePayload = (format, text, settings, negativePrompt, conversationData) => {
   let payload;
 
   if (format === 'webui') {
@@ -587,6 +689,27 @@ const parsePayload = (format, text, settings, negativePrompt) => {
     webuiPayload['n_iter'] = 1;
   
     payload = JSON.stringify(webuiPayload);
+  } else if (format === 'llama.cpp' && !!conversationData) {
+    // load previous mesages from same conversation
+    // parse previous messages and add to payload
+    let formattedPrompt = '';
+    for (const x of conversationData) {
+      const prevPrompt = x.requestText;
+      const prevResponse = x.responseText;
+
+      if (prevPrompt.length > 0 && prevResponse.length > 0) {
+        formattedPrompt += `<s> [INST] ${prevPrompt} [/INST] ${prevResponse} </s>`;
+      }
+    }
+
+    formattedPrompt += `[INST] ${text} [/INST]`;
+
+    payload = JSON.stringify({
+      prompt: formattedPrompt,
+      ['n_predict']: -1, // Set the maximum number of tokens to predict when generating text. -1 = infinity.
+      ['n_keep']: -1, // keep all tokens
+      ['repeat_last_n']: 1, // use context size for repetition penalty
+    });
   } else {
     payload = text;
   }
@@ -623,6 +746,11 @@ const runInference = async (url, format, payload, scriptId, text) => {
     return {
       audioPath: tempData.audioPath,
       prompt: text,
+    };
+  } else if (tempData.content) {
+    return {
+      prompt: text,
+      content: tempData.content,
     };
   } else {
     throw new Error('Invalid response from server');
@@ -719,7 +847,14 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
 
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
 
-  const payload = parsePayload(format, text, settings, negativePrompt);
+  let conversationData;
+  if (format === 'llama.cpp') {
+    // load previous conversation messages
+    conversationData = await queryPreviousMessages(requestTx.node.owner.address, scriptId, cid);
+  } else {
+    // ignore
+  }
+  const payload = parsePayload(format, text, settings, negativePrompt, conversationData);
 
   const maxImages = 10;
 
