@@ -318,13 +318,13 @@ const queryPreviousMessages = async (userAddress, scriptId, cid) => {
   });
 
   const conversationData = await Promise.all(parseQueryResult(responseResult).map(async (response) => {
-    const requestFor = response.node.tags.find((tag) => tag.name === REQUEST_TRANSACTION_TAG)?.value;
-
-    const requestTimestamp = requestFor.node.tags.find((tag) => tag.name === UNIX_TIME_TAG)?.value;
-    const responseData = await fetch(`${NET_ARWEAVE_URL}/${response.node.id}`);
-    const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestFor}`);
-  
     try {
+      const requestFor = response.node.tags.find((tag) => tag.name === REQUEST_TRANSACTION_TAG)?.value;
+      const requestTx = result?.data?.transactions?.edges?.find((edge) => edge.node.id === requestFor) || undefined;
+      const requestTimestamp = requestTx.node.tags.find((tag) => tag.name === UNIX_TIME_TAG)?.value;
+      const responseData = await fetch(`${NET_ARWEAVE_URL}/${response.node.id}`);
+      const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestFor}`);
+    
       const requestText = await requestData.text();
       const responseText = await responseData.text();
 
