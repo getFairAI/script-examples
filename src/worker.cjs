@@ -261,19 +261,19 @@ const queryPreviousMessages = async (userAddress, scriptId, cid) => {
 
   const result = await clientGateway.query({
     query: gql`
-      query FIND_BY_TAGS_WITH_OWNER($tags: [TagFilter!], $address, $first: Int!, $after: String) {
+      query FIND_BY_TAGS_WITH_OWNER($tags: [TagFilter!], $address: String!, $first: Int!, $after: String) {
         transactions(tags: $tags, first: $first, after: $after, owners: [ $address ], sort: HEIGHT_DESC) {
           pageInfo {
             hasNextPage
           }
           edges {
             cursor
-            tags {
-              name
-              value
-            }
             node {
               id
+              tags {
+                name
+                value
+              }
             }
           }
         }
@@ -689,27 +689,27 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData) 
     webuiPayload['n_iter'] = 1;
   
     payload = JSON.stringify(webuiPayload);
-  } else if (format === 'llama.cpp' && !!previousMessages) {
+  } else if (format === 'llama.cpp' && !!conversationData) {
     // load previous mesages from same conversation
     // parse previous messages and add to payload
-    text = '';
+    let formattedPrompt = '';
     for (const x of conversationData) {
       const prevPrompt = x.requestText;
       const prevResponse = x.responseText;
 
       if (prevPrompt.length > 0 && prevResponse.length > 0) {
-        text += `<s> [INST] ${prevPrompt} [/INST] ${prevResponse} </s>`;
+        formattedPrompt += `<s> [INST] ${prevPrompt} [/INST] ${prevResponse} </s>`;
       }
     }
 
-    text += `[INST] ${text} [/INST]`;
+    formattedPrompt += `[INST] ${text} [/INST]`;
 
-    payload = {
+    payload = JSON.stringify({
       prompt: text,
       ['n_predict']: -1, // Set the maximum number of tokens to predict when generating text. -1 = infinity.
       ['n_keep']: -1, // keep all tokens
       ['repeat_last_n']: 1, // use context size for repetition penalty
-    }
+    });
   } else {
     payload = text;
   }
@@ -850,7 +850,7 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
   let conversationData;
   if (format === 'llama.cpp') {
     // load previous conversation messages
-    conversationData = queryPreviousMessages(requestTx.node.owner.address, scriptId, cid);
+    conversationData = await queryPreviousMessages(requestTx.node.owner.address, scriptId, cid);
   } else {
     // ignore
   }
