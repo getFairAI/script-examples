@@ -216,8 +216,13 @@
       "name": "vits", 
       "url": "http://127.0.0.1:8089",
       "payloadFormat": "default"
+    },
+    "yK_4_jt5-9XJlyYr9iWVrxG7rq-hJjyUtLlGCKEoEsU": {
+      "name": "Mixtral", 
+      "url": "http://127.0.0.1:8080/completion",
+      "payloadFormat": "llama.cpp"
     }
   },
-  "startBlockHeight": "1358005",
+  "startBlockHeight": "1363800",
   "sleepTimeSeconds": 7
 }
