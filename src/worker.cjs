@@ -705,7 +705,7 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData) 
     formattedPrompt += `[INST] ${text} [/INST]`;
 
     payload = JSON.stringify({
-      prompt: text,
+      prompt: formattedPrompt,
       ['n_predict']: -1, // Set the maximum number of tokens to predict when generating text. -1 = infinity.
       ['n_keep']: -1, // keep all tokens
       ['repeat_last_n']: 1, // use context size for repetition penalty
