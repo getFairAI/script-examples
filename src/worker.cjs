@@ -58,6 +58,8 @@ const SCRIPT_OPERATOR_TAG = 'Script-Operator';
 const N_IMAGES_TAG = 'N-Images';
 const LICENSE_CONFIG_TAG = 'License-Config';
 const CREATOR_TAG = 'Creator';
+const IMAGES_WIDTH_TAG = 'Images-Width';
+const IMAGES_HEIGHT_TAG = 'Images-Height';
 
 const NOT_OVERRIDABLE_TAGS = [
   APP_NAME_TAG,
@@ -667,8 +669,25 @@ const fetchSeed = async (url, imageStr) => {
   }
 };
 
+const isValidSize = (size) => {
+  try {
+    const width = parseInt(size.width, 10);
+    const height = parseInt(size.height, 10);
+    if (width === 960 && height === 1280) { // portrait sizes
+      return true;
+    } else if (width === 1280 && height === 720) { // landscape sizes
+      return true;
+    } else if (width === 1024 && height === 1024) { // square sizes
+      return true;
+    } else {
+      return false;
+    }
+  } catch (err) {
+    return false;
+  }
+};
 
-const parsePayload = (format, text, settings, negativePrompt, conversationData) => {
+const parsePayload = (format, text, settings, negativePrompt, conversationData, customImagesSize) => {
   let payload;
 
   if (format === 'webui') {
@@ -683,6 +702,15 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData) 
       webuiPayload['negative_prompt'] = negativePrompt;
     } else {
       // ignore
+    }
+
+    if (isValidSize(customImagesSize)) {
+      // get upscale from settings
+      const scale = webuiPayload['hr_scale'] ?? 1;
+
+      // if setting has upscaling, reduce sizes by scale
+      webuiPayload['width'] = Math.floor(parseInt(customImagesSize.width, 10) / scale);
+      webuiPayload['height'] = Math.floor(parseInt(customImagesSize.height, 10) / scale);
     }
 
     // force n_iter 1
@@ -854,7 +882,11 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
   } else {
     // ignore
   }
-  const payload = parsePayload(format, text, settings, negativePrompt, conversationData);
+
+  const customWith = requestTx.node.tags.find((tag) => tag.name === IMAGES_WIDTH_TAG)?.value;
+  const customHeight = requestTx.node.tags.find((tag) => tag.name === IMAGES_HEIGHT_TAG)?.value;
+  const customImagesSize = { width: customWith, height: customHeight };
+  const payload = parsePayload(format, text, settings, negativePrompt, conversationData, customImagesSize);
 
   const maxImages = 10;
 
