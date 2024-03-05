@@ -1,0 +1,27 @@
+{
+  "urls": {
+    "...AlbedoBase XL...": {
+      "name": "albedo-base-xl",
+      "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+      "payloadFormat": "webui",
+      "settings": {
+        "enable_hr": "false",
+        "seed": -1,
+        "n_iter": 4,
+        "steps": 60,
+        "cfg_scale": 7.5,
+        "width": 720,
+        "height": 1280,
+        "negative_prompt": "",
+        "sampler_index": "DPM++ 2M SDE Heun Karras",
+        "override_settings": {
+          "sd_model_checkpoint": "albedo_base_xl.safetensors [1718b5bb2d]",
+          "sd_vae": "None",
+          "CLIP_stop_at_last_layers": 1
+        }
+      }
+    }
+  },
+  "startBlockHeight": "1376717",
+  "sleepTimeSeconds": 7
+}
