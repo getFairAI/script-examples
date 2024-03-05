@@ -1,0 +1,42 @@
+{
+  "urls": {
+    "...Animerge v2.2...": {
+      "name": "Animerge v2.2",
+      "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+      "payloadFormat": "webui",
+      "settings": {
+        "enable_hr": false,
+        "seed": -1,
+        "n_iter": 1,
+        "steps": 150,
+        "cfg_scale": 7,
+        "width": 512,
+        "height": 904,
+        "negative_prompt": "EasyNegative, bad-hands-5, moles, freckles, bad-hands-5, scars on face,",
+        "sampler_index": "DPM++ 2M SDE Karras",
+        "override_settings": {
+          "sd_model_checkpoint": "Animerge-Pruned-V2.2.safetensors [43f2010f45]",
+          "sd_vae": "None",
+          "CLIP_stop_at_last_layers": 2
+        },
+        "alwayson_scripts": {
+          "ADetailer": {
+            "args": [
+	            {
+                "ad_model": "face_yolov8n.pt",
+                "ad_mask_blur": 4,
+                "ad_confidence": 0.3,
+                "ad_dilate_erode": 4,
+                "ad_inpaint_only_masked_padding": 32,
+                "ad_denoising_strength": 0.4,
+                "ad_inpaint_only_masked": true
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "startBlockHeight": "1376717",
+  "sleepTimeSeconds": 7
+}
