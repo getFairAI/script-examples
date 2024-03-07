@@ -12,7 +12,7 @@
         "cfg_scale": 7,
         "width": 576,
         "height": 1024,
-        "negative_prompt": "Easy Negative, negative_hand-neg, moles, freckles, skindentation, cutoffs, shiny skin, scars on face",
+        "negative_prompt": "(worst quality:1.4, low quality:1.4), negative_hand-neg, bad-hands-5",
         "sampler_index": "DPM++ 2M SDE Karras",
         "override_settings": {
           "sd_model_checkpoint": "AniMics V1.2.safetensors [6225e42d50]",
