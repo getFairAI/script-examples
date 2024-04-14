@@ -109,3 +109,21 @@ export interface IOptionalSettings {
   [key: string]: string;
   prompt: string;
 }
+
+export interface IrysTx {
+  id: string;
+  receipt: {
+      deadlineHeight: number;
+      signature: string;
+      timestamp: number;
+      version: string;
+  };
+  tags: {
+      name: string;
+      value: string;
+  }[];
+  address: string;
+  token: string;
+  signature: string;
+  timestamp: number;
+}

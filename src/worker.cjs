@@ -89,15 +89,7 @@ const NOT_OVERRIDABLE_TAGS = [
   CREATOR_TAG,
 ];
 
-const PROTOCOL_NAME = 'Fair Protocol';
-
 const NET_ARWEAVE_URL = 'https://arweave.net';
-
-const VAULT_ADDRESS = 'tXd-BOaxmxtgswzwMLnryROAYlX5uDC9-XK2P4VNCQQ';
-const MARKETPLACE_PERCENTAGE_FEE = 0.1;
-const CURATOR_PERCENTAGE_FEE = 0.05;
-const CREATOR_PERCENTAGE_FEE = 0.15;
-const U_CONTRACT_ID = 'KTzTXT_ANmF84fWEKHzWURD1LWd9QaFR9yfYUwH2Lxw';
 const UDL_ID = 'yRj4a5KMctX_uOmKWCFJIjmY8DeJcusVk6-HzLiM_t8';
 
 const MAX_STR_SIZE = 1000;
@@ -148,104 +140,15 @@ const gqlQuery = gql`
 const parseQueryResult = (result) =>
   result.data.transactions.edges;
 
-const queryTransactionAnswered = async (transactionId, address, scriptName, scriptcurator) => {
-  const tags = [
-    {
-      name: PROTOCOL_NAME_TAG,
-      values: [ PROTOCOL_NAME ],
-    },
-    {
-      name: OPERATION_NAME_TAG,
-      values: ['Script Inference Response'],
-    },
-    {
-      name: SCRIPT_NAME_TAG,
-      values: [ scriptName ],
-    },
-    {
-      name: SCRIPT_CURATOR_TAG,
-      values: [ scriptcurator ],
-    },
-    {
-      name: REQUEST_TRANSACTION_TAG,
-      values: [transactionId],
-    },
-  ];
-  const result = await clientGateway.query({
-    query: gql`
-      query TransactionAnswered($tags: [TagFilter!], $owner: String!) {
-        transactions(first: 100, tags: $tags, owners: [$owner], sort: HEIGHT_DESC) {
-          edges {
-            node {
-              id
-              owner {
-                address
-                key
-              }
-              quantity {
-                winston
-                ar
-              }
-              tags {
-                name
-                value
-              }
-            }
-          }
-        }
-      }
-    `,
-    variables: { tags, owner: address },
-  });
-
-  return parseQueryResult(result);
-};
-
-const queryCheckUserPayment = async (
-  inferenceTransaction,
-  userAddress,
-  scriptId,
-) => {
-  const tags = [
-    {
-      name: PROTOCOL_NAME_TAG,
-      values: [ PROTOCOL_NAME ],
-    },
-    {
-      name: OPERATION_NAME_TAG,
-      values: ['Inference Payment'],
-    },
-    {
-      name: SCRIPT_TRANSACTION_TAG,
-      values: [ scriptId ],
-    },
-    {
-      name: INFERENCE_TRANSACTION_TAG,
-      values: [inferenceTransaction],
-    },
-    {
-      name: CONTRACT_TAG,
-      values: [U_CONTRACT_ID],
-    },
-    {
-      name: SEQUENCE_OWNER_TAG,
-      values: [userAddress],
-    },
-  ];
-
-  const result = await clientGateway.query({
-    query: gqlQuery,
-    variables: { tags, first: 4 },
-  });
-
-  return parseQueryResult(result);
-};
-
 const queryPreviousMessages = async (userAddress, scriptId, cid) => {
   const requestQueryTags = [
     {
       name: PROTOCOL_NAME_TAG,
-      values: [ PROTOCOL_NAME ],
+      values: [ 'FairAI' ],
+    },
+    {
+      name: PROTOCOL_VERSION_TAG,
+      values: [ '2.0' ],
     },
     {
       name: OPERATION_NAME_TAG,
@@ -261,30 +164,11 @@ const queryPreviousMessages = async (userAddress, scriptId, cid) => {
     },
   ];
 
-  const result = await clientGateway.query({
-    query: gql`
-      query FIND_BY_TAGS_WITH_OWNER($tags: [TagFilter!], $address: String!, $first: Int!, $after: String) {
-        transactions(tags: $tags, first: $first, after: $after, owners: [ $address ], sort: HEIGHT_DESC) {
-          pageInfo {
-            hasNextPage
-          }
-          edges {
-            cursor
-            node {
-              id
-              tags {
-                name
-                value
-              }
-            }
-          }
-        }
-      }
-    `,
-    variables: { tags: requestQueryTags, address: userAddress, first: 100 },
-  });
+  const irysQuery = new Query({ network: 'devnet' });
 
-  const requestIds = parseQueryResult(result).map(el => el.node.id);
+  const messages = irysQuery.search('irys:transactions').tags(requestQueryTags).from(userAddress).limit(20);
+
+  const requestIds = parseQueryResult(messages).map(el => messages.id);
 
   // get responses
   const responseQueryTags = [
@@ -322,8 +206,8 @@ const queryPreviousMessages = async (userAddress, scriptId, cid) => {
   const conversationData = await Promise.all(parseQueryResult(responseResult).map(async (response) => {
     try {
       const requestFor = response.node.tags.find((tag) => tag.name === REQUEST_TRANSACTION_TAG)?.value;
-      const requestTx = result?.data?.transactions?.edges?.find((edge) => edge.node.id === requestFor) || undefined;
-      const requestTimestamp = requestTx.node.tags.find((tag) => tag.name === UNIX_TIME_TAG)?.value;
+      const requestTx = messages.find((edge) => edge.id === requestFor) || undefined;
+      const requestTimestamp = requestTx.tags.find((tag) => tag.name === UNIX_TIME_TAG)?.value;
       const responseData = await fetch(`${NET_ARWEAVE_URL}/${response.node.id}`);
       const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestFor}`);
     
@@ -420,8 +304,8 @@ const getGeneralTags = (
   let description = requestTags.find((tag) => tag.name === DESCRIPTION_TAG)?.value;
 
   const generalTags = [
-    { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
-    { name: PROTOCOL_VERSION_TAG, value: protocolVersion },
+    { name: PROTOCOL_NAME_TAG, value: 'FairAI' },
+    { name: PROTOCOL_VERSION_TAG, value: '2.0' },
     // add logic tags
     { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
     { name: MODEL_NAME_TAG, value: modelName },
@@ -433,7 +317,7 @@ const getGeneralTags = (
     { name: PROMPT_TAG, value: prompt },
     { name: CONVERSATION_IDENTIFIER_TAG, value: conversationIdentifier },
     // ans 110 tags discoverability
-    { name: 'Title', value: 'Fair Protocol Atomic Asset' },
+    { name: 'Title', value: 'FairAI Response' },
     { name: 'Type', value: type },
     { name: INDEXED_BY_TAG, value: 'ucm' },
     { name: CREATOR_TAG, value: userAddress },
@@ -456,15 +340,10 @@ const getGeneralTags = (
 
   const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
 
-  if (!generateAssets || generateAssets === 'fair-protocol') {
+  if (generateAssets === 'fair-protocol') {
     const appendIdx = generalTags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
     // add asset tags
     FairSDK.utils.addAtomicAssetTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'FPAA', 1000, appendIdx);
-  } else if (generateAssets && generateAssets === 'rareweave') {
-    const appendIdx = generalTags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
-    const rareweaveConfig = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.rareweaveConfig)?.value;
-    const royalty = rareweaveConfig ? JSON.parse(rareweaveConfig).royalty : 0;
-    FairSDK.utils.addRareweaveTags(generalTags, userAddress, 'Fair Protocol Atomic Asset', 'Atomic Asset Generated in Fair Protocol. Compatible with Rareweave', royalty, type, 1000, appendIdx);
   } else {
     // do not add asset tags
   }
@@ -630,7 +509,7 @@ const sendToBundlr = async (
       workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${transaction.id}` });
       
       const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
-      if (!generateAssets || generateAssets !== 'none') {
+      if (!!generateAssets && generateAssets !== 'none') {
         // if there is no generate assets tag or it is not none, register the asset
         await registerAsset(transaction.id);
       }
@@ -805,14 +684,14 @@ class StringifyStream extends Transform {
   };
 }
 
-const inference = async function (requestTx, registration, nImages, cid, negativePrompt) {
+const inference = async (requestTx, registration, nImages, cid, negativePrompt) => {
   const { scriptId, url, settings, payloadFormat: format } = registration;
 
-  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.node.id}`);
+  const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.id}`);
   const successStatusCode = 200;
   const acceptedStatusCode = 202;
   if (![successStatusCode, acceptedStatusCode].includes(requestData.status)) {
-    throw new Error(`Could not retrieve Tx data from '${NET_ARWEAVE_URL}/${requestTx.node.id}'`);
+    throw new Error(`Could not retrieve Tx data from '${NET_ARWEAVE_URL}/${requestTx.id}'`);
   }
 
   const contentType = requestData.headers.get('Content-Type');
@@ -840,11 +719,11 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
 
       if (text === '') {
         // empty pdf
-        const protocolVersion = requestTx.node.tags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
-        const modelName = requestTx.node.tags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
+        const protocolVersion = requestTx.tags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
+        const modelName = requestTx.tags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
         const errorTags = [
           { name:'Content-Type', value: 'text/plain' },
-          { name: PROTOCOL_NAME_TAG, value: PROTOCOL_NAME },
+          { name: PROTOCOL_NAME_TAG, value: 'FairAI' },
           { name: PROTOCOL_VERSION_TAG, value: protocolVersion },
           // add logic tags
           { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
@@ -852,16 +731,16 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
           { name: SCRIPT_NAME_TAG, value: registration.scriptName },
           { name: SCRIPT_CURATOR_TAG, value: registration.scriptCurator },
           { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
-          { name: SCRIPT_USER_TAG, value:  requestTx.node.owner.address, },
-          { name: REQUEST_TRANSACTION_TAG, value: requestTx.node.id },
-          { name: PROMPT_TAG, value: `https://arweave.net/${requestTx.node.id}` },
+          { name: SCRIPT_USER_TAG, value:  requestTx.address, },
+          { name: REQUEST_TRANSACTION_TAG, value: requestTx.id },
+          { name: PROMPT_TAG, value: `https://arweave.net/${requestTx.id}` },
           { name: CONVERSATION_IDENTIFIER_TAG, value: cid },
           // add extra tags
       
           { name: UNIX_TIME_TAG, value: (Date.now() / secondInMS).toString() },
         ];
         await bundlr.upload('We apologise for the inconvenience but the requested file could not be parsed into audio. Please try a different format.', { tags: errorTags });
-        workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${requestTx.node.id}` });
+        workerpool.workerEmit({ type: 'info', message: `Data uploaded ==> https://arweave.net/${requestTx.id}` });
 
         return;
       }
@@ -878,13 +757,13 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
   let conversationData;
   if (format === 'llama.cpp') {
     // load previous conversation messages
-    conversationData = await queryPreviousMessages(requestTx.node.owner.address, scriptId, cid);
+    conversationData = await queryPreviousMessages(requestTx.address, scriptId, cid);
   } else {
     // ignore
   }
 
-  const customWith = requestTx.node.tags.find((tag) => tag.name === IMAGES_WIDTH_TAG)?.value;
-  const customHeight = requestTx.node.tags.find((tag) => tag.name === IMAGES_HEIGHT_TAG)?.value;
+  const customWith = requestTx.tags.find((tag) => tag.name === IMAGES_WIDTH_TAG)?.value;
+  const customHeight = requestTx.tags.find((tag) => tag.name === IMAGES_HEIGHT_TAG)?.value;
   const customImagesSize = { width: customWith, height: customHeight };
   const payload = parsePayload(format, text, settings, negativePrompt, conversationData, customImagesSize);
 
@@ -903,165 +782,52 @@ const inference = async function (requestTx, registration, nImages, cid, negativ
 
     await sendToBundlr(
       result,
-      requestTx.node.owner.address,
-      requestTx.node.id,
-      requestTx.node.tags,
+      requestTx.address,
+      requestTx.id,
+      requestTx.tags,
       cid,
       registration,
     );
   }
 };
 
-const checkUserPaidInferenceFees = async (
-  txid,
-  userAddress,
-  creatorAddress,
-  curatorAddress,
-  operatorFee,
-  scriptId,
-) => {
-  const marketplaceShare = operatorFee * MARKETPLACE_PERCENTAGE_FEE;
-  const curatorShare = operatorFee * CURATOR_PERCENTAGE_FEE;
-  const creatorShare = operatorFee * CREATOR_PERCENTAGE_FEE;
-
-  const paymentTxs = await queryCheckUserPayment(txid, userAddress, scriptId);
-  const necessaryPayments = 3;
-
-  if (paymentTxs.length < necessaryPayments) {
-    return false;
-  } else {
-    const validPayments = paymentTxs.filter(tx => {
-      try {
-        const inputObj = JSON.parse(tx.node.tags.find((tag) => tag.name === INPUT_TAG).value);
-        const qty = parseInt(inputObj.qty, 10);
-        if (inputObj.function !== 'transfer') {
-          return false;
-        } else if (qty >= marketplaceShare && inputObj.target === VAULT_ADDRESS) {
-          return true;
-        } else if (qty >= curatorShare && inputObj.target === curatorAddress) {
-          return true;
-        } else if (qty >= creatorShare && inputObj.target === creatorAddress) {
-          return true;
-        } else {
-          return false;
-        }
-      } catch (error) {
-        return false;
-      }     
-    });
-
-    return validPayments.length >= necessaryPayments;
-  }
-};
-
-const getRequest = async (transactionId) => {
-  const result = await clientGateway.query({
-    query: gql`
-      query tx($id: ID!) {
-        transactions(first: 1, ids: [$id], sort: HEIGHT_DESC) {
-          edges {
-            node {
-              id
-              owner {
-                address
-                key
-              }
-              quantity {
-                winston
-                ar
-              }
-              tags {
-                name
-                value
-              }
-            }
-          }
-        }
-      }
-    `,
-    variables: { id: transactionId },
-  });
-
-  return parseQueryResult(result)[0];
-};
-
-const processRequest = async (requestId, reqUserAddr, registration, address) => {  
-  const requestTx = await getRequest(requestId);
+const processRequest = async (requestTx, nMissingResponses, registration) => {  
   if (!requestTx) {
     // If the request doesn't exist, skip
-    workerpool.workerEmit({ type: 'error', message: `Request ${requestId} does not exist. Skipping...` });
+    workerpool.workerEmit({ type: 'error', message: `Request ${requestTx.id} does not exist. Skipping...` });
     return false;
   }
 
-  const nImages = parseInt(requestTx.node.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
+  workerpool.workerEmit({
+    type: 'info',
+    message: `Request ${requestTx.id} has ${nMissingResponses} missing answers. Processing...`,
+  });
 
-  let operatorFee = registration.operatorFee;
-  let necessaryAnswers = 1;
-  if (nImages > 0 && registration.payloadFormat === 'webui') {
-    operatorFee = registration.operatorFee * nImages;
-    necessaryAnswers = nImages;
-  } else if (registration.payloadFormat === 'webui') {
-    operatorFee = registration.operatorFee * 4;
-    necessaryAnswers = 4;
-  }
-
-  const responseTxs = await queryTransactionAnswered(
-    requestId,
-    address,
-    registration.scriptName,
-    registration.scriptCurator,
-  );
-  if (responseTxs.length > 0  && responseTxs.length >= necessaryAnswers) {
-    // If the request has already been answered, we don't need to do anything
-    workerpool.workerEmit({ type: 'info', message: `Request ${requestId} has already been answered. Skipping...` });
-    return requestId;
-  } else if (responseTxs.length > 0 && responseTxs.length < necessaryAnswers) {
-    workerpool.workerEmit({
-      type: 'info',
-      message: `Request ${requestId} has missing answers. Processing...`,
-    });
-  }
-
-  if (
-    !(await checkUserPaidInferenceFees(
-      requestTx.node.id,
-      reqUserAddr,
-      registration.modelOwner,
-      registration.scriptCurator,
-      operatorFee,
-      registration.scriptId,
-    ))
-  ) {
-    workerpool.workerEmit({ type: 'error', message: `Could not find payment for request ${requestId}. Skipping...` });
-    return false;
-  }
-
-  const protocolVersion = requestTx.node.tags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
-  const conversationIdentifier = requestTx.node.tags.find(
+  const protocolVersion = requestTx.tags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
+  const conversationIdentifier = requestTx.tags.find(
     (tag) => tag.name === 'Conversation-Identifier',
   )?.value;
   if (!protocolVersion || !conversationIdentifier) {
     // If the request doesn't have the necessary tags, skip
-    workerpool.workerEmit({ type: 'error', message: `Request ${requestId} does not have the necessary tags.` });
+    workerpool.workerEmit({ type: 'error', message: `Request ${requestTx.id} does not have the necessary tags.` });
     return false;
   }
 
-  const missingInferences = necessaryAnswers - responseTxs.length;
-  const negativePrompt = requestTx.node.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
-  await inference(requestTx, registration, missingInferences, conversationIdentifier, negativePrompt);
+  const negativePrompt = requestTx.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
+  await inference(requestTx, registration, nMissingResponses, conversationIdentifier, negativePrompt);
 
-  return requestId;
+  return requestTx.id;
 };
 
-const processRequestLock = async (requestId, reqUserAddr, registration, address) => {
+const processRequestLock = async (requestTx, nMissingResponses, registration) => {
   try {
-    workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestId}...` });
+    workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestTx.id}...` });
     
-    const result = await processRequest(requestId, reqUserAddr, registration, address);
+    const result = await processRequest(requestTx, nMissingResponses, registration);
     
     workerpool.workerEmit({ type: 'result', message: result });
   } catch (e) {
-    workerpool.workerEmit({ type: 'error', message: `Thread ${requestId} released with error: ${e}` });
+    workerpool.workerEmit({ type: 'error', message: `Thread ${requestTx.id} released with error: ${e}` });
     workerpool.workerEmit({ type: 'result', message: false });
   }
 };

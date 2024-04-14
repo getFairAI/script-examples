@@ -25,6 +25,7 @@ import {
   OPERATOR_REGISTRATION_AR_FEE,
   PROTOCOL_NAME,
   PROTOCOL_NAME_TAG,
+  PROTOCOL_VERSION_TAG,
   REGISTRATION_TRANSACTION_TAG,
   REQUEST_TRANSACTION_TAG,
   SCRIPT_CURATOR_TAG,
@@ -68,6 +69,7 @@ const gqlQuery = gql`
           }
           block {
             height
+            timestamp
           }
           owner {
             address
@@ -76,6 +78,32 @@ const gqlQuery = gql`
       }
     }
   }
+`;
+
+const gqlQueryWithOwners = gql`
+query FIND_BY_TAGS($tags: [TagFilter!], $first: Int!, $after: String, $owners: [String!]) {
+  transactions(tags: $tags, first: $first, after: $after, sort: HEIGHT_DESC, owners: $owners) {
+    pageInfo {
+      hasNextPage
+    }
+    edges {
+      cursor
+      node {
+        id
+        tags {
+          name
+          value
+        }
+        block {
+          height
+        }
+        owner {
+          address
+        }
+      }
+    }
+  }
+}
 `;
 
 const parseQueryResult = (result: { data: { transactions: ITransactions } }) =>
@@ -219,7 +247,11 @@ export const queryTransactionAnswered = async (
   const tags = [
     {
       name: PROTOCOL_NAME_TAG,
-      values: [PROTOCOL_NAME],
+      values: ['FairAI'],
+    },
+    {
+      name: PROTOCOL_VERSION_TAG,
+      values: ['2.0'],
     },
     {
       name: OPERATION_NAME_TAG,
@@ -360,37 +392,18 @@ export const isRegistrationCancelled = async (txid: string, opAddress: string) =
 };
 
 export const queryOperatorRegistrations = async (address: string) => {
-  const operatorPaymentInputStr = JSON.stringify({
-    function: 'transfer',
-    target: VAULT_ADDRESS,
-    qty: (parseFloat(OPERATOR_REGISTRATION_AR_FEE) * U_DIVIDER).toString(),
-  });
-
-  const operatorPaymentInputNumber = JSON.stringify({
-    function: 'transfer',
-    target: VAULT_ADDRESS,
-    qty: parseFloat(OPERATOR_REGISTRATION_AR_FEE) * U_DIVIDER,
-  });
   const tags = [
     {
       name: PROTOCOL_NAME_TAG,
-      values: [PROTOCOL_NAME],
+      values: ['FairAI'],
+    },
+    {
+      name: 'Protocol-Version',
+      values: ['2.0'],
     },
     {
       name: OPERATION_NAME_TAG,
       values: ['Operator Registration'],
-    },
-    {
-      name: INPUT_TAG,
-      values: [operatorPaymentInputStr, operatorPaymentInputNumber],
-    },
-    {
-      name: CONTRACT_TAG,
-      values: [U_CONTRACT_ID],
-    },
-    {
-      name: SEQUENCE_OWNER_TAG,
-      values: [address],
     },
   ];
 
@@ -403,8 +416,8 @@ export const queryOperatorRegistrations = async (address: string) => {
       : undefined;
 
     const { data }: { data: { transactions: ITransactions } } = await clientGateway.query({
-      query: gqlQuery,
-      variables: { tags, first, after },
+      query: gqlQueryWithOwners,
+      variables: { tags, first, after, owners: [ address ] },
     });
 
     registrationTxs = registrationTxs.concat(data.transactions.edges);
@@ -413,3 +426,26 @@ export const queryOperatorRegistrations = async (address: string) => {
 
   return registrationTxs;
 };
+
+export const isEvmWalletLinked = async (arweaveAddress: string, evmAddress?: string) => {
+   const linkTags = [
+    { name: 'Protocol-Name', values: ['FairAI'] },
+    { name: 'Protocol-Version', values: ['2.0'] },
+    { name: 'Operation-Name', values: ['EVM Wallet Link'] },
+  ];
+  
+  const { data }: { data: { transactions: ITransactions } } = await clientGateway.query({
+    query: gqlQueryWithOwners,
+    variables: { tags: linkTags, first: 1, owners: [ arweaveAddress ] },
+  });
+
+  if (!data || data.transactions.edges.length === 0) {
+    return { isLinked: false, blockTimestamp: undefined };
+  }
+
+  const foundLink = data.transactions.edges[0];
+  const response = await fetch('https://arweave.net/' + foundLink.node.id);
+  const evmWallet = await response.text() as `0x${string}`;
+
+  return { isLinked: evmAddress ? evmWallet === evmAddress : !!evmWallet, blockTimestamp: foundLink.node.block?.timestamp, evmWallet };
+}
