@@ -24,6 +24,7 @@ const workerpool = require('workerpool');
 const FairSDK = require('@fair-protocol/sdk/cjs');
 const PDFParser = require('pdf2json');
 const { Transform, Readable, Writable } = require('stream');
+const { Query } = require('@irys/query');
 const pdfParser = new PDFParser(this, 1);
 
 const APP_NAME_TAG = 'App-Name';
@@ -164,17 +165,17 @@ const queryPreviousMessages = async (userAddress, scriptId, cid) => {
     },
   ];
 
-  const irysQuery = new Query({ network: 'devnet' });
+  const irysQuery = new Query();
 
-  const messages = irysQuery.search('irys:transactions').tags(requestQueryTags).from(userAddress).limit(20);
+  const messages = await irysQuery.search('irys:transactions').tags(requestQueryTags).from(userAddress).limit(20);
 
-  const requestIds = parseQueryResult(messages).map(el => messages.id);
+  const requestIds = messages.map(el => el.id);
 
   // get responses
   const responseQueryTags = [
     {
       name: PROTOCOL_NAME_TAG,
-      values: [ PROTOCOL_NAME ],
+      values: [ 'FairAI' ],
     },
     {
       name: OPERATION_NAME_TAG,

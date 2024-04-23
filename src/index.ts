@@ -40,8 +40,8 @@ import { fileURLToPath } from 'url';
 import { Mutex } from 'async-mutex';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { arbitrum } from 'viem/chains';
-import { Log, PrivateKeyAccount, PublicClient, WalletClient, createPublicClient, createWalletClient, encodeFunctionData, erc20Abi, formatEther, formatUnits, getContract, hexToBigInt, hexToString, http, parseUnits, stringToHex } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { Log, PrivateKeyAccount, PublicClient, WalletClient, createPublicClient, createWalletClient, encodeFunctionData, erc20Abi, formatEther, formatUnits, getContract, hexToBigInt, hexToString, http, parseUnits, stringToHex } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { Query } from '@irys/query';
 
 const NATIVE_USDC_ARB = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831';
@@ -270,7 +270,7 @@ const sendUSDC = async (target: `0x${string}`, amount: number, arweaveTx: string
   const serializedTransaction = await walletClient.signTransaction(request);
   const hash = await walletClient.sendRawTransaction({ serializedTransaction });
   console.log(hash);
-}
+};
 
 const proccessPastReceivedTransfer = async (transferLog: Log) => {
   const paymentBlockNumber = transferLog.blockNumber;
@@ -290,7 +290,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
   }
 
   const reqUserAddr = transaction.from;
-  const irysQuery = new Query({ network: 'devnet' });
+  const irysQuery = new Query();
 
   const [ txData ] = await irysQuery.search('irys:transactions').ids([arweaveTx]).limit(1);
 
@@ -405,11 +405,11 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
   } else {
     logger.info('Transfer value below operator fee. Skipping...');
   }
-}
+};
 
 (async () => {
   arweaveAddress = await arweave.wallets.jwkToAddress(JWK);
-  evmAccount = privateKeyToAccount(`0x${EVM_PK}`);
+  evmAccount = privateKeyToAccount(EVM_PK as `0x${string}`);
 
   logger.info(`EVM Wallet address: ${evmAccount.address}`);
   logger.info(`Wallet address: ${arweaveAddress}`);
@@ -466,7 +466,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
   });
   const balance = await publicClient.getBalance({ address: evmAccount.address });
   
-  if (Number(formatEther(balance)) < 0.01) {
+  if (Number(formatEther(balance)) < 0.001) {
     logger.error('Not Enough Eth balance');
     process.exit(1);
   }
@@ -499,7 +499,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
   };
 
   logger.info('Listening to usdc contract events');
-  const blockNumber = await publicClient.getBlockNumber() 
+  const blockNumber = await publicClient.getBlockNumber(); 
   const logs = await publicClient.getContractEvents({
     address: NATIVE_USDC_ARB,
     abi: erc20Abi,
