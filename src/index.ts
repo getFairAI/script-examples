@@ -40,9 +40,10 @@ import { fileURLToPath } from 'url';
 import { Mutex } from 'async-mutex';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { arbitrum } from 'viem/chains';
-import { Log, PrivateKeyAccount, PublicClient, WalletClient, createPublicClient, createWalletClient, encodeFunctionData, erc20Abi, formatEther, formatUnits, getContract, hexToBigInt, hexToString, http, parseUnits, stringToHex } from 'viem';
+import { Log, PrivateKeyAccount, PublicClient, WalletClient, createPublicClient, createWalletClient, encodeFunctionData, erc20Abi, formatEther, formatUnits, getContract, hexToBigInt, hexToString, http, parseUnits, stringToHex, serializeSignature, recoverPublicKey } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { Query } from '@irys/query';
+import { getEncryptionPublicKey } from '@metamask/eth-sig-util';
 
 const NATIVE_USDC_ARB = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831';
 const CHAIN = arbitrum;
@@ -202,6 +203,7 @@ const startThread = (
   currentRegistration: OperatorParams,
   lock: Mutex,
   txid: string,
+  userPubKey: string
 ) => {
   return lock.runExclusive(async () => {
     logger.info(`Thread ${txData.id} acquired lock`);
@@ -210,7 +212,7 @@ const startThread = (
       logger.info(`Thread ${txData.id} released lock`);
       return;
     }
-    await pool.exec('processRequestLock', [txData, nMissingResponses, currentRegistration], {
+    await pool.exec('processRequestLock', [txData, nMissingResponses, currentRegistration, EVM_PK, userPubKey], {
       on: (payload) => handleWorkerEvents(payload, txid),
     });
 
@@ -278,6 +280,15 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
     hash: transferLog.transactionHash!
   });
 
+  const signature = serializeSignature({
+    v: transaction.v,
+    r: transaction.r,
+    s: transaction.s,
+  });
+  const userPubKey = await recoverPublicKey({
+    hash: transaction.hash,
+    signature
+  });
   const data = transaction.input;
   const memoSliceStart = 138;// 0x + function selector 4bytes-8chars + 2 32bytes arguments = 138 chars;
   const hexMemo = data.substring(memoSliceStart, data.length);
@@ -337,7 +348,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
       // If the request has already been answered, we don't need to do anything
       return;
     } else {
-      startThread(txData, necessaryAnswers - responseTxs.length, registrations[registrationIdx], mutexes[registrationIdx], transferLog.transactionHash!);
+      startThread(txData, necessaryAnswers - responseTxs.length, registrations[registrationIdx], mutexes[registrationIdx], transferLog.transactionHash!, userPubKey);
     }
 
     // execute fee distribution async
@@ -473,11 +484,14 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
 
   // check if evm wallet is linked
   const { isLinked: evmLinked } = await isEvmWalletLinked(arweaveAddress, evmAccount.address);
+  const publicKey = getEncryptionPublicKey(EVM_PK);
   if (!evmLinked) {
     const linkTags = [
       { name: 'Protocol-Name', value: 'FairAI' },
       { name: 'Protocol-Version', value: '2.0' },
       { name: 'Operation-Name', value: 'EVM Wallet Link' },
+      { name: 'EVM-Public-Key', value: publicKey },
+      { name: 'Unix-Time', value: (Date.now() / secondInMS).toString() },
     ];
     const linkTx = await bundlr.upload(evmAccount.address, {
       tags: linkTags

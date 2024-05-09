@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { decryptSafely, encryptSafely } from '@metamask/eth-sig-util';
+
 const fs = require('fs');
 const crypto = require('crypto');
 const NodeBundlr = require('@bundlr-network/client');
@@ -270,8 +272,14 @@ const getGeneralTags = (
 ) => {
   let type;
   let contentType;
-  const inMemory = !!inferenceResult.images || !!inferenceResult.content;
-  if (inferenceResult.imgPaths || inferenceResult.images) {
+  
+  const toEncrypt = requestTags.find((tag) => tag.name === 'Private-Mode')?.value === 'true';
+  const inMemory = !!inferenceResult.images || !!inferenceResult.content || toEncrypt;
+  
+  if (toEncrypt) {
+    type = 'encrypted';
+    contentType = 'application/json';
+  } else if (inferenceResult.imgPaths || inferenceResult.images) {
     type = 'image';
     contentType = 'image/png';
   } else if (inferenceResult.audioPath) {
@@ -456,9 +464,12 @@ const sendToBundlr = async (
   requestTags,
   conversationIdentifier,
   registration,
+  userPubKey
 ) => {
   let responses;
+  const toEncrypt = requestTags.find((tag) => tag.name === 'Private-Mode')?.value === 'true';
   const inMemory = !!inferenceResult.images || !!inferenceResult.content;
+  
   if (inMemory && inferenceResult.images) {
     responses = inferenceResult.images.map((el) => Buffer.from(el, 'base64')); // map paths to 
   } else if (inMemory && inferenceResult.content) {
@@ -468,6 +479,20 @@ const sendToBundlr = async (
   }
   // turn into array to use same code for single and multiple responses
   responses = Array.isArray(responses) ? responses : [responses];
+  
+  const responsesClone = [ ...responses ];
+  if (toEncrypt) {
+    for (let i = 0; i < responsesClone.length; i++) {
+      if (fs.existsSync(responsesClone[i])) {
+        const data = fs.readFileSync(responsesClone[i]);
+        const encData = encryptSafely(data, userPubKey);
+        responses[i] = JSON.stringify(encData);
+      } else {
+        const encData = encryptSafely(responsesClone[i], userPubKey);
+        responses[i] = JSON.stringify(encData);
+      }
+    }
+  }
 
   const generalTags = getGeneralTags(inferenceResult, userAddress, requestTransaction, requestTags, conversationIdentifier, registration);
 
@@ -501,7 +526,7 @@ const sendToBundlr = async (
       }
       
       let transaction;
-      if (inMemory) {
+      if (inMemory || toEncrypt) {
         transaction = await bundlr.upload(response, { tags });
       } else {
         transaction = await bundlr.uploadFile(response, { tags });
@@ -685,7 +710,7 @@ class StringifyStream extends Transform {
   };
 }
 
-const inference = async (requestTx, registration, nImages, cid, negativePrompt) => {
+const inference = async (requestTx, registration, nImages, cid, negativePrompt, operatorPk, userPubKey) => {
   const { scriptId, url, settings, payloadFormat: format } = registration;
 
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.id}`);
@@ -697,7 +722,10 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt) 
 
   const contentType = requestData.headers.get('Content-Type');
 
+  const isEncrypted = requestTx.tags.find((tag) => tag.name === 'Private-Mode')?.value === 'true';
+
   let text = '';
+
   if (contentType.includes('pdf')) {
     /* throw new Error('PDF NOT SUPPORTED'); */
     try {
@@ -749,6 +777,11 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt) 
       } catch (err) {
         workerpool.workerEmit({ type: 'error', message: err.message });
       }
+  } else if (contentType === 'application/json' && isEncrypted) {
+    // decrypt with pk
+    // const encData = await requestData.json();
+    const encData = requestTx.tags.find((tag) => tag.name === 'Encrypted-Data-For-Operator')?.value;
+    text = decryptSafely(encData, operatorPk);
   } else {
     text = await (await requestData.blob()).text();
   }
@@ -756,7 +789,8 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt) 
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
 
   let conversationData;
-  if (format === 'llama.cpp') {
+  // only load previous messages for llama.cpp format and for non-encrypted messages
+  if (format === 'llama.cpp' && !isEncrypted) {
     // load previous conversation messages
     conversationData = await queryPreviousMessages(requestTx.address, scriptId, cid);
   } else {
@@ -766,7 +800,7 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt) 
   const customWith = requestTx.tags.find((tag) => tag.name === IMAGES_WIDTH_TAG)?.value;
   const customHeight = requestTx.tags.find((tag) => tag.name === IMAGES_HEIGHT_TAG)?.value;
   const customImagesSize = { width: customWith, height: customHeight };
-  const payload = parsePayload(format, text, settings, negativePrompt, conversationData, customImagesSize);
+  const payload = parsePayload(format, text, settings, negativePrompt, conversationData, customImagesSize, operatorPk, userPubKey);
 
   const maxImages = 10;
 
@@ -788,11 +822,12 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt) 
       requestTx.tags,
       cid,
       registration,
+      userPubKey
     );
   }
 };
 
-const processRequest = async (requestTx, nMissingResponses, registration) => {  
+const processRequest = async (requestTx, nMissingResponses, registration, operatorPk, userPubKey) => {  
   if (!requestTx) {
     // If the request doesn't exist, skip
     workerpool.workerEmit({ type: 'error', message: `Request ${requestTx.id} does not exist. Skipping...` });
@@ -815,16 +850,16 @@ const processRequest = async (requestTx, nMissingResponses, registration) => {
   }
 
   const negativePrompt = requestTx.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
-  await inference(requestTx, registration, nMissingResponses, conversationIdentifier, negativePrompt);
+  await inference(requestTx, registration, nMissingResponses, conversationIdentifier, negativePrompt, operatorPk, userPubKey);
 
   return requestTx.id;
 };
 
-const processRequestLock = async (requestTx, nMissingResponses, registration) => {
+const processRequestLock = async (requestTx, nMissingResponses, registration, operatorPk, userPubKey) => {
   try {
     workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestTx.id}...` });
     
-    const result = await processRequest(requestTx, nMissingResponses, registration);
+    const result = await processRequest(requestTx, nMissingResponses, registration, operatorPk, userPubKey);
     
     workerpool.workerEmit({ type: 'result', message: result });
   } catch (e) {
