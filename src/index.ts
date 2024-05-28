@@ -29,7 +29,6 @@ import {
 import {
   queryOperatorRegistrations,
   isRegistrationCancelled,
-  getModelOwnerAndName,
   isEvmWalletLinked,
   queryTransactionAnswered,
 } from './queries';
@@ -87,24 +86,22 @@ const findRegistrations = async () => {
   for (const tx of registrationTxs) {
     const txid = tx.node.id;
     const isTxCancelled = await isRegistrationCancelled(txid, arweaveAddress);
-    // filter by scripts that have config  url
+    // filter by solutions that have config  url
     const urls = Object.keys(CONFIG.urls);
-    const scriptTx = tx.node.tags.find((tag) => tag.name === 'Script-Transaction')?.value;
-    const scriptName = tx.node.tags.find((tag) => tag.name === 'Script-Name')?.value;
-    const hasUrlForScript = scriptTx && urls.includes(scriptTx);
+    const solutionTx= tx.node.tags.find((tag) => tag.name === 'Solution-Transaction')?.value;
+    const solutionName = tx.node.tags.find((tag) => tag.name === 'Solution-Name')?.value;
+    const hasUrlForSolution = solutionTx && urls.includes(solutionTx);
 
     const hasNewerRegistration = filtered.filter(existing => {
-      const existingScriptTx = existing.node.tags.find((tag) => tag.name === 'Script-Transaction')?.value;
-      const existingScriptName = existing.node.tags.find((tag) => tag.name === 'Script-Name')?.value;
-
-      return scriptTx === existingScriptTx && scriptName === existingScriptName;
+      const existingSolutionTx = existing.node.tags.find((tag) => tag.name === 'Solution-Transaction')?.value;
+      return solutionTx === existingSolutionTx;
     }).length > 0;
 
-    if (!isTxCancelled && hasUrlForScript && !hasNewerRegistration) {
+    if (!isTxCancelled && hasUrlForSolution && !hasNewerRegistration) {
       filtered.push(tx);
-    } else if (!hasUrlForScript && !isTxCancelled) {
+    } else if (!hasUrlForSolution && !isTxCancelled) {
       logger.info(
-        `Script ${scriptName}(id: '${scriptTx}') not found in config, Registration for this script will be ignored. Skipping...`,
+        `Solution ${solutionName}(id: '${solutionTx}') not found in config, Registration for this Solution will be ignored. Skipping...`,
       );
     } else {
       logger.info(`Registration with id '${txid}' is cancelled. Skipping...`);
@@ -120,37 +117,12 @@ const validateRegistration = async (tx: IEdge) => {
   const txid = tx.node.id;
   const tags = tx.node.tags;
 
-  const scriptName = tags.find((tag) => tag.name === 'Script-Name')?.value;
-  const scriptCurator = tags.find((tag) => tag.name === 'Script-Curator')?.value;
-  const scriptId = tags.find((tag) => tag.name === 'Script-Transaction')?.value;
+
+  const solutionId = tags.find((tag) => tag.name === 'Solution-Transaction')?.value;
   const feeIndex = tags.findIndex((tag) => tag.name === 'Operator-Fee');
 
-  if (!scriptCurator) {
-    logger.error(`Could not find Script Curator for registration '${txid}'. Ignoring...`);
-    hasErrors = true;
-  }
-
-  if (!scriptName) {
-    logger.error(`Could not find Script Name for registration '${txid}'. Ignoring...`);
-    hasErrors = true;
-  }
-
-  if (!scriptId) {
-    logger.error(`Could not find Script Transaction for registration '${txid}'. Ignoring...`);
-    hasErrors = true;
-  }
-
-  const { creatorAddr: modelOwner, modelName } = await getModelOwnerAndName(
-    scriptName as string,
-    scriptCurator as string,
-  );
-  if (!modelOwner) {
-    logger.error(`Could not find Model Owner for registration '${txid}'. Ignoring...`);
-    hasErrors = true;
-  }
-
-  if (!modelName) {
-    logger.error(`Could not find Model Name for registration '${txid}'. Ignoring...`);
+  if (!solutionId) {
+    logger.error(`Could not find Solution Transaction for registration '${txid}'. Ignoring...`);
     hasErrors = true;
   }
 
@@ -165,17 +137,16 @@ const validateRegistration = async (tx: IEdge) => {
     hasErrors = true;
   }
 
-  const urlConf: UrlConfig = (urls as any)[scriptId as string];
+  const evmRewardsAddr = tags.find((tag) => tag.name === 'Rewards-Evm-Address')?.value;
+
+  const urlConfigs: UrlConfig[] = (urls as any)[solutionId as string];
 
   if (!hasErrors) {
     registrations.push({
-      ...urlConf,
-      modelOwner,
-      modelName,
-      scriptId: scriptId as string,
+      models: urlConfigs,
+      solutionRewardsEvmAddress: evmRewardsAddr as `0x${string}`,
+      solutionId: solutionId as string,
       operatorFee: opFee,
-      scriptName: scriptName as string,
-      scriptCurator: scriptCurator as string,
       registrationTx: tx,
     });
   } else {
@@ -318,18 +289,21 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
     // not a fairAI inference request
     return;
   }
-  const scriptTx = txData.tags.find(tag => tag.name === 'Script-Transaction')?.value!;
+  const solutionTx = txData.tags.find(tag => tag.name === 'Solution-Transaction')?.value!;
   const nImages = parseInt(txData.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
   
   const registrationIdx = registrations.findIndex(
     (reg) =>
-      reg.scriptId === scriptTx,
+      reg.solutionId === solutionTx,
   );
   const receivedFee = Number(formatUnits(hexToBigInt(transferLog.data), 6)); // value of transfer in usdc
 
   let finalOperatorFee = registrations[registrationIdx].operatorFee;
   let necessaryAnswers = 1;
-  if (nImages > 0 && registrations[registrationIdx].payloadFormat === 'webui') {
+  const modelName = txData.tags.find(tag => tag.name === 'Model-Name')?.value;
+  const config = registrations[registrationIdx].models.find((model) => model.name === modelName);
+
+  if (config && nImages > 0 && config.payloadFormat === 'webui') {
     finalOperatorFee = finalOperatorFee * nImages;
     necessaryAnswers = nImages;
   } else {
@@ -340,8 +314,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
     const responseTxs = await queryTransactionAnswered(
       txData.id,
       arweaveAddress,
-      registrations[registrationIdx].scriptName,
-      registrations[registrationIdx].scriptCurator,
+      registrations[registrationIdx].solutionId,
     );
 
     if (responseTxs.length > 0  && responseTxs.length >= necessaryAnswers) {
@@ -354,14 +327,13 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
     // execute fee distribution async
     setTimeout(async () => {
       // get curator wallet
-      const { isLinked: curatorEvmWalletLinked, evmWallet: curatorEvmWallet } = await isEvmWalletLinked(registrations[registrationIdx].scriptCurator);
-      
       const recipients: `0x${string}`[] = [
         VAULT_EVM_ADDRESS,
       ];
       
-      if (curatorEvmWalletLinked && curatorEvmWallet) {
-        recipients.push(curatorEvmWallet);
+      const solutioRewardsAddr = registrations[registrationIdx].solutionRewardsEvmAddress;
+      if (solutioRewardsAddr) {
+        recipients.push(solutioRewardsAddr);
       }
 
       const marketplaceCut = MARKETPLACE_PERCENTAGE_FEE * finalOperatorFee;
@@ -383,7 +355,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
       let hasPaidCurator = false;
       let hasPaidMarketplace = false;
       for (const sentPayment of operatorTransfers) {
-        if (hasPaidMarketplace && (hasPaidCurator || !curatorEvmWalletLinked)) {
+        if (hasPaidMarketplace && (hasPaidCurator || !solutioRewardsAddr)) {
           // if payments already found no need to query further          
           break;
         }
@@ -397,7 +369,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
         if (txMemo === arweaveTx && sentPayment.args.from === evmAccount.address && sentPayment.args.to === VAULT_EVM_ADDRESS && value >= parseUnits(marketplaceCut.toString(), 6)) {
           // found a payment with the right amount to marketplace and refering to the correct arweave tx
           hasPaidMarketplace = true;
-        } else if (!!curatorEvmWallet && txMemo === arweaveTx && sentPayment.args.from === evmAccount.address && sentPayment.args.to === curatorEvmWallet && value >= parseUnits(curatorCut.toString(), 6)) {
+        } else if (!!solutioRewardsAddr && txMemo === arweaveTx && sentPayment.args.from === evmAccount.address && sentPayment.args.to === solutioRewardsAddr && value >= parseUnits(curatorCut.toString(), 6)) {
           // found a payment with the right amount to curator and refering to the correct arweave tx
           hasPaidCurator = true;
         } else {
@@ -409,8 +381,8 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
         await sendUSDC(VAULT_EVM_ADDRESS, marketplaceCut, arweaveTx);
       }
 
-      if (curatorEvmWallet && !hasPaidCurator) {
-        await sendUSDC(curatorEvmWallet, marketplaceCut, arweaveTx);
+      if (solutioRewardsAddr && !hasPaidCurator) {
+        await sendUSDC(solutioRewardsAddr, marketplaceCut, arweaveTx);
       }
     }, 0);
   } else {

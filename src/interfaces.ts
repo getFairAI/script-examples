@@ -74,16 +74,11 @@ export interface ITransactions {
 export type payloadFormatOptions = 'webui' | 'llama.cpp' | 'default';
 
 export interface OperatorParams {
-  modelName: string;
-  modelOwner: string;
   operatorFee: number;
-  scriptName: string;
-  scriptCurator: string;
-  scriptId: string;
+  solutionId: string;
+  solutionRewardsEvmAddress?: `0x${string}`;
   registrationTx: IEdge;
-  url: string;
-  payloadFormat: payloadFormatOptions;
-  settings?: IOptionalSettings;
+  models: UrlConfig[];
 }
 
 export interface ServerResponse {
@@ -100,6 +95,7 @@ export interface InferenceResult {
 }
 
 export interface UrlConfig {
+  name: string;
   url: string;
   payloadFormat: payloadFormatOptions;
   settings?: IOptionalSettings;

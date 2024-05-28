@@ -21,10 +21,10 @@ export const PROTOCOL_VERSION_TAG = 'Protocol-Version';
 export const CONVERSATION_IDENTIFIER_TAG = 'Conversation-Identifier';
 export const CONTENT_TYPE_TAG = 'Content-Type';
 export const UNIX_TIME_TAG = 'Unix-Time';
-export const SCRIPT_CURATOR_TAG = 'Script-Curator';
-export const SCRIPT_NAME_TAG = 'Script-Name';
-export const SCRIPT_USER_TAG = 'Script-User';
-export const SCRIPT_OPERATOR_TAG = 'Script-Operator';
+export const SOLUTION_CREATOR_TAG = 'Solution-Curator';
+export const SOLUTION_NAME_TAG = 'Solution-Name';
+export const SOLUTION_USER_TAG = 'Solution-User';
+export const SOLUTION_OPERATOR_TAG = 'Solution-Operator';
 export const REQUEST_TRANSACTION_TAG = 'Request-Transaction';
 export const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
 export const OPERATION_NAME_TAG = 'Operation-Name';
@@ -37,7 +37,7 @@ export const CONTRACT_TAG = 'Contract';
 export const INPUT_TAG = 'Input';
 export const SEQUENCE_OWNER_TAG = 'Sequencer-Owner';
 export const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
-export const SCRIPT_TRANSACTION_TAG = 'Script-Transaction';
+export const SOLUTION_TRANSACTION_TAG = 'Solution-Transaction';
 export const ASSET_NAMES_TAG = 'Asset-Names';
 export const NEGATIVE_PROMPT_TAG = 'Negative-Prompt';
 export const PROMPT_TAG = 'Prompt';
@@ -57,10 +57,10 @@ export const NOT_OVERRIDABLE_TAGS = [
   APP_VERSION_TAG,
   PROTOCOL_NAME_TAG,
   PROTOCOL_VERSION_TAG,
-  SCRIPT_NAME_TAG,
-  SCRIPT_CURATOR_TAG,
+  SOLUTION_NAME_TAG,
+  SOLUTION_CREATOR_TAG,
   OPERATION_NAME_TAG,
-  SCRIPT_TRANSACTION_TAG,
+  SOLUTION_TRANSACTION_TAG,
   INFERENCE_TRANSACTION_TAG,
   REQUEST_TRANSACTION_TAG,
   RESPONSE_TRANSACTION_TAG,
@@ -73,16 +73,16 @@ export const NOT_OVERRIDABLE_TAGS = [
   PROMPT_TAG,
   NEGATIVE_PROMPT_TAG,
   INFERENCE_SEED_TAG,
-  SCRIPT_USER_TAG,
+  SOLUTION_USER_TAG,
   CONTENT_TYPE_TAG,
-  SCRIPT_OPERATOR_TAG,
+  SOLUTION_OPERATOR_TAG,
   CONVERSATION_IDENTIFIER_TAG,
 ];
 
 export const PROTOCOL_NAME = 'Fair Protocol';
 export const PROTOCOL_VERSION = '1.0';
 
-export const SCRIPT_INFERENCE_REQUEST = 'Script Inference Request';
+export const SOLUTION_INFERENCE_REQUEST = 'Solution Inference Request';
 export const CANCEL_OPERATION = 'Operator Cancellation';
 
 export const NET_ARWEAVE_URL = 'https://arweave.net';
@@ -100,7 +100,6 @@ export const VAULT_ADDRESS = 'tXd-BOaxmxtgswzwMLnryROAYlX5uDC9-XK2P4VNCQQ';
 export const VAULT_EVM_ADDRESS = '0x611dEe04f236BbC45e3a6De266ABe2B2b32eab31';
 
 export const MARKETPLACE_FEE = '0.1';
-export const SCRIPT_CREATION_FEE = '0.1';
 export const OPERATOR_REGISTRATION_AR_FEE = '0.05';
 
 export const OPERATOR_PERCENTAGE_FEE = 0.7;

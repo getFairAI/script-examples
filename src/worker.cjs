@@ -35,16 +35,14 @@ const PROTOCOL_VERSION_TAG = 'Protocol-Version';
 const CONVERSATION_IDENTIFIER_TAG = 'Conversation-Identifier';
 const CONTENT_TYPE_TAG = 'Content-Type';
 const UNIX_TIME_TAG = 'Unix-Time';
-const SCRIPT_CURATOR_TAG = 'Script-Curator';
-const SCRIPT_NAME_TAG = 'Script-Name';
-const SCRIPT_USER_TAG = 'Script-User';
+const SOLUTION_USER_TAG = 'Solution-User';
 const REQUEST_TRANSACTION_TAG = 'Request-Transaction';
 const OPERATION_NAME_TAG = 'Operation-Name';
 const INFERENCE_TRANSACTION_TAG = 'Inference-Transaction';
 const CONTRACT_TAG = 'Contract';
 const INPUT_TAG = 'Input';
 const SEQUENCE_OWNER_TAG = 'Sequencer-Owner';
-const SCRIPT_TRANSACTION_TAG = 'Script-Transaction';
+const SOLUTION_TRANSACTION_TAG = 'Solution-Transaction';
 const ASSET_NAMES_TAG = 'Asset-Names';
 const NEGATIVE_PROMPT_TAG = 'Negative-Prompt';
 const PROMPT_TAG = 'Prompt';
@@ -56,7 +54,7 @@ const USER_CUSOM_TAGS_TAG = 'User-Custom-Tags';
 const INFERENCE_SEED_TAG = 'Inference-Seed';
 const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
 const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
-const SCRIPT_OPERATOR_TAG = 'Script-Operator';
+const SOLUTION_OPERATOR_TAG = 'Solution-Operator';
 const N_IMAGES_TAG = 'N-Images';
 const LICENSE_CONFIG_TAG = 'License-Config';
 const CREATOR_TAG = 'Creator';
@@ -68,10 +66,10 @@ const NOT_OVERRIDABLE_TAGS = [
   APP_VERSION_TAG,
   PROTOCOL_NAME_TAG,
   PROTOCOL_VERSION_TAG,
-  SCRIPT_NAME_TAG,
-  SCRIPT_CURATOR_TAG,
+  SOLUTION_NAME_TAG,
+  SOLUTION_CREATOR_TAG,
   OPERATION_NAME_TAG,
-  SCRIPT_TRANSACTION_TAG,
+  SOLUTION_TRANSACTION_TAG,
   INFERENCE_TRANSACTION_TAG,
   REQUEST_TRANSACTION_TAG,
   RESPONSE_TRANSACTION_TAG,
@@ -84,9 +82,9 @@ const NOT_OVERRIDABLE_TAGS = [
   PROMPT_TAG,
   NEGATIVE_PROMPT_TAG,
   INFERENCE_SEED_TAG,
-  SCRIPT_USER_TAG,
+  SOLUTION_USER_TAG,
   CONTENT_TYPE_TAG,
-  SCRIPT_OPERATOR_TAG,
+  SOLUTION_OPERATOR_TAG,
   CONVERSATION_IDENTIFIER_TAG,
   CREATOR_TAG,
 ];
@@ -142,7 +140,7 @@ const gqlQuery = gql`
 const parseQueryResult = (result) =>
   result.data.transactions.edges;
 
-const queryPreviousMessages = async (userAddress, scriptId, cid) => {
+const queryPreviousMessages = async (userAddress, solutionId, cid) => {
   const requestQueryTags = [
     {
       name: PROTOCOL_NAME_TAG,
@@ -154,11 +152,11 @@ const queryPreviousMessages = async (userAddress, scriptId, cid) => {
     },
     {
       name: OPERATION_NAME_TAG,
-      values: ['Script Inference Request'],
+      values: ['Inference Request'],
     },
     {
-      name: SCRIPT_TRANSACTION_TAG,
-      values: [scriptId],
+      name: SOLUTION_TRANSACTION_TAG,
+      values: [solutionId],
     },
     {
       name: CONVERSATION_IDENTIFIER_TAG,
@@ -180,11 +178,11 @@ const queryPreviousMessages = async (userAddress, scriptId, cid) => {
     },
     {
       name: OPERATION_NAME_TAG,
-      values: ['Script Inference Response'],
+      values: ['Inference Response'],
     },
     {
-      name: SCRIPT_TRANSACTION_TAG,
-      values: [scriptId],
+      name: SOLUTION_TRANSACTION_TAG,
+      values: [solutionId],
     },
     {
       name: CONVERSATION_IDENTIFIER_TAG,
@@ -195,7 +193,7 @@ const queryPreviousMessages = async (userAddress, scriptId, cid) => {
       values: requestIds,
     },
     {
-      name: SCRIPT_USER_TAG,
+      name: SOLUTION_USER_TAG,
       values: [userAddress],
     }
   ];
@@ -315,12 +313,10 @@ const getGeneralTags = (
     { name: PROTOCOL_NAME_TAG, value: 'FairAI' },
     { name: PROTOCOL_VERSION_TAG, value: '2.0' },
     // add logic tags
-    { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
+    { name: OPERATION_NAME_TAG, value: 'Inference Response' },
     { name: MODEL_NAME_TAG, value: modelName },
-    { name: SCRIPT_NAME_TAG, value: registration.scriptName },
-    { name: SCRIPT_CURATOR_TAG, value: registration.scriptCurator },
-    { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
-    { name: SCRIPT_USER_TAG, value: userAddress },
+    { name: SOLUTION_TRANSACTION_TAG, value: registration.solutionId },
+    { name: SOLUTION_USER_TAG, value: userAddress },
     { name: REQUEST_TRANSACTION_TAG, value: requestTransaction },
     { name: PROMPT_TAG, value: prompt },
     { name: CONVERSATION_IDENTIFIER_TAG, value: conversationIdentifier },
@@ -433,11 +429,11 @@ const getGeneralTags = (
           // ignore
         }
 
-        // if custom user tag is init state override Creator and Script User with firstOwner
+        // if custom user tag is init state override Creator and Solution User with firstOwner
         if (customTag.name === 'Init-State') {
           const firstOwner = JSON.parse(customTag.value).firstOwner;
           const creatorIdx = generalTags.findIndex((tag) => tag.name === CREATOR_TAG);
-          const scriptUserIdx = generalTags.findIndex((tag) => tag.name === SCRIPT_USER_TAG);
+          const solutionUserIdx = generalTags.findIndex((tag) => tag.name === SOLUTION_USER_TAG);
 
           if (creatorIdx >= 0) {
             generalTags.splice(creatorIdx, 1, { name: CREATOR_TAG, value: firstOwner });
@@ -445,8 +441,8 @@ const getGeneralTags = (
             // ignore
           }
 
-          if (scriptUserIdx >= 0) {
-            generalTags.splice(scriptUserIdx, 1, { name: SCRIPT_USER_TAG, value: firstOwner });
+          if (solutionUserIdx >= 0) {
+            generalTags.splice(solutionUserIdx, 1, { name: SOLUTION_USER_TAG, value: firstOwner });
           } else {
             // ignore
           }
@@ -664,7 +660,7 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData =
   return payload;
 };
 
-const runInference = async (url, format, payload, scriptId, text) => {
+const runInference = async (url, format, payload, text) => {
   const res = await fetch(url, {
     method: 'POST',
     ...(format === 'webui' && { headers: {
@@ -725,7 +721,9 @@ class StringifyStream extends Transform {
 }
 
 const inference = async (requestTx, registration, nImages, cid, negativePrompt, operatorPk, userPubKey) => {
-  const { scriptId, url, settings, payloadFormat: format } = registration;
+  const modelName = txData.tags.find(tag => tag.name === 'Model-Name')?.value;
+  const modelConfig = registration.models.find((model) => model.name === modelName);
+  const { url, settings, payloadFormat: format } = modelConfig;
 
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.id}`);
   const successStatusCode = 200;
@@ -772,12 +770,10 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
           { name: PROTOCOL_NAME_TAG, value: 'FairAI' },
           { name: PROTOCOL_VERSION_TAG, value: protocolVersion },
           // add logic tags
-          { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
+          { name: OPERATION_NAME_TAG, value: 'Inference Response' },
           { name: MODEL_NAME_TAG, value: modelName },
-          { name: SCRIPT_NAME_TAG, value: registration.scriptName },
-          { name: SCRIPT_CURATOR_TAG, value: registration.scriptCurator },
-          { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
-          { name: SCRIPT_USER_TAG, value:  requestTx.address, },
+          { name: SOLUTION_TRANSACTION_TAG, value: registration.solutionId },
+          { name: SOLUTION_USER_TAG, value:  requestTx.address, },
           { name: REQUEST_TRANSACTION_TAG, value: requestTx.id },
           { name: PROMPT_TAG, value: `https://arweave.net/${requestTx.id}` },
           { name: CONVERSATION_IDENTIFIER_TAG, value: cid },
@@ -809,7 +805,7 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
   // only load previous messages for llama.cpp format and for non-encrypted messages
   if (format === 'llama.cpp' && !isEncrypted) {
     // load previous conversation messages
-    conversationData = await queryPreviousMessages(requestTx.address, scriptId, cid);
+    conversationData = await queryPreviousMessages(requestTx.address, registration.solutionId, cid);
   } else {
     // ignore
   }
@@ -830,7 +826,7 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
   }
 
   for (let i = 0; i < nIters; i++) {
-    const result = await runInference(url, format, payload, scriptId, text);
+    const result = await runInference(url, format, payload, text);
 
     await sendToBundlr(
       result,
