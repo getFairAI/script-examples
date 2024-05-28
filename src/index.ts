@@ -40,7 +40,7 @@ import { fileURLToPath } from 'url';
 import { Mutex } from 'async-mutex';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { arbitrum } from 'viem/chains';
-import { Log, PrivateKeyAccount, PublicClient, WalletClient, createPublicClient, createWalletClient, encodeFunctionData, erc20Abi, formatEther, formatUnits, getContract, hexToBigInt, hexToString, http, parseUnits, stringToHex, serializeSignature, recoverPublicKey } from 'viem';
+import { Log, PrivateKeyAccount, PublicClient, WalletClient, createPublicClient, createWalletClient, encodeFunctionData, erc20Abi, formatEther, formatUnits, getContract, hexToBigInt, hexToString, http, parseUnits, stringToHex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { Query } from '@irys/query';
 import { getEncryptionPublicKey } from '@metamask/eth-sig-util';
@@ -203,7 +203,7 @@ const startThread = (
   currentRegistration: OperatorParams,
   lock: Mutex,
   txid: string,
-  userPubKey: string
+  userPubKey?: string
 ) => {
   return lock.runExclusive(async () => {
     logger.info(`Thread ${txData.id} acquired lock`);
@@ -280,15 +280,14 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
     hash: transferLog.transactionHash!
   });
 
-  const signature = serializeSignature({
+ /*  const signature = serializeSignature({
+    yParity: transaction.yParity,
     v: transaction.v,
     r: transaction.r,
     s: transaction.s,
-  });
-  const userPubKey = await recoverPublicKey({
-    hash: transaction.hash,
-    signature
-  });
+  }); */
+  /*  */
+  // const userPubKey = 'QjR/p9u/PjzEectlTmYkoloQ6OpalGBstGSdsFG/80c=';
   const data = transaction.input;
   const memoSliceStart = 138;// 0x + function selector 4bytes-8chars + 2 32bytes arguments = 138 chars;
   const hexMemo = data.substring(memoSliceStart, data.length);
@@ -313,6 +312,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
   const protocolName = txData.tags.find(tag => tag.name === 'Protocol-Name')?.value;
   const protocolVersion = txData.tags.find(tag => tag.name === 'Protocol-Version')?.value;
   const operationName = txData.tags.find(tag => tag.name === 'Operation-Name')?.value;
+  const userPubKey = txData.tags.find(tag => tag.name === 'User-Public-Key')?.value;
 
   if (protocolName !== 'FairAI' && protocolVersion !== '2.0' && operationName !== 'Inference Request') {
     // not a fairAI inference request
@@ -484,7 +484,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
 
   // check if evm wallet is linked
   const { isLinked: evmLinked } = await isEvmWalletLinked(arweaveAddress, evmAccount.address);
-  const publicKey = getEncryptionPublicKey(EVM_PK);
+  const publicKey = getEncryptionPublicKey(EVM_PK.replace('0x', ''));
   if (!evmLinked) {
     const linkTags = [
       { name: 'Protocol-Name', value: 'FairAI' },

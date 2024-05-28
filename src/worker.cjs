@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import { decryptSafely, encryptSafely } from '@metamask/eth-sig-util';
-
 const fs = require('fs');
 const crypto = require('crypto');
 const NodeBundlr = require('@bundlr-network/client');
@@ -28,6 +26,7 @@ const PDFParser = require('pdf2json');
 const { Transform, Readable, Writable } = require('stream');
 const { Query } = require('@irys/query');
 const pdfParser = new PDFParser(this, 1);
+const { decryptSafely, encryptSafely } = require('@metamask/eth-sig-util');
 
 const APP_NAME_TAG = 'App-Name';
 const APP_VERSION_TAG = 'App-Version';
@@ -347,6 +346,11 @@ const getGeneralTags = (
     // ignore, content type will be added by irys sdk in uploadFile
   }
 
+  if (toEncrypt) {
+    const appendIdx = generalTags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
+    generalTags.splice(appendIdx, 0, { name: 'Private-Mode', value: 'true' });
+  }
+
   const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
 
   if (generateAssets === 'fair-protocol') {
@@ -470,7 +474,9 @@ const sendToBundlr = async (
   const toEncrypt = requestTags.find((tag) => tag.name === 'Private-Mode')?.value === 'true';
   const inMemory = !!inferenceResult.images || !!inferenceResult.content;
   
-  if (inMemory && inferenceResult.images) {
+  if (inMemory && inferenceResult.images && toEncrypt) {
+    responses = inferenceResult.images;
+  } else if (inMemory && inferenceResult.images) {
     responses = inferenceResult.images.map((el) => Buffer.from(el, 'base64')); // map paths to 
   } else if (inMemory && inferenceResult.content) {
     responses = inferenceResult.content;
@@ -485,11 +491,19 @@ const sendToBundlr = async (
     for (let i = 0; i < responsesClone.length; i++) {
       if (fs.existsSync(responsesClone[i])) {
         const data = fs.readFileSync(responsesClone[i]);
-        const encData = encryptSafely(data, userPubKey);
-        responses[i] = JSON.stringify(encData);
+        const encrypted = encryptSafely({
+          data,
+          publicKey: userPubKey,
+          version: 'x25519-xsalsa20-poly1305'
+        });
+        responses[i] = JSON.stringify(encrypted);
       } else {
-        const encData = encryptSafely(responsesClone[i], userPubKey);
-        responses[i] = JSON.stringify(encData);
+        const encrypted = encryptSafely({
+          data: responsesClone[i],
+          publicKey: userPubKey,
+          version: 'x25519-xsalsa20-poly1305'
+        });
+        responses[i] = JSON.stringify(encrypted);
       }
     }
   }
@@ -592,7 +606,7 @@ const isValidSize = (size) => {
   }
 };
 
-const parsePayload = (format, text, settings, negativePrompt, conversationData, customImagesSize) => {
+const parsePayload = (format, text, settings, negativePrompt, conversationData = [], customImagesSize) => {
   let payload;
 
   if (format === 'webui') {
@@ -639,7 +653,7 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData, 
 
     payload = JSON.stringify({
       prompt: formattedPrompt,
-      ['n_predict']: -1, // Set the maximum number of tokens to predict when generating text. -1 = infinity.
+      ['n_predict']: 100, // Set the maximum number of tokens to predict when generating text. -1 = infinity.
       ['n_keep']: -1, // keep all tokens
       ['repeat_last_n']: 1, // use context size for repetition penalty
     });
@@ -723,6 +737,9 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
   const contentType = requestData.headers.get('Content-Type');
 
   const isEncrypted = requestTx.tags.find((tag) => tag.name === 'Private-Mode')?.value === 'true';
+  if (!userPubKey && isEncrypted) {
+    throw new Error(`Missing public key for encryption`);
+  }
 
   let text = '';
 
@@ -777,11 +794,11 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
       } catch (err) {
         workerpool.workerEmit({ type: 'error', message: err.message });
       }
-  } else if (contentType === 'application/json' && isEncrypted) {
+  } else if (/* contentType === 'application/json' &&  */isEncrypted) {
     // decrypt with pk
     // const encData = await requestData.json();
     const encData = requestTx.tags.find((tag) => tag.name === 'Encrypted-Data-For-Operator')?.value;
-    text = decryptSafely(encData, operatorPk);
+    text = decryptSafely({ encryptedData: JSON.parse(encData), privateKey: operatorPk.replace('0x', '') });
   } else {
     text = await (await requestData.blob()).text();
   }
@@ -800,7 +817,7 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
   const customWith = requestTx.tags.find((tag) => tag.name === IMAGES_WIDTH_TAG)?.value;
   const customHeight = requestTx.tags.find((tag) => tag.name === IMAGES_HEIGHT_TAG)?.value;
   const customImagesSize = { width: customWith, height: customHeight };
-  const payload = parsePayload(format, text, settings, negativePrompt, conversationData, customImagesSize, operatorPk, userPubKey);
+  const payload = parsePayload(format, text, settings, negativePrompt, conversationData, customImagesSize);
 
   const maxImages = 10;
 
