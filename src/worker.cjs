@@ -36,6 +36,8 @@ const CONVERSATION_IDENTIFIER_TAG = 'Conversation-Identifier';
 const CONTENT_TYPE_TAG = 'Content-Type';
 const UNIX_TIME_TAG = 'Unix-Time';
 const SOLUTION_USER_TAG = 'Solution-User';
+const SOLUTION_NAME_TAG = 'Solution-Name';
+const SOLUTION_CREATOR_TAG = 'Solution-Creator';
 const REQUEST_TRANSACTION_TAG = 'Request-Transaction';
 const OPERATION_NAME_TAG = 'Operation-Name';
 const INFERENCE_TRANSACTION_TAG = 'Inference-Transaction';
@@ -721,7 +723,7 @@ class StringifyStream extends Transform {
 }
 
 const inference = async (requestTx, registration, nImages, cid, negativePrompt, operatorPk, userPubKey) => {
-  const modelName = txData.tags.find(tag => tag.name === 'Model-Name')?.value;
+  const modelName = requestTx.tags.find(tag => tag.name === 'Model-Name')?.value;
   const modelConfig = registration.models.find((model) => model.name === modelName);
   const { url, settings, payloadFormat: format } = modelConfig;
 

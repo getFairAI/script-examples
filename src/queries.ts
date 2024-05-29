@@ -143,7 +143,7 @@ export const queryTransactionAnswered = async (
     },
     {
       name: OPERATION_NAME_TAG,
-      values: ['Solution Inference Response'],
+      values: ['Inference Response'],
     },
     {
       name: SOLUTION_TRANSACTION_TAG,

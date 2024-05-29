@@ -296,6 +296,12 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
     (reg) =>
       reg.solutionId === solutionTx,
   );
+
+  if (registrationIdx < 0) {
+    // return operator not running requested solution
+    return;
+  }
+
   const receivedFee = Number(formatUnits(hexToBigInt(transferLog.data), 6)); // value of transfer in usdc
 
   let finalOperatorFee = registrations[registrationIdx].operatorFee;
