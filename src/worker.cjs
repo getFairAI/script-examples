@@ -478,6 +478,7 @@ const sendToBundlr = async (
     responses = inferenceResult.images.map((el) => Buffer.from(el, 'base64')); // map paths to 
   } else if (inMemory && inferenceResult.content) {
     responses = inferenceResult.content;
+    promptHistory = inferenceResult.prompt;
   } else {
     responses = inferenceResult.imgPaths ?? inferenceResult.audioPath;
   }
@@ -485,7 +486,8 @@ const sendToBundlr = async (
   responses = Array.isArray(responses) ? responses : [responses];
   
   const responsesClone = [ ...responses ];
-  if (toEncrypt) {
+  let promptHistoryTag;
+  if (toEncrypt && promptHistory) {
     for (let i = 0; i < responsesClone.length; i++) {
       if (fs.existsSync(responsesClone[i])) {
         const data = fs.readFileSync(responsesClone[i]);
@@ -504,9 +506,22 @@ const sendToBundlr = async (
         responses[i] = JSON.stringify(encrypted);
       }
     }
+
+    const encPromptHistory = encryptSafely({
+      data: promptHistory,
+      publicKey: userPubKey,
+      version: 'x25519-xsalsa20-poly1305'
+    });
+    promptHistoryTag = { name: 'Prompt-History', value: JSON.stringify(encPromptHistory) };
+  } else if (promptHistory) {
+    promptHistoryTag = { name: 'Prompt-History', value: JSON.stringify(promptHistory) };
   }
 
   const generalTags = getGeneralTags(inferenceResult, userAddress, requestTransaction, requestTags, conversationIdentifier, registration);
+
+  if (promptHistoryTag) {
+    generalTags.push(promptHistoryTag);
+  }
 
   const assetNames = requestTags.find((tag) => tag.name === ASSET_NAMES_TAG)?.value;
   try {
@@ -638,16 +653,8 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData =
     // load previous mesages from same conversation
     // parse previous messages and add to payload
     let formattedPrompt = '';
-    for (const x of conversationData) {
-      const prevPrompt = x.requestText;
-      const prevResponse = x.responseText;
 
-      if (prevPrompt.length > 0 && prevResponse.length > 0) {
-        formattedPrompt += `<s> [INST] ${prevPrompt} [/INST] ${prevResponse} </s>`;
-      }
-    }
-
-    formattedPrompt += `[INST] ${text} [/INST]`;
+    formattedPrompt = conversationData ? `<s>${conversationData}</s> [INST] ${text} [/INST]` : `[INST] ${text} [/INST]`;
 
     payload = JSON.stringify({
       prompt: formattedPrompt,
@@ -742,7 +749,7 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
   }
 
   let text = '';
-
+  let promptHistory = [];
   if (contentType.includes('pdf')) {
     /* throw new Error('PDF NOT SUPPORTED'); */
     try {
@@ -792,30 +799,28 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
       } catch (err) {
         workerpool.workerEmit({ type: 'error', message: err.message });
       }
-  } else if (/* contentType === 'application/json' &&  */isEncrypted) {
+  } else if (isEncrypted && format === 'llama.cpp') {
     // decrypt with pk
     // const encData = await requestData.json();
+    const encData = requestTx.tags.find((tag) => tag.name === 'Encrypted-Data-For-Operator')?.value;
+    const decData = decryptSafely({ encryptedData: JSON.parse(encData), privateKey: operatorPk.replace('0x', '') });
+    text = decData.text;
+    promptHistory = decData.promptHistory ? JSON.parse(decData.promptHistory) : [];
+  } else if (isEncrypted) {
     const encData = requestTx.tags.find((tag) => tag.name === 'Encrypted-Data-For-Operator')?.value;
     text = decryptSafely({ encryptedData: JSON.parse(encData), privateKey: operatorPk.replace('0x', '') });
   } else {
     text = await (await requestData.blob()).text();
+    const promptHistoryTagValue = requestTx.tags.find(tag => tag.name === 'Prompt-History')?.value;
+    promptHistory = promptHistoryTagValue ? JSON.parse(promptHistoryTagValue) : [];
   }
 
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
 
-  let conversationData;
-  // only load previous messages for llama.cpp format and for non-encrypted messages
-  if (format === 'llama.cpp' && !isEncrypted) {
-    // load previous conversation messages
-    conversationData = await queryPreviousMessages(requestTx.address, registration.solutionId, cid);
-  } else {
-    // ignore
-  }
-
   const customWith = requestTx.tags.find((tag) => tag.name === IMAGES_WIDTH_TAG)?.value;
   const customHeight = requestTx.tags.find((tag) => tag.name === IMAGES_HEIGHT_TAG)?.value;
   const customImagesSize = { width: customWith, height: customHeight };
-  const payload = parsePayload(format, text, settings, negativePrompt, conversationData, customImagesSize);
+  const payload = parsePayload(format, text, settings, negativePrompt, promptHistory, customImagesSize);
 
   const maxImages = 10;
 

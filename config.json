@@ -81,6 +81,13 @@
           }
         }
       }
+    ],
+    "nXIPpMJ8jN9wusSxcTIijwSHgvb6Z19-Iswzr8A3g2Q": [
+      {
+        "name": "Mixtral 8x7b Instruct v0.1", 
+        "url": "http://127.0.0.1:8080/completion",
+        "payloadFormat": "llama.cpp"
+      }
     ]
   },
   "startBlockHeight": "1363800",
