@@ -478,7 +478,7 @@ const sendToBundlr = async (
     responses = inferenceResult.images.map((el) => Buffer.from(el, 'base64')); // map paths to 
   } else if (inMemory && inferenceResult.content) {
     responses = inferenceResult.content;
-    promptHistory = inferenceResult.prompt;
+    promptHistory = `${inferenceResult.formattedPrompt} ${inferenceResult.content}`.replaceAll('<s>', '').replaceAll('</s>', '').replaceAll('undefined', '');
   } else {
     responses = inferenceResult.imgPaths ?? inferenceResult.audioPath;
   }
@@ -514,7 +514,7 @@ const sendToBundlr = async (
     });
     promptHistoryTag = { name: 'Prompt-History', value: JSON.stringify(encPromptHistory) };
   } else if (promptHistory) {
-    promptHistoryTag = { name: 'Prompt-History', value: JSON.stringify(promptHistory) };
+    promptHistoryTag = { name: 'Prompt-History', value: promptHistory };
   }
 
   const generalTags = getGeneralTags(inferenceResult, userAddress, requestTransaction, requestTags, conversationIdentifier, registration);
@@ -619,7 +619,7 @@ const isValidSize = (size) => {
   }
 };
 
-const parsePayload = (format, text, settings, negativePrompt, conversationData = [], customImagesSize) => {
+const parsePayload = (format, text, settings, negativePrompt, conversationData = '', customImagesSize) => {
   let payload;
 
   if (format === 'webui') {
@@ -649,7 +649,7 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData =
     webuiPayload['n_iter'] = 1;
   
     payload = JSON.stringify(webuiPayload);
-  } else if (format === 'llama.cpp' && !!conversationData) {
+  } else if (format === 'llama.cpp') {
     // load previous mesages from same conversation
     // parse previous messages and add to payload
     let formattedPrompt = '';
@@ -700,7 +700,8 @@ const runInference = async (url, format, payload, text) => {
       prompt: text,
     };
   } else if (tempData.content) {
-    return {
+  return {
+      formattedPrompt: JSON.parse(payload).prompt,
       prompt: text,
       content: tempData.content,
     };
@@ -749,7 +750,7 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
   }
 
   let text = '';
-  let promptHistory = [];
+  let promptHistory = '';
   if (contentType.includes('pdf')) {
     /* throw new Error('PDF NOT SUPPORTED'); */
     try {
@@ -805,14 +806,14 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
     const encData = requestTx.tags.find((tag) => tag.name === 'Encrypted-Data-For-Operator')?.value;
     const decData = decryptSafely({ encryptedData: JSON.parse(encData), privateKey: operatorPk.replace('0x', '') });
     text = decData.text;
-    promptHistory = decData.promptHistory ? JSON.parse(decData.promptHistory) : [];
+    promptHistory = decData.promptHistory;
   } else if (isEncrypted) {
     const encData = requestTx.tags.find((tag) => tag.name === 'Encrypted-Data-For-Operator')?.value;
     text = decryptSafely({ encryptedData: JSON.parse(encData), privateKey: operatorPk.replace('0x', '') });
   } else {
     text = await (await requestData.blob()).text();
     const promptHistoryTagValue = requestTx.tags.find(tag => tag.name === 'Prompt-History')?.value;
-    promptHistory = promptHistoryTagValue ? JSON.parse(promptHistoryTagValue) : [];
+    promptHistory = promptHistoryTagValue;
   }
 
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
