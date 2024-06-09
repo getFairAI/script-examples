@@ -18,13 +18,11 @@ const fs = require('fs');
 const crypto = require('crypto');
 const NodeBundlr = require('@bundlr-network/client');
 const { WarpFactory } = require('warp-contracts');
-const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
 const { DeployPlugin } = require('warp-contracts-plugin-deploy');
 const workerpool = require('workerpool');
 const FairSDK = require('@fair-protocol/sdk/cjs');
 const PDFParser = require('pdf2json');
 const { Transform, Readable, Writable } = require('stream');
-const { Query } = require('@irys/query');
 const pdfParser = new PDFParser(this, 1);
 const { decryptSafely, encryptSafely } = require('@metamask/eth-sig-util');
 
@@ -57,7 +55,6 @@ const INFERENCE_SEED_TAG = 'Inference-Seed';
 const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
 const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
 const SOLUTION_OPERATOR_TAG = 'Solution-Operator';
-const N_IMAGES_TAG = 'N-Images';
 const LICENSE_CONFIG_TAG = 'License-Config';
 const CREATOR_TAG = 'Creator';
 const IMAGES_WIDTH_TAG = 'Images-Width';
@@ -102,130 +99,6 @@ const JWK = JSON.parse(fs.readFileSync('wallet.json').toString());
 // const bundlr: Bundlr = new (Bundlr as any).default(
 const bundlr = new NodeBundlr('https://up.arweave.net', 'arweave', JWK);
 const warp = WarpFactory.forMainnet().use(new DeployPlugin());
-
-const clientGateway = new ApolloClient({
-  uri: 'https://arweave.net:443/graphql',
-  cache: new InMemoryCache(),
-  defaultOptions: {
-    query: {
-      fetchPolicy: 'no-cache',
-    },
-    watchQuery: {
-      fetchPolicy: 'no-cache',
-    },
-  },
-});
-
-const gqlQuery = gql`
-  query FIND_BY_TAGS($tags: [TagFilter!], $first: Int!, $after: String) {
-    transactions(tags: $tags, first: $first, after: $after, sort: HEIGHT_DESC) {
-      pageInfo {
-        hasNextPage
-      }
-      edges {
-        cursor
-        node {
-          id
-          tags {
-            name
-            value
-          }
-          block {
-            height
-          }
-        }
-      }
-    }
-  }
-`;
-
-const parseQueryResult = (result) =>
-  result.data.transactions.edges;
-
-const queryPreviousMessages = async (userAddress, solutionId, cid) => {
-  const requestQueryTags = [
-    {
-      name: PROTOCOL_NAME_TAG,
-      values: [ 'FairAI' ],
-    },
-    {
-      name: PROTOCOL_VERSION_TAG,
-      values: [ '2.0' ],
-    },
-    {
-      name: OPERATION_NAME_TAG,
-      values: ['Inference Request'],
-    },
-    {
-      name: SOLUTION_TRANSACTION_TAG,
-      values: [solutionId],
-    },
-    {
-      name: CONVERSATION_IDENTIFIER_TAG,
-      values: [cid],
-    },
-  ];
-
-  const irysQuery = new Query();
-
-  const messages = await irysQuery.search('irys:transactions').tags(requestQueryTags).from(userAddress).limit(20);
-
-  const requestIds = messages.map(el => el.id);
-
-  // get responses
-  const responseQueryTags = [
-    {
-      name: PROTOCOL_NAME_TAG,
-      values: [ 'FairAI' ],
-    },
-    {
-      name: OPERATION_NAME_TAG,
-      values: ['Inference Response'],
-    },
-    {
-      name: SOLUTION_TRANSACTION_TAG,
-      values: [solutionId],
-    },
-    {
-      name: CONVERSATION_IDENTIFIER_TAG,
-      values: [cid],
-    },
-    {
-      name: REQUEST_TRANSACTION_TAG,
-      values: requestIds,
-    },
-    {
-      name: SOLUTION_USER_TAG,
-      values: [userAddress],
-    }
-  ];
-
-  const responseResult = await clientGateway.query({
-    query: gqlQuery,
-    variables: { tags: responseQueryTags, first: 100 },
-  });
-
-  const conversationData = await Promise.all(parseQueryResult(responseResult).map(async (response) => {
-    try {
-      const requestFor = response.node.tags.find((tag) => tag.name === REQUEST_TRANSACTION_TAG)?.value;
-      const requestTx = messages.find((edge) => edge.id === requestFor) || undefined;
-      const requestTimestamp = requestTx.tags.find((tag) => tag.name === UNIX_TIME_TAG)?.value;
-      const responseData = await fetch(`${NET_ARWEAVE_URL}/${response.node.id}`);
-      const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestFor}`);
-    
-      const requestText = await requestData.text();
-      const responseText = await responseData.text();
-
-      return { requestText, responseText, requestTimestamp };
-    } catch (err) {
-      // ignore responses with errors
-      return { requestText: '', responseText: '', requestTimestamp };
-    }
-  }));
-
-  conversationData.sort((a, b) => b.requestTimestamp - a.requestTimestamp);
-  return conversationData.filter((a, b) => a.requestText !== '' && a.responseText !== ''); // return only valid responses and requests
-};
 
 const registerAsset = async (transactionId) => {
   try {
@@ -273,7 +146,7 @@ const getGeneralTags = (
   let contentType;
   
   const toEncrypt = requestTags.find((tag) => tag.name === 'Private-Mode')?.value === 'true';
-  const inMemory = !!inferenceResult.images || !!inferenceResult.content || toEncrypt;
+  const inMemory = !!inferenceResult.images || !!inferenceResult.content || toEncrypt || inferenceResult.answer;
   
   if (toEncrypt) {
     type = 'encrypted';
@@ -288,7 +161,7 @@ const getGeneralTags = (
     type = 'text';
     contentType = 'text/plain';
   }
-  const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
+  // const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}, ${inferenceResult.prompt}` : inferenceResult.prompt;
   if (prompt.length > MAX_STR_SIZE) {
@@ -470,7 +343,7 @@ const sendToBundlr = async (
 ) => {
   let responses;
   const toEncrypt = requestTags.find((tag) => tag.name === 'Private-Mode')?.value === 'true';
-  const inMemory = !!inferenceResult.images || !!inferenceResult.content;
+  const inMemory = !!inferenceResult.images || !!inferenceResult.content || !!inferenceResult.answer;
   
   if (inMemory && inferenceResult.images && toEncrypt) {
     responses = inferenceResult.images;
@@ -478,7 +351,11 @@ const sendToBundlr = async (
     responses = inferenceResult.images.map((el) => Buffer.from(el, 'base64')); // map paths to 
   } else if (inMemory && inferenceResult.content) {
     responses = inferenceResult.content;
-    promptHistory = `${inferenceResult.formattedPrompt} ${inferenceResult.content}`.replaceAll('<s>', '').replaceAll('</s>', '').replaceAll('undefined', '');
+  } else if (inMemory && inferenceResult.answer) {
+    responses = JSON.stringify({
+      response: inferenceResult.answer,
+      ...(!!inferenceResult.history) && { promptHistory: inferenceResult.history },
+    });
   } else {
     responses = inferenceResult.imgPaths ?? inferenceResult.audioPath;
   }
@@ -486,8 +363,7 @@ const sendToBundlr = async (
   responses = Array.isArray(responses) ? responses : [responses];
   
   const responsesClone = [ ...responses ];
-  let promptHistoryTag;
-  if (toEncrypt && promptHistory) {
+  if (toEncrypt) {
     for (let i = 0; i < responsesClone.length; i++) {
       if (fs.existsSync(responsesClone[i])) {
         const data = fs.readFileSync(responsesClone[i]);
@@ -506,22 +382,9 @@ const sendToBundlr = async (
         responses[i] = JSON.stringify(encrypted);
       }
     }
-
-    const encPromptHistory = encryptSafely({
-      data: promptHistory,
-      publicKey: userPubKey,
-      version: 'x25519-xsalsa20-poly1305'
-    });
-    promptHistoryTag = { name: 'Prompt-History', value: JSON.stringify(encPromptHistory) };
-  } else if (promptHistory) {
-    promptHistoryTag = { name: 'Prompt-History', value: promptHistory };
   }
 
   const generalTags = getGeneralTags(inferenceResult, userAddress, requestTransaction, requestTags, conversationIdentifier, registration);
-
-  if (promptHistoryTag) {
-    generalTags.push(promptHistoryTag);
-  }
 
   const assetNames = requestTags.find((tag) => tag.name === ASSET_NAMES_TAG)?.value;
   try {
@@ -619,7 +482,7 @@ const isValidSize = (size) => {
   }
 };
 
-const parsePayload = (format, text, settings, negativePrompt, conversationData = '', customImagesSize) => {
+const parsePayload = (format, text, settings, negativePrompt, conversationData = '', customImagesSize, contextData = '') => {
   let payload;
 
   if (format === 'webui') {
@@ -662,6 +525,31 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData =
       ['n_keep']: -1, // keep all tokens
       ['repeat_last_n']: 1, // use context size for repetition penalty
     });
+  } else if (format === 'ollama') {
+    let newPrompt;
+
+    if (contextData && !conversationData) {
+      newPrompt = {
+        role: 'user',
+        content: `Using this data: ${contextData}. Answer to this prompt: ${text}`
+      }; 
+    } else {
+      newPrompt = newPrompt = {
+        role: 'user',
+        content: `${text}`
+      };
+    }
+    let messages = [];
+    try {
+      messages = messages.concat(...JSON.parse(conversationData), newPrompt);
+    } catch (err) {
+      // 
+      messages.push(newPrompt);
+    }
+
+    payload = JSON.stringify({
+      messages
+    });
   } else {
     payload = text;
   }
@@ -672,7 +560,7 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData =
 const runInference = async (url, format, payload, text) => {
   const res = await fetch(url, {
     method: 'POST',
-    ...(format === 'webui' && { headers: {
+    ...((format === 'webui' || format === 'ollama') && { headers: {
       'accept': 'application/json',
       'Content-Type': 'application/json'
     }}),
@@ -704,6 +592,13 @@ const runInference = async (url, format, payload, text) => {
       formattedPrompt: JSON.parse(payload).prompt,
       prompt: text,
       content: tempData.content,
+    };
+  } else if (tempData.messages && tempData.answer) {
+    // ollama response
+    return {
+      history: JSON.stringify(tempData.messages),
+      prompt: text,
+      answer: tempData.answer
     };
   } else {
     throw new Error('Invalid response from server');
@@ -746,11 +641,12 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
 
   const isEncrypted = requestTx.tags.find((tag) => tag.name === 'Private-Mode')?.value === 'true';
   if (!userPubKey && isEncrypted) {
-    throw new Error(`Missing public key for encryption`);
+    throw new Error('Missing public key for encryption');
   }
 
   let text = '';
   let promptHistory = '';
+  let contextData = '';
   if (contentType.includes('pdf')) {
     /* throw new Error('PDF NOT SUPPORTED'); */
     try {
@@ -800,20 +696,49 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
       } catch (err) {
         workerpool.workerEmit({ type: 'error', message: err.message });
       }
-  } else if (isEncrypted && format === 'llama.cpp') {
+  } else if (isEncrypted && (format === 'llama.cpp' || format === 'ollama')) {
     // decrypt with pk
-    // const encData = await requestData.json();
-    const encData = requestTx.tags.find((tag) => tag.name === 'Encrypted-Data-For-Operator')?.value;
-    const decData = decryptSafely({ encryptedData: JSON.parse(encData), privateKey: operatorPk.replace('0x', '') });
-    text = decData.text;
+    const encData = await requestData.text();
+    const decData = decryptSafely({ encryptedData: JSON.parse(encData).encForOperator, privateKey: operatorPk.replace('0x', '') });
+    text = decData.prompt;
     promptHistory = decData.promptHistory;
+    if (promptHistory) {
+      // no need to have contextData
+    } else {
+      const contextDataFileUrl = requestTx.tags.find(tag => tag.name === 'Context-File-Url')?.value;
+      try {
+        const res = await fetch(contextDataFileUrl); // try to fetch url
+        if (res.headers.get('Content-Type')?.includes('text')) {
+          contextData = await contextDataFileUrl.text();
+        } else {
+          const { encForOperator } = JSON.parse(await res.text());
+          contextData = decryptSafely({ encryptedData: encForOperator, privateKey: operatorPk.replace('0x', '') });
+        }
+      } catch (err) {
+        // ignore context
+      }
+    }
   } else if (isEncrypted) {
-    const encData = requestTx.tags.find((tag) => tag.name === 'Encrypted-Data-For-Operator')?.value;
-    text = decryptSafely({ encryptedData: JSON.parse(encData), privateKey: operatorPk.replace('0x', '') });
+    const encData = await requestData.text();
+    text = decryptSafely({ encryptedData: JSON.parse(encData).encForOperator, privateKey: operatorPk.replace('0x', '') });
+  } else if (format === 'llama.cpp' || format === 'ollama') {
+    const data = await requestData.text();
+    
+    text = JSON.parse(data).prompt;
+    promptHistory = JSON.parse(data).promptHistory;
+    if (promptHistory) {
+      // ignore
+    } else {
+      try {
+        const contextDataFileUrl = requestTx.tags.find(tag => tag.name === 'Context-File-Url')?.value;
+        const res = await fetch(contextDataFileUrl); // try to fetch url
+        contextData = await res.text();
+      } catch (err) {
+        // ignore context
+      }
+    }
   } else {
-    text = await (await requestData.blob()).text();
-    const promptHistoryTagValue = requestTx.tags.find(tag => tag.name === 'Prompt-History')?.value;
-    promptHistory = promptHistoryTagValue;
+    text = await requestData.text();
   }
 
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
@@ -821,7 +746,7 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
   const customWith = requestTx.tags.find((tag) => tag.name === IMAGES_WIDTH_TAG)?.value;
   const customHeight = requestTx.tags.find((tag) => tag.name === IMAGES_HEIGHT_TAG)?.value;
   const customImagesSize = { width: customWith, height: customHeight };
-  const payload = parsePayload(format, text, settings, negativePrompt, promptHistory, customImagesSize);
+  const payload = parsePayload(format, text, settings, negativePrompt, promptHistory, customImagesSize, contextData);
 
   const maxImages = 10;
 

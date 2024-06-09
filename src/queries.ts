@@ -26,7 +26,6 @@ import {
   SOLUTION_TRANSACTION_TAG,
 } from './constants';
 import { IEdge, ITransactions } from './interfaces';
-import CONFIG from '../config.json' assert { type: 'json' };
 
 const clientGateway = new ApolloClient({
   uri: 'https://arweave.net:443/graphql',
@@ -41,9 +40,9 @@ const clientGateway = new ApolloClient({
   },
 });
 
-const gqlQuery = gql`
-  query FIND_BY_TAGS($tags: [TagFilter!], $first: Int!, $after: String) {
-    transactions(tags: $tags, first: $first, after: $after, sort: HEIGHT_DESC) {
+const queryById = gql`
+  query FIND_BY_ID($ids: [ID!]) {
+    transactions(ids: $ids, first: 1, sort: HEIGHT_DESC) {
       pageInfo {
         hasNextPage
       }
@@ -131,6 +130,7 @@ export const queryTransactionAnswered = async (
   transactionId: string,
   address: string,
   solutionTransaction: string,
+  necessaryAnswers: number,
 ) => {
   const tags = [
     {
@@ -156,8 +156,8 @@ export const queryTransactionAnswered = async (
   ];
   const result = await clientGateway.query({
     query: gql`
-      query TransactionAnswered($tags: [TagFilter!], $owner: String!) {
-        transactions(first: 1, tags: $tags, owners: [$owner], sort: HEIGHT_DESC) {
+      query TransactionAnswered($tags: [TagFilter!], $owner: String!, $first: Int!) {
+        transactions(first: $first, tags: $tags, owners: [$owner], sort: HEIGHT_DESC) {
           edges {
             node {
               id
@@ -178,7 +178,7 @@ export const queryTransactionAnswered = async (
         }
       }
     `,
-    variables: { tags, owner: address },
+    variables: { tags, owner: address, first: necessaryAnswers },
   });
 
   return parseQueryResult(result);
@@ -281,4 +281,13 @@ export const isEvmWalletLinked = async (arweaveAddress: string, evmAddress?: str
   const evmWallet = await response.text() as `0x${string}`;
 
   return { isLinked: evmAddress ? evmWallet === evmAddress : !!evmWallet, blockTimestamp: foundLink.node.block?.timestamp, evmWallet };
-}
+};
+
+export const getById = async (id: string) => {
+  const { data }: { data: { transactions: ITransactions } } = await clientGateway.query({
+    query: queryById,
+    variables: { ids: [ id ] },
+  });
+
+  return data.transactions.edges[0];
+};

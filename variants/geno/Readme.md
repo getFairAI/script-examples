@@ -52,3 +52,40 @@ pip install flask-cors
 ```sh
 python geno.py
 ```
+
+*Optional:* Make the script always run in the background when the computer starts
+
+* Run this command
+
+```sh
+sudo nano /lib/systemd/system/ollama.service
+```
+
+**Note:** You should only run one loop for this script for each PC, even when using other models with the same configuration
+
+* Put the following text into the newly created file (replace all the "user" from the text with your system username, and replace the working directory with the folder where you have installed the script)
+
+```conf
+[Unit]
+Description=Ollama server
+[Service]
+WorkingDirectory=/home/user/Desktop/geno/
+ExecStart=/home/fair-node/anaconda3/envs/llama-cpp-env/bin/python geno_server.py
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
+```
+
+* Run this command
+
+```sh
+sudo systemctl daemon-reload
+```
+
+* Run this command
+
+```sh
+sudo systemctl start ollama.service
+```
+
+#### This is all for today, congrats if you made this far!

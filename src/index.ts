@@ -31,6 +31,7 @@ import {
   isRegistrationCancelled,
   isEvmWalletLinked,
   queryTransactionAnswered,
+  getById,
 } from './queries';
 import { JWKInterface } from 'arweave/node/lib/wallet';
 import workerpool from 'workerpool';
@@ -39,7 +40,7 @@ import { fileURLToPath } from 'url';
 import { Mutex } from 'async-mutex';
 import NodeBundlr from '@bundlr-network/client/build/esm/node/index';
 import { arbitrum } from 'viem/chains';
-import { Log, PrivateKeyAccount, PublicClient, WalletClient, createPublicClient, createWalletClient, encodeFunctionData, erc20Abi, formatEther, formatUnits, getContract, hexToBigInt, hexToString, http, parseUnits, stringToHex } from 'viem';
+import { Log, PrivateKeyAccount, PublicClient, WalletClient, createPublicClient, createWalletClient, encodeFunctionData, erc20Abi, formatEther, formatUnits, getContract, hexToBigInt, hexToString, http, parseUnits, stringToHex, isAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { Query } from '@irys/query';
 import { getEncryptionPublicKey } from '@metamask/eth-sig-util';
@@ -113,7 +114,6 @@ const findRegistrations = async () => {
 
 const validateRegistration = async (tx: IEdge) => {
   const urls = CONFIG.urls;
-  let hasErrors = false;
   const txid = tx.node.id;
   const tags = tx.node.tags;
 
@@ -123,35 +123,39 @@ const validateRegistration = async (tx: IEdge) => {
 
   if (!solutionId) {
     logger.error(`Could not find Solution Transaction for registration '${txid}'. Ignoring...`);
-    hasErrors = true;
+    return;
+  }
+
+  const solutionTx = await getById(solutionId);
+
+  if (!solutionTx) {
+    logger.error(`Could not find Solution Transaction for registration '${txid}'. Ignoring...`);
+    return;
   }
 
   if (feeIndex < 0) {
     logger.error(`Could not find Operator Fee Tag for registration '${txid}'. Ignoring...`);
-    hasErrors = true;
+    return;
   }
 
   const opFee = parseFloat(tags[feeIndex].value);
   if (Number.isNaN(opFee) || opFee <= 0) {
     logger.error(`Invalid Operator Fee Found for registration '${txid}'. Ignoring...`);
-    hasErrors = true;
+    return;
   }
 
-  const evmRewardsAddr = tags.find((tag) => tag.name === 'Rewards-Evm-Address')?.value;
+  
+  const evmRewardsAddr = solutionTx.node.tags.find((tag) => tag.name === 'Rewards-Evm-Address')?.value;
 
   const urlConfigs: UrlConfig[] = (urls as any)[solutionId as string];
 
-  if (!hasErrors) {
-    registrations.push({
-      models: urlConfigs,
-      solutionRewardsEvmAddress: evmRewardsAddr as `0x${string}`,
-      solutionId: solutionId as string,
-      operatorFee: opFee,
-      registrationTx: tx,
-    });
-  } else {
-    // ignore registrations with errors
-  }
+  registrations.push({
+    models: urlConfigs,
+    solutionRewardsEvmAddress: (isAddress(evmRewardsAddr ?? '') ? evmRewardsAddr : '') as `0x${string}`,
+    solutionId: solutionId as string,
+    operatorFee: opFee,
+    registrationTx: tx,
+  });
 };
 
 const sendProofOfLife = async () => {
@@ -208,7 +212,7 @@ const handleWorkerEvents = (
   }
 };
 
-const sendUSDC = async (target: `0x${string}`, amount: number, arweaveTx: string) => {
+const sendUSDC = async (target: `0x${string}`, amount: number, arweaveTx: string, nonce?: number) => {
   if (!walletClient || !publicClient) {
     throw new Error('Client Not Set. Please Call setProvider()');
   }
@@ -233,7 +237,16 @@ const sendUSDC = async (target: `0x${string}`, amount: number, arweaveTx: string
 
   const memo = stringToHex(arweaveTx).slice(2); // 0x prefix is removed
 
+  if (!nonce) {
+    nonce = await publicClient.getTransactionCount({  
+      address: evmAccount.address,
+    });
+  } else {
+    // use nonce from params
+  }
+
   const request = await walletClient.prepareTransactionRequest({
+    nonce,
     account: walletClient.account!,
     to: NATIVE_USDC_ARB,
     chain: CHAIN,
@@ -270,7 +283,6 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
     return;
   }
 
-  const reqUserAddr = transaction.from;
   const irysQuery = new Query();
 
   const [ txData ] = await irysQuery.search('irys:transactions').ids([arweaveTx]).limit(1);
@@ -321,6 +333,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
       txData.id,
       arweaveAddress,
       registrations[registrationIdx].solutionId,
+      necessaryAnswers,
     );
 
     if (responseTxs.length > 0  && responseTxs.length >= necessaryAnswers) {
@@ -337,9 +350,9 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
         VAULT_EVM_ADDRESS,
       ];
       
-      const solutioRewardsAddr = registrations[registrationIdx].solutionRewardsEvmAddress;
-      if (solutioRewardsAddr) {
-        recipients.push(solutioRewardsAddr);
+      const solutionRewardsAddr = registrations[registrationIdx].solutionRewardsEvmAddress;
+      if (solutionRewardsAddr) {
+        recipients.push(solutionRewardsAddr);
       }
 
       const marketplaceCut = MARKETPLACE_PERCENTAGE_FEE * finalOperatorFee;
@@ -361,7 +374,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
       let hasPaidCurator = false;
       let hasPaidMarketplace = false;
       for (const sentPayment of operatorTransfers) {
-        if (hasPaidMarketplace && (hasPaidCurator || !solutioRewardsAddr)) {
+        if (hasPaidMarketplace && (hasPaidCurator || !solutionRewardsAddr)) {
           // if payments already found no need to query further          
           break;
         }
@@ -375,20 +388,23 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
         if (txMemo === arweaveTx && sentPayment.args.from === evmAccount.address && sentPayment.args.to === VAULT_EVM_ADDRESS && value >= parseUnits(marketplaceCut.toString(), 6)) {
           // found a payment with the right amount to marketplace and refering to the correct arweave tx
           hasPaidMarketplace = true;
-        } else if (!!solutioRewardsAddr && txMemo === arweaveTx && sentPayment.args.from === evmAccount.address && sentPayment.args.to === solutioRewardsAddr && value >= parseUnits(curatorCut.toString(), 6)) {
+        } else if (!!solutionRewardsAddr && txMemo === arweaveTx && sentPayment.args.from === evmAccount.address && sentPayment.args.to === solutionRewardsAddr && value >= parseUnits(curatorCut.toString(), 6)) {
           // found a payment with the right amount to curator and refering to the correct arweave tx
           hasPaidCurator = true;
         } else {
           // continue
         }
       }
+      const nonce = await publicClient.getTransactionCount({
+        address: evmAccount.address,
+      });
 
       if (!hasPaidMarketplace) {
-        await sendUSDC(VAULT_EVM_ADDRESS, marketplaceCut, arweaveTx);
+        await sendUSDC(VAULT_EVM_ADDRESS, marketplaceCut, arweaveTx, nonce);
       }
 
-      if (solutioRewardsAddr && !hasPaidCurator) {
-        await sendUSDC(solutioRewardsAddr, marketplaceCut, arweaveTx);
+      if (solutionRewardsAddr && !hasPaidCurator) {
+        await sendUSDC(solutionRewardsAddr, curatorCut, arweaveTx, nonce + 1);
       }
     }, 0);
   } else {

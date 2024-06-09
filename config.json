@@ -2,7 +2,7 @@
   "urls": {
     "x8D4-9-lR05EJPlQ_UeRYkL1KPI28Of2NLeepY7CBbo": [
       {
-        "name": "Photon - v1",
+        "name": "Photon",
         "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
         "payloadFormat": "webui",
         "settings": {
@@ -23,7 +23,7 @@
         }
       },
       {
-        "name": "Copax TimeLessXL - SDXL1.0 V7",
+        "name": "Copax TimeLessXL - SDXL1.0",
         "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
         "payloadFormat": "webui",
         "settings": {
@@ -61,7 +61,7 @@
         }
       },
       {
-        "name": "albedo-base-xl",
+        "name": "AlbedoBase XL",
         "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
         "payloadFormat": "webui",
         "settings": {
@@ -84,9 +84,401 @@
     ],
     "nXIPpMJ8jN9wusSxcTIijwSHgvb6Z19-Iswzr8A3g2Q": [
       {
-        "name": "Mixtral 8x7b Instruct v0.1", 
-        "url": "http://127.0.0.1:8080/completion",
-        "payloadFormat": "llama.cpp"
+        "name": "Llama3",
+        "url": "http://127.0.0.1:5000/process",
+        "payloadFormat": "ollama"
+      }
+    ],
+    "vLeSUPae1fEzEBRYrXJaplikgPAqa3eOVC38mUaDYZk": [
+      {
+        "name": "Llama3",
+        "url": "http://127.0.0.1:5000/process",
+        "payloadFormat": "ollama"
+      }
+    ],
+    "5tl8yIoz0tI9MMTA4ereCBLxY4ioZRsnBmpjh0heW-4": [
+      {
+        "name": "vits",
+        "url": "http://127.0.0.1:8089",
+        "payloadFormat": "default"
+      }
+    ],
+    "j8wkH4jRdPygr6DY106n9ibq_WLeA1jaoDgJ16PlFJI": [
+      {
+        "name": "Llama3",
+        "url": "http://127.0.0.1:5000/process",
+        "payloadFormat": "ollama"
+      }
+    ],
+    "XK1YGb6o2pn10t0usz8VpeICazYlRM5VOTf-1YG80mc": [
+      {
+        "name": "dreamShaper-8",
+        "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+        "payloadFormat": "webui",
+        "settings": {
+          "enable_hr": "true",
+          "denoising_strength": 0.55,
+          "hr_scale": 2,
+          "hr_upscaler": "Latent",
+          "hr_second_pass_steps": 40,
+          "seed": -1,
+          "n_iter": 4,
+          "steps": 30,
+          "cfg_scale": 8,
+          "width": 512,
+          "height": 768,
+          "negative_prompt": "BadDream, FastNegativeV2",
+          "sampler_index": "DPM++ SDE Karras",
+          "override_settings": {
+            "sd_model_checkpoint": "dreamshaper_8.safetensors [879db523c3]",
+            "sd_vae": "None",
+            "CLIP_stop_at_last_layers": 2
+          },
+          "alwayson_scripts": {
+            "ADetailer": {
+              "args": [
+          {
+                  "ad_model": "face_yolov8n.pt",
+                  "ad_mask_blur": 4,
+                  "ad_confidence": 0.3,
+                  "ad_dilate_erode": 4,
+                  "ad_inpaint_only_masked_padding": 0,
+                  "ad_negative_prompt": "BadDream",
+                  "ad_denoising_strength": 0.27,
+                  "ad_inpaint_only_masked": true
+                },
+          {
+                  "ad_model": "hand_yolov8n.pt",
+                  "ad_prompt": "beautiful hands",
+                  "ad_mask_blur": 4,
+                  "ad_confidence": 0.3,
+                  "ad_dilate_erode": 4,
+                  "ad_inpaint_only_masked_padding": 0,
+                  "ad_negative_prompt": "BadDream",
+                  "ad_denoising_strength": 0.4,
+                  "ad_inpaint_only_masked": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "dreamShaper-xl",
+        "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+        "payloadFormat": "webui",
+        "settings": {
+          "enable_hr": "true",
+          "denoising_strength": 0.55,
+          "hr_scale": 2,
+          "hr_upscaler": "Latent",
+          "hr_second_pass_steps": 20,
+          "seed": -1,
+          "n_iter": 4,
+          "steps": 40,
+          "cfg_scale": 8,
+          "width": 512,
+          "height": 768,
+          "negative_prompt": "embedding:BadDream, embedding:FastNegativeV2",
+          "sampler_index": "DPM++ SDE Karras",
+          "override_settings": {
+            "sd_model_checkpoint": "dreamshaperXL10_alpha2Xl10.safetensors [0f1b80cfe8]",
+            "sd_vae": "None",
+            "CLIP_stop_at_last_layers": 2
+          },
+          "alwayson_scripts": {
+            "ADetailer": {
+              "args": [
+          {
+                  "ad_model": "face_yolov8n.pt",
+                  "ad_mask_blur": 4,
+                  "ad_confidence": 0.3,
+                  "ad_dilate_erode": 4,
+                  "ad_inpaint_only_masked_padding": 0,
+                  "ad_negative_prompt": "BadDream",
+                  "ad_denoising_strength": 0.27,
+                  "ad_inpaint_only_masked": true
+                },
+          {
+                  "ad_model": "hand_yolov8n.pt",
+                  "ad_prompt": "beautiful hands",
+                  "ad_mask_blur": 4,
+                  "ad_confidence": 0.3,
+                  "ad_dilate_erode": 4,
+                  "ad_inpaint_only_masked_padding": 0,
+                  "ad_negative_prompt": "BadDream",
+                  "ad_denoising_strength": 0.4,
+                  "ad_inpaint_only_masked": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "3D Animation Style",
+        "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+        "payloadFormat": "webui",
+        "settings": {
+          "enable_hr": "true",
+          "denoising_strength": 0.3,
+          "hr_scale": 2,
+          "hr_upscaler": "Latent",
+          "hr_second_pass_steps": 20,
+          "prompt": "masterpiece, best quality",
+          "seed": -1,
+          "n_iter": 4,
+          "steps": 20,
+          "cfg_scale": 7,
+          "negative_prompt": "EasyNegative, drawn by bad-artist, sketch by bad-artist-anime, (artist name, signature, watermark:1.4), (ugly:1.2), (worst quality, poor details:1.4), bad-hands-5, badhandv4, blurry, (worst quality, low quality:1.4), watermark, signature",
+          "sampler_index": "Euler a",
+          "override_settings": {
+            "sd_model_checkpoint": "disneyPixarCartoon_v10.safetensors [732d0dd2cf]",
+            "sd_vae": "MoistMix.vae.pt",
+            "CLIP_stop_at_last_layers": 2
+          }
+        }
+      },
+      {
+        "name": "AniVerse v2.0 - HD",
+        "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+        "payloadFormat": "webui",
+        "settings": {
+          "enable_hr": false,
+          "seed": -1,
+          "n_iter": 1,
+          "steps": 50,
+          "cfg_scale": 6.5,
+          "width": 720,
+          "height": 1280,
+          "negative_prompt": "(worst quality:1.8, low quality:1.8), negative_hand-neg, moles, mole, tears, piercing, freckles, skindentation, cutoffs, shiny skin, lucid skin, pendant, bad-hands-5, scars on face, water on face, waterdrop on face",
+          "sampler_index": "DPM++ 2M SDE Karras",
+          "override_settings": {
+            "sd_model_checkpoint": "Aniverse-Pruned-V20.safetensors [7e776b531f]",
+            "sd_vae": "None",
+            "CLIP_stop_at_last_layers": 2
+          },
+          "alwayson_scripts": {
+            "ADetailer": {
+              "args": [
+                {
+                  "ad_model": "face_yolov8n.pt",
+                  "ad_mask_blur": 4,
+                  "ad_confidence": 0.3,
+                  "ad_dilate_erode": 4,
+                  "ad_inpaint_only_masked_padding": 32,
+                  "ad_denoising_strength": 0.4,
+                  "ad_inpaint_only_masked": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "AniThing v1.0",
+        "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+        "payloadFormat": "webui",
+        "settings": {
+          "enable_hr": false,
+          "seed": -1,
+          "n_iter": 1,
+          "steps": 25,
+          "cfg_scale": 5.5,
+          "width": 576,
+          "height": 1024,
+          "negative_prompt": "(worst quality:1.8, low quality:1.8), negative_hand-neg, bad-hands-5, naked, nude, braless, cross, sepia, black&white, B&W, painting, drawing, illustration",
+          "sampler_index": "DPM++ 2M SDE Karras",
+          "override_settings": {
+            "sd_model_checkpoint": "AniThing-Pruned-V1.0.safetensors [7e98b59075]",
+            "sd_vae": "None",
+            "CLIP_stop_at_last_layers": 2
+          },
+          "alwayson_scripts": {
+            "ADetailer": {
+              "args": [
+                {
+                  "ad_model": "face_yolov8n.pt",
+                  "ad_mask_blur": 4,
+                  "ad_confidence": 0.3,
+                  "ad_dilate_erode": 4,
+                  "ad_inpaint_only_masked_padding": 32,
+                  "ad_denoising_strength": 0.4,
+                  "ad_inpaint_only_masked": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "Animerge v2.2",
+        "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+        "payloadFormat": "webui",
+        "settings": {
+          "enable_hr": false,
+          "seed": -1,
+          "n_iter": 1,
+          "steps": 150,
+          "cfg_scale": 7,
+          "width": 512,
+          "height": 904,
+          "negative_prompt": "EasyNegative, bad-hands-5, moles, freckles, bad-hands-5, scars on face,",
+          "sampler_index": "DPM++ 2M SDE Karras",
+          "override_settings": {
+            "sd_model_checkpoint": "Animerge-Pruned-V2.2.safetensors [43f2010f45]",
+            "sd_vae": "None",
+            "CLIP_stop_at_last_layers": 2
+          },
+          "alwayson_scripts": {
+            "ADetailer": {
+              "args": [
+                {
+                  "ad_model": "face_yolov8n.pt",
+                  "ad_mask_blur": 4,
+                  "ad_confidence": 0.3,
+                  "ad_dilate_erode": 4,
+                  "ad_inpaint_only_masked_padding": 32,
+                  "ad_denoising_strength": 0.4,
+                  "ad_inpaint_only_masked": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "AniToon V1.2",
+        "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+        "payloadFormat": "webui",
+        "settings": {
+          "enable_hr": false,
+          "seed": -1,
+          "n_iter": 1,
+          "steps": 30,
+          "cfg_scale": 7,
+          "width": 576,
+          "height": 1024,
+          "negative_prompt": "EasyNegative, negative_hand-neg, bad-hands-5",
+          "sampler_index": "DPM++ 2M SDE Karras",
+          "override_settings": {
+            "sd_model_checkpoint": "AniToon V1.2.safetensors [c25b8ee9f1]",
+            "sd_vae": "None",
+            "CLIP_stop_at_last_layers": 2
+          },
+          "alwayson_scripts": {
+            "ADetailer": {
+              "args": [
+                {
+                  "ad_model": "face_yolov8n.pt",
+                  "ad_mask_blur": 4,
+                  "ad_confidence": 0.3,
+                  "ad_dilate_erode": 4,
+                  "ad_inpaint_only_masked_padding": 32,
+                  "ad_denoising_strength": 0.4,
+                  "ad_inpaint_only_masked": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "AniMics v1.2",
+        "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+        "payloadFormat": "webui",
+        "settings": {
+          "enable_hr": false,
+          "seed": -1,
+          "n_iter": 1,
+          "steps": 50,
+          "cfg_scale": 7,
+          "width": 576,
+          "height": 1024,
+          "negative_prompt": "(worst quality:1.4, low quality:1.4), negative_hand-neg, bad-hands-5",
+          "sampler_index": "DPM++ 2M SDE Karras",
+          "override_settings": {
+            "sd_model_checkpoint": "AniMics V1.2.safetensors [6225e42d50]",
+            "sd_vae": "None",
+            "CLIP_stop_at_last_layers": 2
+          },
+          "alwayson_scripts": {
+            "ADetailer": {
+              "args": [
+                {
+                  "ad_model": "face_yolov8n.pt",
+                  "ad_mask_blur": 4,
+                  "ad_confidence": 0.3,
+                  "ad_dilate_erode": 4,
+                  "ad_inpaint_only_masked_padding": 32,
+                  "ad_denoising_strength": 0.4,
+                  "ad_inpaint_only_masked": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "AniMesh V2.2",
+        "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+        "payloadFormat": "webui",
+        "settings": {
+          "enable_hr": false,
+          "seed": -1,
+          "n_iter": 1,
+          "steps": 50,
+          "cfg_scale": 7,
+          "width": 576,
+          "height": 1024,
+          "negative_prompt": "bad-image-v2-39000, EasyNegative",
+          "sampler_index": "DPM++ 2M SDE Karras",
+          "override_settings": {
+            "sd_model_checkpoint": "Animesh-Pruned-V22.safetensors [b073119e30]",
+            "sd_vae": "None",
+            "CLIP_stop_at_last_layers": 2
+          },
+          "alwayson_scripts": {
+            "ADetailer": {
+              "args": [
+                {
+                  "ad_model": "face_yolov8n.pt",
+                  "ad_mask_blur": 4,
+                  "ad_confidence": 0.3,
+                  "ad_dilate_erode": 4,
+                  "ad_inpaint_only_masked_padding": 32,
+                  "ad_denoising_strength": 0.4,
+                  "ad_inpaint_only_masked": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "MeinaPastel Anime Illustration V5",
+        "url": "http://127.0.0.1:7860/sdapi/v1/txt2img",
+        "payloadFormat": "webui",
+        "settings": {
+          "enable_hr": "true",
+          "denoising_strength": 0.4,
+          "hr_scale": 2,
+          "hr_upscaler": "R-ESRGAN 4x+ Anime6B",
+          "hr_second_pass_steps": 10,
+          "seed": -1,
+          "n_iter": 4,
+          "steps": 30,
+          "cfg_scale": 4,
+          "width": 512,
+          "height": 1024,
+          "negative_prompt": "(worst quality, low quality:1.4), monochrome, zombie, (interlocked fingers)",
+          "sampler_index": "DPM++ SDE Karras",
+          "override_settings": {
+            "sd_model_checkpoint": "meinapastel_v5AnimeIllustration.safetensors [ff1bb68db1]",
+            "sd_vae": "None",
+            "CLIP_stop_at_last_layers": 2
+          }
+        }
       }
     ]
   },
