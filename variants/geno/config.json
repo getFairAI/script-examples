@@ -1,0 +1,23 @@
+{
+  "urls": {
+    "...geno...": [
+      {
+        "name": "Llama3",
+        "url": "http://127.0.0.1:5000",
+        "payloadFormat": "ollama",
+        "promptFormat": [
+          {
+            "role": "user",
+            "content": "Using this data: $promptHistory. Answer to this prompt: $newPrompt"
+          },
+          {
+            "role": "assistant",
+            "content":  "$answer"
+          }
+        ]
+      }
+    ]
+  },
+  "startBlockHeight": "1250542",
+  "sleepTimeSeconds": 7
+}

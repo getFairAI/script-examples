@@ -18,14 +18,13 @@ const fs = require('fs');
 const crypto = require('crypto');
 const NodeBundlr = require('@bundlr-network/client');
 const { WarpFactory } = require('warp-contracts');
-const { ApolloClient, gql, InMemoryCache } = require('@apollo/client/core');
 const { DeployPlugin } = require('warp-contracts-plugin-deploy');
 const workerpool = require('workerpool');
 const FairSDK = require('@fair-protocol/sdk/cjs');
 const PDFParser = require('pdf2json');
 const { Transform, Readable, Writable } = require('stream');
-const { Query } = require('@irys/query');
 const pdfParser = new PDFParser(this, 1);
+const { decryptSafely, encryptSafely } = require('@metamask/eth-sig-util');
 
 const APP_NAME_TAG = 'App-Name';
 const APP_VERSION_TAG = 'App-Version';
@@ -34,16 +33,16 @@ const PROTOCOL_VERSION_TAG = 'Protocol-Version';
 const CONVERSATION_IDENTIFIER_TAG = 'Conversation-Identifier';
 const CONTENT_TYPE_TAG = 'Content-Type';
 const UNIX_TIME_TAG = 'Unix-Time';
-const SCRIPT_CURATOR_TAG = 'Script-Curator';
-const SCRIPT_NAME_TAG = 'Script-Name';
-const SCRIPT_USER_TAG = 'Script-User';
+const SOLUTION_USER_TAG = 'Solution-User';
+const SOLUTION_NAME_TAG = 'Solution-Name';
+const SOLUTION_CREATOR_TAG = 'Solution-Creator';
 const REQUEST_TRANSACTION_TAG = 'Request-Transaction';
 const OPERATION_NAME_TAG = 'Operation-Name';
 const INFERENCE_TRANSACTION_TAG = 'Inference-Transaction';
 const CONTRACT_TAG = 'Contract';
 const INPUT_TAG = 'Input';
 const SEQUENCE_OWNER_TAG = 'Sequencer-Owner';
-const SCRIPT_TRANSACTION_TAG = 'Script-Transaction';
+const SOLUTION_TRANSACTION_TAG = 'Solution-Transaction';
 const ASSET_NAMES_TAG = 'Asset-Names';
 const NEGATIVE_PROMPT_TAG = 'Negative-Prompt';
 const PROMPT_TAG = 'Prompt';
@@ -55,8 +54,7 @@ const USER_CUSOM_TAGS_TAG = 'User-Custom-Tags';
 const INFERENCE_SEED_TAG = 'Inference-Seed';
 const RESPONSE_TRANSACTION_TAG = 'Response-Transaction';
 const REGISTRATION_TRANSACTION_TAG = 'Registration-Transaction';
-const SCRIPT_OPERATOR_TAG = 'Script-Operator';
-const N_IMAGES_TAG = 'N-Images';
+const SOLUTION_OPERATOR_TAG = 'Solution-Operator';
 const LICENSE_CONFIG_TAG = 'License-Config';
 const CREATOR_TAG = 'Creator';
 const IMAGES_WIDTH_TAG = 'Images-Width';
@@ -67,10 +65,10 @@ const NOT_OVERRIDABLE_TAGS = [
   APP_VERSION_TAG,
   PROTOCOL_NAME_TAG,
   PROTOCOL_VERSION_TAG,
-  SCRIPT_NAME_TAG,
-  SCRIPT_CURATOR_TAG,
+  SOLUTION_NAME_TAG,
+  SOLUTION_CREATOR_TAG,
   OPERATION_NAME_TAG,
-  SCRIPT_TRANSACTION_TAG,
+  SOLUTION_TRANSACTION_TAG,
   INFERENCE_TRANSACTION_TAG,
   REQUEST_TRANSACTION_TAG,
   RESPONSE_TRANSACTION_TAG,
@@ -83,9 +81,9 @@ const NOT_OVERRIDABLE_TAGS = [
   PROMPT_TAG,
   NEGATIVE_PROMPT_TAG,
   INFERENCE_SEED_TAG,
-  SCRIPT_USER_TAG,
+  SOLUTION_USER_TAG,
   CONTENT_TYPE_TAG,
-  SCRIPT_OPERATOR_TAG,
+  SOLUTION_OPERATOR_TAG,
   CONVERSATION_IDENTIFIER_TAG,
   CREATOR_TAG,
 ];
@@ -101,130 +99,6 @@ const JWK = JSON.parse(fs.readFileSync('wallet.json').toString());
 // const bundlr: Bundlr = new (Bundlr as any).default(
 const bundlr = new NodeBundlr('https://up.arweave.net', 'arweave', JWK);
 const warp = WarpFactory.forMainnet().use(new DeployPlugin());
-
-const clientGateway = new ApolloClient({
-  uri: 'https://arweave.net:443/graphql',
-  cache: new InMemoryCache(),
-  defaultOptions: {
-    query: {
-      fetchPolicy: 'no-cache',
-    },
-    watchQuery: {
-      fetchPolicy: 'no-cache',
-    },
-  },
-});
-
-const gqlQuery = gql`
-  query FIND_BY_TAGS($tags: [TagFilter!], $first: Int!, $after: String) {
-    transactions(tags: $tags, first: $first, after: $after, sort: HEIGHT_DESC) {
-      pageInfo {
-        hasNextPage
-      }
-      edges {
-        cursor
-        node {
-          id
-          tags {
-            name
-            value
-          }
-          block {
-            height
-          }
-        }
-      }
-    }
-  }
-`;
-
-const parseQueryResult = (result) =>
-  result.data.transactions.edges;
-
-const queryPreviousMessages = async (userAddress, scriptId, cid) => {
-  const requestQueryTags = [
-    {
-      name: PROTOCOL_NAME_TAG,
-      values: [ 'FairAI' ],
-    },
-    {
-      name: PROTOCOL_VERSION_TAG,
-      values: [ '2.0' ],
-    },
-    {
-      name: OPERATION_NAME_TAG,
-      values: ['Script Inference Request'],
-    },
-    {
-      name: SCRIPT_TRANSACTION_TAG,
-      values: [scriptId],
-    },
-    {
-      name: CONVERSATION_IDENTIFIER_TAG,
-      values: [cid],
-    },
-  ];
-
-  const irysQuery = new Query();
-
-  const messages = await irysQuery.search('irys:transactions').tags(requestQueryTags).from(userAddress).limit(20);
-
-  const requestIds = messages.map(el => el.id);
-
-  // get responses
-  const responseQueryTags = [
-    {
-      name: PROTOCOL_NAME_TAG,
-      values: [ 'FairAI' ],
-    },
-    {
-      name: OPERATION_NAME_TAG,
-      values: ['Script Inference Response'],
-    },
-    {
-      name: SCRIPT_TRANSACTION_TAG,
-      values: [scriptId],
-    },
-    {
-      name: CONVERSATION_IDENTIFIER_TAG,
-      values: [cid],
-    },
-    {
-      name: REQUEST_TRANSACTION_TAG,
-      values: requestIds,
-    },
-    {
-      name: SCRIPT_USER_TAG,
-      values: [userAddress],
-    }
-  ];
-
-  const responseResult = await clientGateway.query({
-    query: gqlQuery,
-    variables: { tags: responseQueryTags, first: 100 },
-  });
-
-  const conversationData = await Promise.all(parseQueryResult(responseResult).map(async (response) => {
-    try {
-      const requestFor = response.node.tags.find((tag) => tag.name === REQUEST_TRANSACTION_TAG)?.value;
-      const requestTx = messages.find((edge) => edge.id === requestFor) || undefined;
-      const requestTimestamp = requestTx.tags.find((tag) => tag.name === UNIX_TIME_TAG)?.value;
-      const responseData = await fetch(`${NET_ARWEAVE_URL}/${response.node.id}`);
-      const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestFor}`);
-    
-      const requestText = await requestData.text();
-      const responseText = await responseData.text();
-
-      return { requestText, responseText, requestTimestamp };
-    } catch (err) {
-      // ignore responses with errors
-      return { requestText: '', responseText: '', requestTimestamp };
-    }
-  }));
-
-  conversationData.sort((a, b) => b.requestTimestamp - a.requestTimestamp);
-  return conversationData.filter((a, b) => a.requestText !== '' && a.responseText !== ''); // return only valid responses and requests
-};
 
 const registerAsset = async (transactionId) => {
   try {
@@ -270,8 +144,14 @@ const getGeneralTags = (
 ) => {
   let type;
   let contentType;
-  const inMemory = !!inferenceResult.images || !!inferenceResult.content;
-  if (inferenceResult.imgPaths || inferenceResult.images) {
+  
+  const toEncrypt = requestTags.find((tag) => tag.name === 'Private-Mode')?.value === 'true';
+  const inMemory = !!inferenceResult.images || !!inferenceResult.content || toEncrypt || inferenceResult.answer;
+  
+  if (toEncrypt) {
+    type = 'encrypted';
+    contentType = 'application/json';
+  } else if (inferenceResult.imgPaths || inferenceResult.images) {
     type = 'image';
     contentType = 'image/png';
   } else if (inferenceResult.audioPath) {
@@ -281,7 +161,7 @@ const getGeneralTags = (
     type = 'text';
     contentType = 'text/plain';
   }
-  const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
+  // const protocolVersion = requestTags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const modelName = requestTags.find((tag) => tag.name === MODEL_NAME_TAG)?.value ?? registration.modelName;
   let prompt = registration.settings?.prompt ? `${registration.settings?.prompt}, ${inferenceResult.prompt}` : inferenceResult.prompt;
   if (prompt.length > MAX_STR_SIZE) {
@@ -308,12 +188,10 @@ const getGeneralTags = (
     { name: PROTOCOL_NAME_TAG, value: 'FairAI' },
     { name: PROTOCOL_VERSION_TAG, value: '2.0' },
     // add logic tags
-    { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
-    { name: MODEL_NAME_TAG, value: modelName },
-    { name: SCRIPT_NAME_TAG, value: registration.scriptName },
-    { name: SCRIPT_CURATOR_TAG, value: registration.scriptCurator },
-    { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
-    { name: SCRIPT_USER_TAG, value: userAddress },
+    { name: OPERATION_NAME_TAG, value: 'Inference Response' },
+   
+    { name: SOLUTION_TRANSACTION_TAG, value: registration.solutionId },
+    { name: SOLUTION_USER_TAG, value: userAddress },
     { name: REQUEST_TRANSACTION_TAG, value: requestTransaction },
     { name: PROMPT_TAG, value: prompt },
     { name: CONVERSATION_IDENTIFIER_TAG, value: conversationIdentifier },
@@ -333,10 +211,19 @@ const getGeneralTags = (
     { name: TOPIC_AI_TAG, value: 'ai-generated' }
   ];
 
+  if (modelName) {
+    generalTags.splice(2, 0, { name: MODEL_NAME_TAG, value: modelName });
+  }
+
   if (inMemory) {
     generalTags.splice(0, 0, { name:'Content-Type', value: contentType },);
   } else {
     // ignore, content type will be added by irys sdk in uploadFile
+  }
+
+  if (toEncrypt) {
+    const appendIdx = generalTags.findIndex((tag) => tag.name === CONVERSATION_IDENTIFIER_TAG) + 1;
+    generalTags.splice(appendIdx, 0, { name: 'Private-Mode', value: 'true' });
   }
 
   const generateAssets = requestTags.find((tag) => tag.name === FairSDK.utils.TAG_NAMES.generateAssets)?.value;
@@ -421,11 +308,11 @@ const getGeneralTags = (
           // ignore
         }
 
-        // if custom user tag is init state override Creator and Script User with firstOwner
+        // if custom user tag is init state override Creator and Solution User with firstOwner
         if (customTag.name === 'Init-State') {
           const firstOwner = JSON.parse(customTag.value).firstOwner;
           const creatorIdx = generalTags.findIndex((tag) => tag.name === CREATOR_TAG);
-          const scriptUserIdx = generalTags.findIndex((tag) => tag.name === SCRIPT_USER_TAG);
+          const solutionUserIdx = generalTags.findIndex((tag) => tag.name === SOLUTION_USER_TAG);
 
           if (creatorIdx >= 0) {
             generalTags.splice(creatorIdx, 1, { name: CREATOR_TAG, value: firstOwner });
@@ -433,8 +320,8 @@ const getGeneralTags = (
             // ignore
           }
 
-          if (scriptUserIdx >= 0) {
-            generalTags.splice(scriptUserIdx, 1, { name: SCRIPT_USER_TAG, value: firstOwner });
+          if (solutionUserIdx >= 0) {
+            generalTags.splice(solutionUserIdx, 1, { name: SOLUTION_USER_TAG, value: firstOwner });
           } else {
             // ignore
           }
@@ -456,18 +343,50 @@ const sendToBundlr = async (
   requestTags,
   conversationIdentifier,
   registration,
+  userPubKey
 ) => {
   let responses;
-  const inMemory = !!inferenceResult.images || !!inferenceResult.content;
-  if (inMemory && inferenceResult.images) {
+  const toEncrypt = requestTags.find((tag) => tag.name === 'Private-Mode')?.value === 'true';
+  const inMemory = !!inferenceResult.images || !!inferenceResult.content || !!inferenceResult.answer;
+  
+  if (inMemory && inferenceResult.images && toEncrypt) {
+    responses = inferenceResult.images;
+  } else if (inMemory && inferenceResult.images) {
     responses = inferenceResult.images.map((el) => Buffer.from(el, 'base64')); // map paths to 
   } else if (inMemory && inferenceResult.content) {
     responses = inferenceResult.content;
+  } else if (inMemory && inferenceResult.answer) {
+    responses = JSON.stringify({
+      response: inferenceResult.answer,
+      ...(!!inferenceResult.history) && { promptHistory: inferenceResult.history },
+    });
   } else {
     responses = inferenceResult.imgPaths ?? inferenceResult.audioPath;
   }
   // turn into array to use same code for single and multiple responses
   responses = Array.isArray(responses) ? responses : [responses];
+  
+  const responsesClone = [ ...responses ];
+  if (toEncrypt) {
+    for (let i = 0; i < responsesClone.length; i++) {
+      if (fs.existsSync(responsesClone[i])) {
+        const data = fs.readFileSync(responsesClone[i]);
+        const encrypted = encryptSafely({
+          data,
+          publicKey: userPubKey,
+          version: 'x25519-xsalsa20-poly1305'
+        });
+        responses[i] = JSON.stringify(encrypted);
+      } else {
+        const encrypted = encryptSafely({
+          data: responsesClone[i],
+          publicKey: userPubKey,
+          version: 'x25519-xsalsa20-poly1305'
+        });
+        responses[i] = JSON.stringify(encrypted);
+      }
+    }
+  }
 
   const generalTags = getGeneralTags(inferenceResult, userAddress, requestTransaction, requestTags, conversationIdentifier, registration);
 
@@ -501,7 +420,7 @@ const sendToBundlr = async (
       }
       
       let transaction;
-      if (inMemory) {
+      if (inMemory || toEncrypt) {
         transaction = await bundlr.upload(response, { tags });
       } else {
         transaction = await bundlr.uploadFile(response, { tags });
@@ -567,7 +486,7 @@ const isValidSize = (size) => {
   }
 };
 
-const parsePayload = (format, text, settings, negativePrompt, conversationData, customImagesSize) => {
+const parsePayload = (format, payloadType, text, settings, negativePrompt, conversationData = '', customImagesSize, contextData = '') => {
   let payload;
 
   if (format === 'webui') {
@@ -597,26 +516,48 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData, 
     webuiPayload['n_iter'] = 1;
   
     payload = JSON.stringify(webuiPayload);
-  } else if (format === 'llama.cpp' && !!conversationData) {
+  } else if (format === 'llama.cpp') {
     // load previous mesages from same conversation
     // parse previous messages and add to payload
     let formattedPrompt = '';
-    for (const x of conversationData) {
-      const prevPrompt = x.requestText;
-      const prevResponse = x.responseText;
 
-      if (prevPrompt.length > 0 && prevResponse.length > 0) {
-        formattedPrompt += `<s> [INST] ${prevPrompt} [/INST] ${prevResponse} </s>`;
-      }
-    }
-
-    formattedPrompt += `[INST] ${text} [/INST]`;
+    formattedPrompt = conversationData ? `<s>${conversationData}</s> [INST] ${text} [/INST]` : `[INST] ${text} [/INST]`;
 
     payload = JSON.stringify({
       prompt: formattedPrompt,
-      ['n_predict']: -1, // Set the maximum number of tokens to predict when generating text. -1 = infinity.
+      ['n_predict']: 100, // Set the maximum number of tokens to predict when generating text. -1 = infinity.
       ['n_keep']: -1, // keep all tokens
       ['repeat_last_n']: 1, // use context size for repetition penalty
+    });
+  } else if (format === 'ollama') {
+    let newPrompt;
+
+    if (contextData && !conversationData) {
+      newPrompt = {
+        role: 'user',
+        content: `Using this data: ${contextData}. Answer to this prompt: ${text}`
+      }; 
+    } else {
+      newPrompt = newPrompt = {
+        role: 'user',
+        content: `${text}`
+      };
+    }
+    let messages = [];
+    try {
+      messages = messages.concat(...JSON.parse(conversationData), newPrompt);
+    } catch (err) {
+      // 
+      messages.push(newPrompt);
+    }
+
+    payload = JSON.stringify({
+      messages
+    });
+  } else if (format === 'arbitrum') {
+    payload = JSON.stringify({
+      prompt: text,
+      type: payloadType
     });
   } else {
     payload = text;
@@ -625,10 +566,10 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData, 
   return payload;
 };
 
-const runInference = async (url, format, payload, scriptId, text) => {
+const runInference = async (url, format, payload, text) => {
   const res = await fetch(url, {
     method: 'POST',
-    ...(format === 'webui' && { headers: {
+    ...((format === 'webui' || format === 'ollama' || format === 'arbitrum') && { headers: {
       'accept': 'application/json',
       'Content-Type': 'application/json'
     }}),
@@ -656,9 +597,23 @@ const runInference = async (url, format, payload, scriptId, text) => {
       prompt: text,
     };
   } else if (tempData.content) {
-    return {
+  return {
+      formattedPrompt: JSON.parse(payload).prompt,
       prompt: text,
       content: tempData.content,
+    };
+  } else if (tempData.answer) {
+    // arbitrum response
+    return {
+      prompt: text,
+      answer: tempData.answer
+    };
+  } else if (tempData.messages && tempData.answer) {
+    // ollama and response
+    return {
+      history: JSON.stringify(tempData.messages),
+      prompt: text,
+      answer: tempData.answer
     };
   } else {
     throw new Error('Invalid response from server');
@@ -685,8 +640,11 @@ class StringifyStream extends Transform {
   };
 }
 
-const inference = async (requestTx, registration, nImages, cid, negativePrompt) => {
-  const { scriptId, url, settings, payloadFormat: format } = registration;
+const inference = async (requestTx, registration, nImages, cid, negativePrompt, operatorPk, userPubKey) => {
+  const modelName = requestTx.tags.find(tag => tag.name === 'Model-Name')?.value;
+  // find matching model name or use first available from config
+  const modelConfig = registration.models.find((model) => model.name === modelName) || registration.models[0];
+  const { url, settings, payloadFormat: format, payloadType } = modelConfig;
 
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.id}`);
   const successStatusCode = 200;
@@ -697,7 +655,14 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt) 
 
   const contentType = requestData.headers.get('Content-Type');
 
+  const isEncrypted = requestTx.tags.find((tag) => tag.name === 'Private-Mode')?.value === 'true';
+  if (!userPubKey && isEncrypted) {
+    throw new Error('Missing public key for encryption');
+  }
+
   let text = '';
+  let promptHistory = '';
+  let contextData = '';
   if (contentType.includes('pdf')) {
     /* throw new Error('PDF NOT SUPPORTED'); */
     try {
@@ -727,12 +692,10 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt) 
           { name: PROTOCOL_NAME_TAG, value: 'FairAI' },
           { name: PROTOCOL_VERSION_TAG, value: protocolVersion },
           // add logic tags
-          { name: OPERATION_NAME_TAG, value: 'Script Inference Response' },
+          { name: OPERATION_NAME_TAG, value: 'Inference Response' },
           { name: MODEL_NAME_TAG, value: modelName },
-          { name: SCRIPT_NAME_TAG, value: registration.scriptName },
-          { name: SCRIPT_CURATOR_TAG, value: registration.scriptCurator },
-          { name: SCRIPT_TRANSACTION_TAG, value: registration.scriptId },
-          { name: SCRIPT_USER_TAG, value:  requestTx.address, },
+          { name: SOLUTION_TRANSACTION_TAG, value: registration.solutionId },
+          { name: SOLUTION_USER_TAG, value:  requestTx.address, },
           { name: REQUEST_TRANSACTION_TAG, value: requestTx.id },
           { name: PROMPT_TAG, value: `https://arweave.net/${requestTx.id}` },
           { name: CONVERSATION_IDENTIFIER_TAG, value: cid },
@@ -749,24 +712,58 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt) 
       } catch (err) {
         workerpool.workerEmit({ type: 'error', message: err.message });
       }
+  } else if (isEncrypted && (format === 'llama.cpp' || format === 'ollama')) {
+    // decrypt with pk
+    const encData = await requestData.text();
+    const decData = decryptSafely({ encryptedData: JSON.parse(encData).encForOperator, privateKey: operatorPk.replace('0x', '') });
+    text = decData.prompt;
+    promptHistory = decData.promptHistory;
+    if (promptHistory) {
+      // no need to have contextData
+    } else {
+      const contextDataFileUrl = requestTx.tags.find(tag => tag.name === 'Context-File-Url')?.value;
+      try {
+        const res = await fetch(contextDataFileUrl); // try to fetch url
+        if (res.headers.get('Content-Type')?.includes('text')) {
+          contextData = await contextDataFileUrl.text();
+        } else {
+          const { encForOperator } = JSON.parse(await res.text());
+          contextData = decryptSafely({ encryptedData: encForOperator, privateKey: operatorPk.replace('0x', '') });
+        }
+      } catch (err) {
+        // ignore context
+      }
+    }
+  } else if (isEncrypted) {
+    const encData = await requestData.text();
+    const { prompt } = decryptSafely({ encryptedData: JSON.parse(encData).encForOperator, privateKey: operatorPk.replace('0x', '') });
+    text = prompt;
+  } else if (format === 'llama.cpp' || format === 'ollama' || format === 'arbitrum') {
+    const data = await requestData.text();
+    
+    text = JSON.parse(data).prompt;
+    promptHistory = JSON.parse(data).promptHistory;
+    if (promptHistory) {
+      // ignore
+    } else {
+      try {
+        const contextDataFileUrl = requestTx.tags.find(tag => tag.name === 'Context-File-Url')?.value;
+        const res = await fetch(contextDataFileUrl); // try to fetch url
+        contextData = await res.text();
+      } catch (err) {
+        // ignore context
+      }
+    }
   } else {
-    text = await (await requestData.blob()).text();
+    text = await requestData.text();
   }
 
   workerpool.workerEmit({ type: 'info', message: `User Prompt: ${text}` });
 
-  let conversationData;
-  if (format === 'llama.cpp') {
-    // load previous conversation messages
-    conversationData = await queryPreviousMessages(requestTx.address, scriptId, cid);
-  } else {
-    // ignore
-  }
-
   const customWith = requestTx.tags.find((tag) => tag.name === IMAGES_WIDTH_TAG)?.value;
   const customHeight = requestTx.tags.find((tag) => tag.name === IMAGES_HEIGHT_TAG)?.value;
   const customImagesSize = { width: customWith, height: customHeight };
-  const payload = parsePayload(format, text, settings, negativePrompt, conversationData, customImagesSize);
+  const payload = parsePayload(format, payloadType, text, settings, negativePrompt, promptHistory, customImagesSize, contextData);
 
   const maxImages = 10;
 
@@ -779,7 +776,7 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt) 
   }
 
   for (let i = 0; i < nIters; i++) {
-    const result = await runInference(url, format, payload, scriptId, text);
+    const result = await runInference(url, format, payload, text);
 
     await sendToBundlr(
       result,
@@ -788,11 +785,12 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt) 
       requestTx.tags,
       cid,
       registration,
+      userPubKey
     );
   }
 };
 
-const processRequest = async (requestTx, nMissingResponses, registration) => {  
+const processRequest = async (requestTx, nMissingResponses, registration, operatorPk, userPubKey) => {  
   if (!requestTx) {
     // If the request doesn't exist, skip
     workerpool.workerEmit({ type: 'error', message: `Request ${requestTx.id} does not exist. Skipping...` });
@@ -815,16 +813,16 @@ const processRequest = async (requestTx, nMissingResponses, registration) => {
   }
 
   const negativePrompt = requestTx.tags.find((tag) => tag.name === NEGATIVE_PROMPT_TAG)?.value;
-  await inference(requestTx, registration, nMissingResponses, conversationIdentifier, negativePrompt);
+  await inference(requestTx, registration, nMissingResponses, conversationIdentifier, negativePrompt, operatorPk, userPubKey);
 
   return requestTx.id;
 };
 
-const processRequestLock = async (requestTx, nMissingResponses, registration) => {
+const processRequestLock = async (requestTx, nMissingResponses, registration, operatorPk, userPubKey) => {
   try {
     workerpool.workerEmit({ type: 'info', message: `Thread working on request ${requestTx.id}...` });
     
-    const result = await processRequest(requestTx, nMissingResponses, registration);
+    const result = await processRequest(requestTx, nMissingResponses, registration, operatorPk, userPubKey);
     
     workerpool.workerEmit({ type: 'result', message: result });
   } catch (e) {
