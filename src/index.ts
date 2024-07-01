@@ -283,6 +283,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
     return;
   }
 
+  const reqUserAddr = transaction.from;
   const irysQuery = new Query();
 
   const [ txData ] = await irysQuery.search('irys:transactions').ids([arweaveTx]).limit(1);

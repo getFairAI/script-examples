@@ -1,5 +1,19 @@
 {
   "urls": {
+    "zq5_Jvd4miO6QDl42XRpPx9iICDe0AVzanvTepJ_s50": [
+      {
+        "url": "http://127.0.0.1:8084/process",
+        "payloadFormat": "arbitrum",
+        "payloadType": "stip"
+      }
+    ],
+    "mcr5GzGYhfP69YU-9eGanEc64zv-b5OooSKmC3dvuFk": [
+      {
+        "url": "http://127.0.0.1:8084/process",
+        "payloadFormat": "arbitrum",
+        "payloadType": "ltipp"
+      }
+    ],
     "x8D4-9-lR05EJPlQ_UeRYkL1KPI28Of2NLeepY7CBbo": [
       {
         "name": "Photon",
@@ -482,6 +496,6 @@
       }
     ]
   },
-  "startBlockHeight": "1363800",
+  "startBlockHeight": "1400000",
   "sleepTimeSeconds": 7
 }

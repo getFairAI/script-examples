@@ -189,7 +189,7 @@ const getGeneralTags = (
     { name: PROTOCOL_VERSION_TAG, value: '2.0' },
     // add logic tags
     { name: OPERATION_NAME_TAG, value: 'Inference Response' },
-    { name: MODEL_NAME_TAG, value: modelName },
+   
     { name: SOLUTION_TRANSACTION_TAG, value: registration.solutionId },
     { name: SOLUTION_USER_TAG, value: userAddress },
     { name: REQUEST_TRANSACTION_TAG, value: requestTransaction },
@@ -210,6 +210,10 @@ const getGeneralTags = (
     { name: UNIX_TIME_TAG, value: (Date.now() / secondInMS).toString() },
     { name: TOPIC_AI_TAG, value: 'ai-generated' }
   ];
+
+  if (modelName) {
+    generalTags.splice(2, 0, { name: MODEL_NAME_TAG, value: modelName });
+  }
 
   if (inMemory) {
     generalTags.splice(0, 0, { name:'Content-Type', value: contentType },);
@@ -482,7 +486,7 @@ const isValidSize = (size) => {
   }
 };
 
-const parsePayload = (format, text, settings, negativePrompt, conversationData = '', customImagesSize, contextData = '') => {
+const parsePayload = (format, payloadType, text, settings, negativePrompt, conversationData = '', customImagesSize, contextData = '') => {
   let payload;
 
   if (format === 'webui') {
@@ -550,6 +554,11 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData =
     payload = JSON.stringify({
       messages
     });
+  } else if (format === 'arbitrum') {
+    payload = JSON.stringify({
+      prompt: text,
+      type: payloadType
+    });
   } else {
     payload = text;
   }
@@ -560,7 +569,7 @@ const parsePayload = (format, text, settings, negativePrompt, conversationData =
 const runInference = async (url, format, payload, text) => {
   const res = await fetch(url, {
     method: 'POST',
-    ...((format === 'webui' || format === 'ollama') && { headers: {
+    ...((format === 'webui' || format === 'ollama' || format === 'arbitrum') && { headers: {
       'accept': 'application/json',
       'Content-Type': 'application/json'
     }}),
@@ -593,8 +602,14 @@ const runInference = async (url, format, payload, text) => {
       prompt: text,
       content: tempData.content,
     };
+  } else if (tempData.answer) {
+    // arbitrum response
+    return {
+      prompt: text,
+      answer: tempData.answer
+    };
   } else if (tempData.messages && tempData.answer) {
-    // ollama response
+    // ollama and response
     return {
       history: JSON.stringify(tempData.messages),
       prompt: text,
@@ -627,8 +642,9 @@ class StringifyStream extends Transform {
 
 const inference = async (requestTx, registration, nImages, cid, negativePrompt, operatorPk, userPubKey) => {
   const modelName = requestTx.tags.find(tag => tag.name === 'Model-Name')?.value;
-  const modelConfig = registration.models.find((model) => model.name === modelName);
-  const { url, settings, payloadFormat: format } = modelConfig;
+  // find matching model name or use first available from config
+  const modelConfig = registration.models.find((model) => model.name === modelName) || registration.models[0];
+  const { url, settings, payloadFormat: format, payloadType } = modelConfig;
 
   const requestData = await fetch(`${NET_ARWEAVE_URL}/${requestTx.id}`);
   const successStatusCode = 200;
@@ -720,8 +736,9 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
     }
   } else if (isEncrypted) {
     const encData = await requestData.text();
-    text = decryptSafely({ encryptedData: JSON.parse(encData).encForOperator, privateKey: operatorPk.replace('0x', '') });
-  } else if (format === 'llama.cpp' || format === 'ollama') {
+    const { prompt } = decryptSafely({ encryptedData: JSON.parse(encData).encForOperator, privateKey: operatorPk.replace('0x', '') });
+    text = prompt;
+  } else if (format === 'llama.cpp' || format === 'ollama' || format === 'arbitrum') {
     const data = await requestData.text();
     
     text = JSON.parse(data).prompt;
@@ -746,7 +763,7 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
   const customWith = requestTx.tags.find((tag) => tag.name === IMAGES_WIDTH_TAG)?.value;
   const customHeight = requestTx.tags.find((tag) => tag.name === IMAGES_HEIGHT_TAG)?.value;
   const customImagesSize = { width: customWith, height: customHeight };
-  const payload = parsePayload(format, text, settings, negativePrompt, promptHistory, customImagesSize, contextData);
+  const payload = parsePayload(format, payloadType, text, settings, negativePrompt, promptHistory, customImagesSize, contextData);
 
   const maxImages = 10;
 

@@ -281,7 +281,7 @@ export const isEvmWalletLinked = async (arweaveAddress: string, evmAddress?: str
   const evmWallet = await response.text() as `0x${string}`;
 
   return { isLinked: evmAddress ? evmWallet === evmAddress : !!evmWallet, blockTimestamp: foundLink.node.block?.timestamp, evmWallet };
-};
+}
 
 export const getById = async (id: string) => {
   const { data }: { data: { transactions: ITransactions } } = await clientGateway.query({
@@ -290,4 +290,4 @@ export const getById = async (id: string) => {
   });
 
   return data.transactions.edges[0];
-};
+}
