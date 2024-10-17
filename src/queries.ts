@@ -68,8 +68,8 @@ const queryById = gql`
 `;
 
 const gqlQueryWithOwners = gql`
-query FIND_BY_TAGS($tags: [TagFilter!], $first: Int!, $after: String, $owners: [String!]) {
-  transactions(tags: $tags, first: $first, after: $after, sort: HEIGHT_DESC, owners: $owners) {
+query FIND_BY_TAGS($tags: [TagFilter!], $first: Int!, $after: String, $owners: [String!], $minBlockHeight: Int!) {
+  transactions(tags: $tags, first: $first, after: $after, sort: HEIGHT_DESC, owners: $owners, block: {min: $minBlockHeight}) {
     pageInfo {
       hasNextPage
     }
@@ -250,7 +250,7 @@ export const queryOperatorRegistrations = async (address: string) => {
 
     const { data }: { data: { transactions: ITransactions } } = await clientGateway.query({
       query: gqlQueryWithOwners,
-      variables: { tags, first, after, owners: [ address ] },
+      variables: { tags, first, after, owners: [ address ], minBlockHeight: 1404705 },
     });
 
     registrationTxs = registrationTxs.concat(data.transactions.edges);
@@ -269,7 +269,7 @@ export const isEvmWalletLinked = async (arweaveAddress: string, evmAddress?: str
   
   const { data }: { data: { transactions: ITransactions } } = await clientGateway.query({
     query: gqlQueryWithOwners,
-    variables: { tags: linkTags, first: 1, owners: [ arweaveAddress ] },
+    variables: { tags: linkTags, first: 1, owners: [ arweaveAddress ], minBlockHeight: 1404705 },
   });
 
   if (!data || data.transactions.edges.length === 0) {

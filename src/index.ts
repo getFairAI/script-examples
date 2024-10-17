@@ -273,13 +273,23 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
   /*  */
   // const userPubKey = 'QjR/p9u/PjzEectlTmYkoloQ6OpalGBstGSdsFG/80c=';
   const data = transaction.input;
+  // decode based on transfer function
   const memoSliceStart = 138;// 0x + function selector 4bytes-8chars + 2 32bytes arguments = 138 chars;
   const hexMemo = data.substring(memoSliceStart, data.length);
 
-  const arweaveTx = hexToString(`0x${hexMemo}`);
+  let arweaveTx = hexToString(`0x${hexMemo}`);
 
-  if (!arweaveTx) {
-    // not a fairAI request
+  const arweaveTxLength = 43;
+
+  if (arweaveTx.length > arweaveTxLength) {
+    // try decode based on transferFrom
+    const tfMemoSliceStart = 202; // 
+    const tfHexMemo = data.substring(tfMemoSliceStart, data.length);
+    arweaveTx = hexToString(`0x${tfHexMemo}`);
+  }
+
+  if (!arweaveTx || arweaveTx.length !== arweaveTxLength) {
+    // ignore
     return;
   }
 
