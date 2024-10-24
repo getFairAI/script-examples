@@ -372,7 +372,7 @@ const sendToBundlr = async (
       if (fs.existsSync(responsesClone[i])) {
         const data = fs.readFileSync(responsesClone[i]);
         const encrypted = encryptSafely({
-          data,
+          data: JSON.stringify(data.toJSON()),
           publicKey: userPubKey,
           version: 'x25519-xsalsa20-poly1305'
         });
@@ -538,7 +538,7 @@ const parsePayload = (format, payloadType, text, settings, negativePrompt, conve
         content: `Using this data: ${contextData}. Answer to this prompt: ${text}`
       }; 
     } else {
-      newPrompt = newPrompt = {
+      newPrompt = {
         role: 'user',
         content: `${text}`
       };
@@ -554,6 +554,15 @@ const parsePayload = (format, payloadType, text, settings, negativePrompt, conve
     payload = JSON.stringify({
       messages
     });
+  } else if (format === 'ollama-simple' && text == 'generate') {
+    payload = JSON.stringify({
+      type: 'report'
+    });
+  } else if (format === 'ollama-simple' && text != 'generate') {
+    payload = JSON.stringify({
+      type: 'open',
+      prompt: text
+    });
   } else if (format === 'arbitrum') {
     payload = JSON.stringify({
       prompt: text,
@@ -567,56 +576,60 @@ const parsePayload = (format, payloadType, text, settings, negativePrompt, conve
 };
 
 const runInference = async (url, format, payload, text) => {
-  const res = await fetch(url, {
-    method: 'POST',
-    ...((format === 'webui' || format === 'ollama' || format === 'arbitrum') && { headers: {
-      'accept': 'application/json',
-      'Content-Type': 'application/json'
-    }}),
-    body: payload,
-  });
-  const tempData = await res.json();
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      ...((format === 'webui' || format === 'ollama' || format === 'arbitrum' || format === 'ollama-simple') && { headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json'
+      }}),
+      body: payload,
+    });
+    const tempData = await res.json();
 
-  if (tempData.images) {
-    const imgSeeds = [];
+    if (tempData.images) {
+      const imgSeeds = [];
 
-    for (const el of tempData.images) {
-      const seed = await fetchSeed(url, el);
-      imgSeeds.push(seed);
+      for (const el of tempData.images) {
+        const seed = await fetchSeed(url, el);
+        imgSeeds.push(seed);
+      }
+
+      return { images: tempData.images, prompt: text, seeds: imgSeeds };
+    } else if (tempData.imgPaths) {
+      return {
+        imgPaths: tempData.imgPaths,
+        prompt: text,
+      };
+    } else if (tempData.audioPath) {
+      return {
+        audioPath: tempData.audioPath,
+        prompt: text,
+      };
+    } else if (tempData.content) {
+      return {
+        formattedPrompt: JSON.parse(payload).prompt,
+        prompt: text,
+        content: tempData.content,
+      };
+    } else if (tempData.answer) {
+      // arbitrum response
+      return {
+        prompt: text,
+        answer: tempData.answer
+      };
+    } else if (tempData.messages && tempData.answer) {
+      // ollama and response
+      return {
+        history: JSON.stringify(tempData.messages),
+        prompt: text,
+        answer: tempData.answer
+      };
+    } else {
+      throw new Error('Invalid response from server');
     }
-
-    return { images: tempData.images, prompt: text, seeds: imgSeeds };
-  } else if (tempData.imgPaths) {
-    return {
-      imgPaths: tempData.imgPaths,
-      prompt: text,
-    };
-  } else if (tempData.audioPath) {
-    return {
-      audioPath: tempData.audioPath,
-      prompt: text,
-    };
-  } else if (tempData.content) {
-  return {
-      formattedPrompt: JSON.parse(payload).prompt,
-      prompt: text,
-      content: tempData.content,
-    };
-  } else if (tempData.answer) {
-    // arbitrum response
-    return {
-      prompt: text,
-      answer: tempData.answer
-    };
-  } else if (tempData.messages && tempData.answer) {
-    // ollama and response
-    return {
-      history: JSON.stringify(tempData.messages),
-      prompt: text,
-      answer: tempData.answer
-    };
-  } else {
-    throw new Error('Invalid response from server');
+  } catch (err) {
+    console.log(err);
   }
 };
 
@@ -736,8 +749,8 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
     }
   } else if (isEncrypted) {
     const encData = await requestData.text();
-    const { prompt } = decryptSafely({ encryptedData: JSON.parse(encData).encForOperator, privateKey: operatorPk.replace('0x', '') });
-    text = prompt;
+    const result = decryptSafely({ encryptedData: JSON.parse(encData).encForOperator, privateKey: operatorPk.replace('0x', '') });
+    text = result;
   } else if (format === 'llama.cpp' || format === 'ollama' || format === 'arbitrum') {
     const data = await requestData.text();
     
@@ -763,6 +776,9 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
   const customWith = requestTx.tags.find((tag) => tag.name === IMAGES_WIDTH_TAG)?.value;
   const customHeight = requestTx.tags.find((tag) => tag.name === IMAGES_HEIGHT_TAG)?.value;
   const customImagesSize = { width: customWith, height: customHeight };
+  if (text === 'Generate Report') {
+    text = 'generate';
+  }
   const payload = parsePayload(format, payloadType, text, settings, negativePrompt, promptHistory, customImagesSize, contextData);
 
   const maxImages = 10;
@@ -804,7 +820,7 @@ const processRequest = async (requestTx, nMissingResponses, registration, operat
 
   const protocolVersion = requestTx.tags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const conversationIdentifier = requestTx.tags.find(
-    (tag) => tag.name === 'Conversation-Identifier',
+    (tag) => tag.name === 'Conversation-Identifier' || tag.name === 'Conversation-ID',
   )?.value;
   if (!protocolVersion || !conversationIdentifier) {
     // If the request doesn't have the necessary tags, skip

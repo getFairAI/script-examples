@@ -79,6 +79,13 @@ const bundlr = new NodeBundlr('https://up.arweave.net', 'arweave', JWK);
 
 /* const lastProofTimestamp */
 
+let answeredRequests: string[] = [];
+try {
+  answeredRequests = fs.readFileSync('./answered-requests', { encoding: 'utf-8' }).split(';');
+} catch (err) {
+  // not found
+}
+
 const findRegistrations = async () => {
   const registrationTxs = await queryOperatorRegistrations(arweaveAddress);
 
@@ -86,7 +93,7 @@ const findRegistrations = async () => {
   const filtered = [];
   for (const tx of registrationTxs) {
     const txid = tx.node.id;
-    const isTxCancelled = await isRegistrationCancelled(txid, arweaveAddress);
+   //const isTxCancelled = await isRegistrationCancelled(txid, arweaveAddress);
     // filter by solutions that have config  url
     const urls = Object.keys(CONFIG.urls);
     const solutionTx= tx.node.tags.find((tag) => tag.name === 'Solution-Transaction')?.value;
@@ -98,9 +105,9 @@ const findRegistrations = async () => {
       return solutionTx === existingSolutionTx;
     }).length > 0;
 
-    if (!isTxCancelled && hasUrlForSolution && !hasNewerRegistration) {
+    if (/* !isTxCancelled &&  */hasUrlForSolution && !hasNewerRegistration) {
       filtered.push(tx);
-    } else if (!hasUrlForSolution && !isTxCancelled) {
+    } else if (!hasUrlForSolution /* && !isTxCancelled */) {
       logger.info(
         `Solution ${solutionName}(id: '${solutionTx}') not found in config, Registration for this Solution will be ignored. Skipping...`,
       );
@@ -208,6 +215,8 @@ const handleWorkerEvents = (
     if (typeof result === 'string') {
       // save latest tx id only for successful processed requests
       lastProcessedTxs.push(txid);
+      answeredRequests.push(txid);
+      fs.writeFileSync('./answered-requests', answeredRequests.join(';'));
     }
   }
 };
@@ -273,13 +282,23 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
   /*  */
   // const userPubKey = 'QjR/p9u/PjzEectlTmYkoloQ6OpalGBstGSdsFG/80c=';
   const data = transaction.input;
+  // decode based on transfer function
   const memoSliceStart = 138;// 0x + function selector 4bytes-8chars + 2 32bytes arguments = 138 chars;
   const hexMemo = data.substring(memoSliceStart, data.length);
 
-  const arweaveTx = hexToString(`0x${hexMemo}`);
+  let arweaveTx = hexToString(`0x${hexMemo}`);
 
-  if (!arweaveTx) {
-    // not a fairAI request
+  const arweaveTxLength = 43;
+
+  if (arweaveTx.length > arweaveTxLength) {
+    // try decode based on transferFrom
+    const tfMemoSliceStart = 202; // 
+    const tfHexMemo = data.substring(tfMemoSliceStart, data.length);
+    arweaveTx = hexToString(`0x${tfHexMemo}`);
+  }
+
+  if (!arweaveTx || arweaveTx.length !== arweaveTxLength) {
+    // ignore
     return;
   }
 
@@ -304,7 +323,7 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
   }
   const solutionTx = txData.tags.find(tag => tag.name === 'Solution-Transaction')?.value!;
   const nImages = parseInt(txData.tags.find((tag) => tag.name === N_IMAGES_TAG)?.value ?? '0', 10);
-  
+
   const registrationIdx = registrations.findIndex(
     (reg) =>
       reg.solutionId === solutionTx,
@@ -314,10 +333,11 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
     // return operator not running requested solution
     return;
   }
+  const isReportPrompt = solutionTx === 'PDacD6onKuLIPp7ap3Cg1gDBFDJjd7TAD_4gNEGpLFw' && txData.tags.find(tag => tag.name === 'Request-Type')?.value !== 'generate';
 
   const receivedFee = Number(formatUnits(hexToBigInt(transferLog.data), 6)); // value of transfer in usdc
 
-  let finalOperatorFee = registrations[registrationIdx].operatorFee;
+  let finalOperatorFee = isReportPrompt ? registrations[registrationIdx].operatorFee / 10 : registrations[registrationIdx].operatorFee; // if report prompt charge less
   let necessaryAnswers = 1;
   const modelName = txData.tags.find(tag => tag.name === 'Model-Name')?.value;
   const config = registrations[registrationIdx].models.find((model) => model.name === modelName);
@@ -330,18 +350,11 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
   }
 
   if (receivedFee >= finalOperatorFee) {
-    const responseTxs = await queryTransactionAnswered(
-      txData.id,
-      arweaveAddress,
-      registrations[registrationIdx].solutionId,
-      necessaryAnswers,
-    );
-
-    if (responseTxs.length > 0  && responseTxs.length >= necessaryAnswers) {
+    if (answeredRequests.includes(txData.id)) {
       // If the request has already been answered, we don't need to do anything
       return;
     } else {
-      startThread(txData, necessaryAnswers - responseTxs.length, registrations[registrationIdx], mutexes[registrationIdx], transferLog.transactionHash!, userPubKey);
+      startThread(txData, necessaryAnswers, registrations[registrationIdx], mutexes[registrationIdx], transferLog.transactionHash!, userPubKey);
     }
 
     // execute fee distribution async
@@ -478,7 +491,9 @@ const proccessPastReceivedTransfer = async (transferLog: Log) => {
   }
 
   // check if evm wallet is linked
-  const { isLinked: evmLinked } = await isEvmWalletLinked(arweaveAddress, evmAccount.address);
+  // const { isLinked: evmLinked } = await isEvmWalletLinked(arweaveAddress, evmAccount.address);
+  const evmLinked = true;
+
   const publicKey = getEncryptionPublicKey(EVM_PK.replace('0x', ''));
   if (!evmLinked) {
     const linkTags = [

@@ -1,0 +1,258 @@
+[
+Project Name: APX Finance
+
+Project Description:
+APX Finance (formerly ApolloX Finance) is a perpetual decentralized exchange (DEX). APX version 2 (V2) offers trading of perpetual futures with up to 1001x leverage and liquidity is provided by the ALP pool. LPs can earn yield by minting ALP.
+
+Requested Grant Size:525,000 ARB
+]
+
+[
+Project Name: Bebop
+
+Project Description: Bebop is an app and an API suite that brings seamless and efficient token trading in DeFi to everyone. Bebop offers confidence for every trade: best execution, guaranteed pricing, top security, industry leading reliability, alongside carefully crafted user and developer experience.
+
+Requested Grant Size: 400K ARB
+]
+
+[
+Project Name: Contango.xyz
+
+Project Description:
+Contango builds perps by automating a looping strategy, also known as recursive borrowing and lending. This is achieved using the liquidity of spot and money markets. By using several money markets and currencies, Contango is the home of delta-neutral strategies (e.g. long ETHDAI on Aave v3 and short ETHUSDC on Silo).
+
+Requested Grant Size: 220,000 ARB
+
+]
+
+[
+
+Project Name: DODO
+
+Project Description: DODO is a decentralized trading platform that uses the innovative Proactive Market Maker (PMM) algorithm to provide efficient on-chain liquidity for Web3 assets, making it easy for everyone to issue and trade these assets.
+
+Requested Grant Size: 700,000 ARB
+
+]
+
+
+[
+Project Name: Synthetix
+
+Project Description: Synthetix is a liquidity layer that powers an array of onchain derivatives. The primary product is Synthetix Perps, which has generated $45b in trading volume and $35 million in fees.
+
+Requested Grant Size: 4,500,000 ARB
+
+]
+
+
+[
+Project Name: Compound
+
+Project Description:
+The First Lending DeFi protocol. Compound provides Arbitrum users a blue chip lending and borrowing platform with attractive rates and safe returns. The protocol is fully decentralized providing users an avenue to deposit their surplus liquidity to earn interest or borrow assets for an interest.**
+
+Requested Grant Size: 1.8 Million ARB
+
+]
+
+
+[
+Project Name: Aave DAO
+
+Project Description: The Aave Protocol is the leading liquidity protocol of Decentralized Finance and the 2nd largest project in Arbitrum in terms of TVL, according to DefiLlama
+
+Aave Protocol is the largest decentralized lending and borrowing platform in DeFi. It allows users to lend and borrow a variety of cryptocurrencies without the need for traditional intermediaries like banks. Users can deposit their crypto assets into liquidity pools, earning interest on their deposits. On the other hand, borrowers can take loans by using their crypto assets as collateral.
+
+Requested Grant Size: 750k ARB
+
+]
+
+
+
+
+
+
+
+[
+Project Name: Alchemix
+
+Project Description: Alchemix allows users to take a like-kind loan off of stablecoin and ETH collateral deployed in DeFi yield strategies. Because the loan is like-kind, and because the yield earned is used to repay the loan, the user experiences a non-liquidatable self-repaying loan. The set-and-forget nature of Alchemix loans creates long-term TVL and enables users to spend their loans off-chain for real-world use cases. Actual examples include buying a boat, wedding ring, timber mill, house down payments, and more!
+
+Requested Grant Size: 150,000 ARB
+
+]
+
+[
+Project Name: Copra
+
+Project Description: Copra is the marketplace for fixed-yield protocol debts. Our fixed-rate loan’s initial use case is to help other DeFi protocol raise protocol-managed liquidity that they can deploy to 1) bootstrap new pools while reducing reliance to excessing token emission, and 2) enhance protocol income by taking the yield spread from performing strategies. For lenders, our loan is a simple way to earn fixed-yield with a protocol-level exposure, that is 1) secured on-chain by restricting funds deployment only to whitelisted pools, and 2) insured by buffers to cover against whitelisted pools drawdown and liquidity risks.
+
+Requested Grant Size: 30,000 ARB
+]
+
+[
+Project Name: Beefy
+
+Project Description: Beefy is The Trusted Yield Optimizer. We help users to safely and securely autocompound yields on their crypto. Our industry-leading web app delivers hundreds of DeFi yield opportunities from dozens of chains in a single, easy-to-use service. Beefy handles the hard work of yield farming for you, saving you time, gas, and delivering superior yields by aggregating volume with other users.
+
+Requested Grant Size: 600,000 ARB
+
+]
+
+
+
+
+
+
+
+
+[
+Project Name: Yearn
+
+Project Description: Yearn is DeFi’s premier yield aggregator, providing individuals, DAOs, and other protocols with a platform to deposit digital assets and earn yield. Launched in the summer of 2020, Yearn quickly gained recognition for the highest risk-adjusted returns in DeFi with over $6 billion in deposits, largely credited to its core offering, Yearn Vaults.
+
+Requested Grant Size: 300k $ARB
+
+]
+
+[
+Project Name: Yield Yak
+
+Project Description: Yield Yak build DeFi tools, most known for its DEX aggregator 3 and auto-compounding vaults 4.
+
+Yak Swap is 100% on-chain and free DEX aggregator. Because Yak Swap is fully on-chain and works via contract calls, it has 100% uptime and there is no proprietary API or server required to use it (so no external points of failure). Any trader can query the best price no matter who or where they are and protocols can even deploy their own Yak Swap router and enjoy on-chain price aggregation.
+
+Yak Vaults & strategies are non-custodial auto-compounding vaults which allow users to benefit from socialised compound returns on their investments. Yak Vaults harness the power of a DEX aggregator (Yak Swap) when auto-compounding to get users the best price on their yield. Yield Yak also offer single-asset leverage strategies which optimise leverage to maximise potential yield from borrowing & lending rate.
+
+Requested Grant Size: 195,000 ARB
+
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[
+Project Name: Bedrock
+
+Project Description: Bedrock is a non-custodial liquid restaking solution designed in partnership with RockX, a longstanding blockchain infrastructure company with strong roots in crypto staking. Designed to natively restake and harness additional EigenLayer rewards, Bedrock brings together institutional-grade security and additional yield to liquid staking ETH.
+
+Bedrock offers a suite of products that include Liquid Restaking / Staking Tokens (LRT / LST) for Ethereum & IOTEX. Bedrock utilizes its universal (uni) standard to unlock liquidity and maximum value in PoS tokens, such as ETH & IOTX, with existing liquid staking tokens called uniETH & uniIOTX.
+
+Requested Grant Size: 510,000 ARB
+
+]
+
+[
+Project Name: Gyroscope Finance
+
+Project Description: Gyroscope Protocol offers a fully collateralized, redeemable, non-custodial and algorithmic decentralized stablecoin (GYD) that builds out several extensive infrastructure advancements for automated risk control and liquidity management. GYD was built with a deep attention to risk management and is composed of layers of risk controls and a strong grounding mission for the stablecoin to be all-weather, offering an extremely stable store of value to GYD users irrespective of the market context.
+
+Requested Grant Size: 100,000 ARB
+
+]
+
+[
+Project Name: Lido Finance
+
+Project Description:
+
+Lido is a family of open-source peer-to-system software tools deployed functioning on Ethereum and Polygon. It is mainly known for enabling users to stake their tokens with validators to receive rewards from validation activities on the blockchain, while being able to use the token on-chain in various capacities.
+
+Requested Grant Size: 750000 ARB
+
+]
+
+
+
+[
+Project Name: Mountain Protocol
+
+Project Description: Mountain Protocol USD (USDM) is the first regulated permissionless yield-bearing stablecoin, backed by US Treasuries.
+
+Requested Grant Size: 295,000 ARB
+
+]
+
+[
+Project Name: Origin DeFi
+
+Project Description: Origin Ether was launched in May 2023 and is an ERC20 LST aggregator that generates yield while sitting in your wallet by tapping into blue-chip protocols. OETH is backed 1:1 by ETH, WETH, stETH, rETH, and frxETH at all times; holders can go in and out of OETH as they please. Similar to stETH, OETH yield is paid out daily and automatically (sometimes multiple times per day) through a positive rebase in the form of additional OETH, proportional to the amount of OETH held.
+
+Requested Grant Size: 185,000 ARB
+
+]
+
+[
+ Project Name: Reserve Protocol
+
+Project Description: Reserve is a free, permissionless platform on Ethereum mainnet (and Base L2, for now) to build, deploy and govern asset-backed currencies referred to as “RTokens.” RTokens are always 1:1 asset-backed, allowing for permissionless minting and redeeming onchain. For example, Electronic Dollar (eUSD) was the first RToken and is a safety-first stablecoin (backed by Aave and Compound deposits) that brings together diversified, highly liquid backing with anti-bank run overcollateralization that currently exceeds more than the value of the TVL of the RToken itself 4. eUSD has been chosen as the stablecoin for two retail user applications: 1) Ugly Cash 2 - an app that gives bank-like services to customers throughout LatAm, enabling them to receive USD remittance from the US at 0% fee and spend their eUSD with a debit card. 2) Sentz 1 - an app built on the MobileCoin blockchain that enables users to send and receive payments globally from anyone you can text for (basically) free.
+
+Requested Grant Size: 500,000 ARB
+
+]
+
+
+
+
+
+
+[
+Project Name: Stader Labs
+
+Project Description: Stader is a non-custodial smart contract-based staking platform that helps you conveniently discover and access staking solutions. We are building key staking middleware infra for multiple PoS networks for retail crypto users, exchanges and custodians.
+
+Stader’s liquid staking token on Ethereum (ETHx) has a unique design with multi-pool architecture that enables scalability and decentralization at the same time. Here are some key value propositions which make ETHx a game changer on the supply and demand side-
+
+Decentralized LST on ETH - ETHx is a decentralized LST, which allows permissionless operators to validate. On the other hand, Lido is centralized and does not allow for permissionsless Operators to validate.
+More Capital Efficient - Node operators can run nodes on ETHx with <80% of the current capital requirements. Capital requirements are 4.4 Eth with ETHx while they have to bond 32 Eth for solo staking, 10.4 Eth with RPL
+Higher rewards - Stakers don’t have to choose from paying 50% extra commissions to closest competitor (RPL) while Stader’s commissions will be competitive at 10%
+Supply Upside-
+ETHx is a highly decentralized and censorship resistant liquid staking powered by 100s of unique node operators.
+Offers Implicit slashing protection safeguarding user’s Eth against penalties and slashing i.e. users face no principal loss in case of any slashing events.
+Demand Advantage- Leveraging partnerships with Ledger, OKX, and key DeFi players like Aave, Balancer, etc., will ensure sustainable TVL growth of ETHx and enhanced yields for ETHx users
+
+Requested Grant Size: 250K ARB
+
+]
+
+
+[
+Project Name: StakeWise
+
+Project Description: StakeWise was the first non-custodial liquid staking solution to launch on Ethereum in early 2021. Following the launch of StakeWise V3, the protocol has transitioned into a fully white label liquid staking solution enabling any entity to leverage the StakeWise smart contract infrastructure to offer trustless, non-custodial staking-as-a-service. Alongside the V3 upgrade, osETH was launched as the protocol’s primary liquid staking token, creating a single-layer of composability across the StakeWise ecosystem. Whether it is a commercial operator offering liquid staking directly to their institutional clients or a solo staker liquid staking on their own node, osETH provides access to the DeFi ecosystem for everyone.
+
+Requested Grant Size: 500k ARB
+
+]
+
+[
+Project Name: Threshold Network (tBTC)
+
+Project Description: tBTC is a decentralized gateway between Bitcoin and DeFi. tBTC provides Bitcoin holders open access to the thriving DeFi ecosystems available cross-chain whilst maintaining its decentralized ethos.
+tBTC was created by a decentralized effort of contributors at the Threshold Network DAO, and utilizes the Threshold Network’s threshold cryptography to create a secure BTC asset. tBTC v2 was launched in Jan23.
+Threshold Network flagship services are tBTC, a bitcoin asset bridge, TACo, an access control plugin, and is about to announce the launch of a stablecoin, thUSD. Traditionally, critical operations such as signing, randomness generation, and access control require trust in a single entity. However, on the Threshold Network, these functionalities are decentralized and trust-minimized, ensuring robust security and integrity.
+
+Requested Grant Size: 300,000 ARB
+
+]
+
+[
+Project Name: DeltaPrime
+Project Description:
+DeltaPrime is a DeFi margin protocol on Arbitrum and Avalanche. Users can borrow up to 5x their collateral from lenders, which can be used for a wide variety of DeFi protocols, simply by connecting their wallet and depositing any supported (LP-) asset. Through this, lenders utilize a bigger part of their capital, borrowers can borrow more and integrated projects see increased TVL and volume.
+
+Requested Grant Size: 750.000 ARB
+]
+

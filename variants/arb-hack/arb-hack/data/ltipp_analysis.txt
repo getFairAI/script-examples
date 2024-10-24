@@ -1,0 +1,157 @@
+Arbitrum LTIPP Efficacy Analysis
+Summary 
+This analysis evaluates the efficacy of ARB incentives in driving key performance metrics across LTIPP grantees and the broader Arbitrum ecosystem. We focus on protocols with significant market share, prioritizing those that provided comprehensive and reliable data through our data onboarding platform (as required by the LTIPP application).
+To assess the impact of the incentive program, we compared observed performance metrics on Arbitrum against expected metrics derived from control groups. For protocols operating on multiple chains, we compared their performance on Arbitrum with their performance on other chains. For sector-wide analyses, we conducted vertical-level comparisons of Arbitrum's performance metrics against those of other chains. This approach allowed us to isolate the effect of the ARB incentives and determine how the Arbitrum ecosystem performed relative to typical market conditions.
+For a fair comparison, we also normalize metrics by the value of ARB each protocol utilized, using the average daily ARB price during the LTIPP period (June 3 to September 2). This approach emphasizes gains per ARB dollar utilized, allowing us to assess each incentive program's cost-effectiveness.
+Disclaimer:
+Please note that some protocol-level analyses in this report do not include accompanying visuals due to limitations in cross-chain data availability or quality. In some cases, protocols launched during or right before the LTIPP period, resulting in a lack of pre-LTIPP data necessary for our comparative models.
+Key Findings
+Sustained Retention of Stablecoin and Liquid Staking Token Inflows Post-LTIPP:
+Significant inflows of stablecoins and liquid staking tokens were retained in the ecosystem after the incentive program ended, whereas a substantial amount of ETH was bridged back to Ethereum post-LTIPP.
+Incentivized DEXs Significantly Outperformed Relative to Other Networks:
+Incentivized DEXs showed superior growth in TVL and fees during LTIPP, exceeding expectations based on TVL and fees on other networks.
+Stablecoin Incentives Drive "Sticky" Growth in Lending Platforms:
+Incentivizing stablecoin deposits had a stronger positive impact than other lending activities, leading to significant and "sticky" TVL growth that persisted well after LTIPP ended.
+Transient TVL Boost in Yield Farming Protocols:
+Yield farming protocols like Beefy and Yearn attracted substantial TVL during LTIPP but faced significant withdrawals afterward, indicating that their impact is less sustainable compared to lending or DEX incentives.
+Capital Flows
+We analyzed flows across three large bridges (Arbitrum’s bridge, Orbiter, Circle CCTP), accounting for ~68% of Arbitrum’s monthly bridge volume.
+We focused on Ethereum, stablecoins, and LSTs/LRTs. Looking at the USD value of the flow of these tokens, we saw strong net inflows before and during the incentive period. However, a series of large withdrawals at the end of LTIPP removed more USD value than the total amount added through the incentive program.
+
+These withdrawals were in Ethereum (ETH, WETH):
+They were withdrawals on the Arbitrum native bridge that brought the ETH back to the Ethereum network.
+
+Stablecoins were not withdrawn via the bridges we analyzed:
+The incentive program may have attracted ‘sticky’ stablecoin deposits.
+
+Protocol Level & Cross Chain Comparisons
+DEX
+We compared DEX TVL and Fees for Arbitrum against TVL and Fees on other ecosystems.
+DEX TVL
+While TVL was roughly flat through LTIPP, it was elevated relative to what we would expect based on correlations between Arbitrum DEX TVL and DEX TVL of other ecosystems – suggesting that LTIPP may have helped to offset a broader downtrend in DEX TVL.
+
+DEX Fees
+Similar to DEX TVL, we saw DEX Fees that were higher than expectation based on the historical relationship between Arbitrum’s DEX fees and fees realized in other ecosystems.
+
+The rolling 7d impact on DEX fee revenue was around +$100k/day through LTIPP.
+
+Gross revenue for DEXs during LTIPP was approximately $17.5M (black line at the end of LTIPP).
+
+Cumulative incremental revenue (revenue above expectation) for DEXs from beginning to end of LTIPP was approximately $7M.
+
+Trading
+We assessed the efficacy of each protocol’s strategy on their target metrics, and compared the 7d average TVL relative to the protocol’s performance on other chains.
+Derivatives Category
+Derivatives TVL was roughly flat on Arbitrum despite a slight downtrend in other related chains. Relative to expectations influenced by this downtrend, Arbitrum Derivatives TVL was higher by around $200M at the end of LTIPP (9/2).
+
+APX Finance
+APX Finance utilized its ARB grant to incentivize TVL growth and trading. During the incentivization period, the 7D MA TVL increased from $800,000 to $3.6M. This translates to a gain of $7 in TVL per dollar of ARB utilized. Volumes also saw a boost, increasing by 669% from $7M to $55M, which translates to an additional $127 in volume per dollar of ARB utilized.
+
+Bebop
+Bebop utilized its ARB grant to incentivize trading. During the incentivisation period 7D MA daily volume increased 3323%, from $356,000 to $11.1M. This translates to an additional $45 in volume per dollar of ARB utilized.
+
+Contango
+Contango utilized its ARB grant to incentivize trading. During the incentivization period, the 7D MA open interest increased from $41M to $112M. This translates to a gain of $445 per dollar of ARB utilized.  As a result volumes also saw a boost, increasing by 331% to $13M, which translates to an additional $64 in volume per dollar of ARB utilized.
+Contango had TVL gains toward the end of LTIPP, but after LTIPP these have fallen behind their performance on other chains.
+
+DODO
+DODO utilized its ARB grant to incentivize liquidity and trading. During the incentivisation period, the 7D MA TVL increased 349%, from $1.5M to $5.3M. This translates to a TVL gain of $21 per dollar of ARB utilized.  Daily volumes also saw a boost, increasing by 331% from $500,000 to $2.9M, translating to an additional $11 in volume per dollar of ARB utilized.
+
+Synthetix
+Synthetix utilized its ARB grant to incentivize LP deposits. The distribution of incentives began on June 18, coinciding with the Synthetix launch on Arbitrum. By the end of the LTIPP, 7D MA TVL reached $26M, translating to a gain of $33 per dollar of ARB utilized.
+
+Lending
+We compared TVL in lending protocols on Arbitrum to the same protocol’s TVL across other chains.
+Lending Category
+We saw overall lending TVL oscillating around expectation through LTIPP, and underperforming expectation after LTIPP.
+
+CDP Category TVL
+TVL in CDP protocols remained flat, but this was better than what we would have expected based on a declining trend in CDP TVL on similar chains. At the end of LTIPP, CDP protocol TVL was about $15M above expectation.
+
+Compound
+Compound utilized its grant to incentivize stablecoin deposits. During the incentivization period, Compound's 7D MA supply TVL increased by 188%, from $92M to $266M. This translates to a gain of $139 in supply TVL per dollar of ARB utilized.
+This increase in Compound TVL on Arbitrum was occurring while Compound TVL declined across other chains.
+
+Compound increased their 7d rolling average TVL by around $200M by the end of LTIPP. After the LTIPP ended, the TVL seems to be holding up well
+
+AAVE
+Aave utilized its ARB grant to incentivize borrowing and liquidity for its stablecoin GHO. GHO launched on Arbitrum on July 1 and has since reached a borrow TVL of $13.5M at time of writing. This translates to a gain of approximately $18 per dollar of ARB utilized; however, GHO borrow incentives are still ongoing, and this normalized gain might actually end up being higher.
+AAVE’s TVL declined through LTIPP, which might reflect higher borrow TVL, lower supply TVL, or both.
+
+Alchemix
+Alchemix utilized its grant to incentivize TVL growth. During the incentivization period, Alchemix’s 7D MA supply TVL increased 261% from $382,000 to $1.4M. This translates to a gain of $9 in supply TVL per dollar of ARB utilized.
+Alchemix bootstrapped their entire Arbitrum TVL during LTIPP, and their TVL seems to be retained so far after LTIPP.
+
+Copra
+Copra utilized its grant to incentivize its lending pools. During the incentivisation period, 7D MA TVL increased 739% from $266,000 to $2.2M. This translates to a gain of $88 in supply TVL per dollar of ARB utilized.
+Yield Farming
+We compared TVL in yield farm protocols on Arbitrum to the same protocol’s TVL across other chains.
+We find that TVL in yield farms is highly sensitive to incentives – Beefy and Yearn both showed an impressive increase in TVL during LTIPP. However, most of this TVL has been leaving these protocols after LTIPP ended.
+Farm Category TVL
+
+Leveraged Farm Category TVL
+Leveraged farms saw declining TVL across most chains during LTIPP. Conversely, Leveraged Farm TVL on Arbitrum grew to around $60M by the end of LTIPP, which was $40M higher than expectation based on this category’s performance on other chains. However, following LTIPP TVL in leveraged farms dropped quickly below pre-LTIPP levels.
+
+Liquidity Manager Category TVL 
+TVL in liquidity managers declined less on Arbitrum during LTIPP relative to the decline expected based on this category’s performance on other chains. The expectation here might be less accurate due to the large drop in April, and the large jump on a comparison chain around the start of July.
+
+Yield Category
+TVL in Yield protocols dipped early in LTIPP but ended slightly above expectation, then underperformed relative to increasing TVL on other chains following LTIPP.
+
+Yield Aggregator Category
+Similar to the trend in leveraged farming, yield aggregator protocols saw increased TVL on Arbitrum during LTIPP that declined after LTIPP ended. TVL increased from around $90M when LTIPP began to around $150M at the end of LTIPP, then returned almost entirely back to $90M after LTIPP.
+However, TVL was still around $20M above expectation over a month after LTIPP had ended.
+
+Beefy
+Beefy utilized its ARB grant to incentivize its Concentrated Liquidity Management (CLM) pools. During the incentivization period, the 7D MA TVL increased from $2M to $46M. This translates to a gain of $103 per dollar of ARB utilized.
+Beefy’s TVL was generally flat on other protocols through LTIPP, so the TVL gains during LTIPP were almost entirely above the expectation if LTIPP hadn’t happened. However, the drop in TVL that followed LTIPP undid all gains relative to expectation.
+
+Yearn
+
+Yearn Finance utilized its ARB grant to boost the APYs of its yield-earning vaults. During the incentivization period, the 7D MA TVL increased 2,186%, from $510,000 to $11.7M. This translates to a gain of $77 per dollar of ARB utilized.
+While Yearn bootstrapped essentially all of their Arbitrum TVL during LTIPP, most of this TVL is leaving now that LTIPP has ended.
+
+Yield Yak
+Yield Yak utilized its ARB grant to incentivize its strategy vaults and. During the incentivization period, the 7D MA TVL increased 258%, from $1.7M to $6.2M. This translates to a gain of $35 per dollar of ARB utilized. (could mention dex agg volumes)
+
+Other
+Liquid Staking Category
+Liquid staking protocols underperformed expectation in the middle of LTIPP by around $3M, but recovered almost to expectation by the end of LTIPP.
+
+Bedrock
+Bedrock utilized its ARB grant to incentivize the adoption and utility of uniETH in the Arbitrum ecosystem. During the incentivization period, the 7D MA balance of uniETH on Arbitrum increased 25,850%, from 20 tokens to 5,301 tokens. This translates to an additional 0.021 uniETH per ARB utilized
+
+
+Gyroscope
+Gyroscope utilized its ARB grant to incentivize TVL growth. During the incentivisation period, 7D MA TVL increased from $2M to $17M. This translates to a TVL gain of $262 per dollar of ARB utilized. Additionally, daily volumes saw a 273% increase, reaching approximately $2M, which translates to an additional $22 in volume per dollar of ARB utilized.
+Gyroscope bootstrapped their TVL during LTIPP, and this TVL has been retentive post-LTIPP.
+
+Lido
+Lido utilized its ARB grant to incentivize the adoption and utility of wstETH in the Arbitrum ecosystem. During the incentivization period, the 7D MA balance of wstETH on Arbitrum increased 39%, from 63,000 tokens to 88,00 tokens. This translates to an additional 0.033 wstETH per ARB utilized.
+Lido’s wstETH increased to almost 90k, which was around 15k above the increase we’d expect without LTIPP based on Lido balances on other chains. After the LTIPP ended, the results seems to be holding up well.
+
+Mountain Protocol
+Mountain Protocol utilized its ARB grant to incentivize the growth of its yield-bearing stablecoin, USDM, on Arbitrum. During the incentivization period, the 7D MA balance of USDM on Arbitrum increased 82%, from 3.3M tokens to 6.1M tokens. This translates to an additional 9 USDM per ARB utilized.
+Mountain Protocol had large, infrequent jumps in their TVL, suggesting that Mountain’s TVL is more impacted by a few whales rather than by organic, decentralized growth.
+
+Origin Protocol
+Origin utilized its ARB grant to incentivize the adoption and utility of wOETH on Arbitrum. During the incentivization period, the 7D MA balance of wOETH on Arbitrum increased 4,800%, from 42 tokens to 2,041 tokens. This translates to an additional 0.011 wOETH per ARB utilized.
+
+Reserve Protocol
+Reserve Protocol utilized its ARB grant to incentivize TVL growth. During the incentivisation period, the 7D MA TVL increased 220%, from $3M to $9.5M. This translates to a TVL gain of $18 per dollar of ARB utilized.
+
+StaderLabs
+StaderLabs utilized its ARB grant to incentivize the adoption and utility of ETHx on Arbitrum. During the incentivization period, the 7D MA balance of ETHx on Arbitrum increased 3,170%, from 62 tokens to 2,013 tokens. This translates to an additional 0.008 ETHx per ARB utilized.
+Most ETHx supply on Arbiturm was bootstrapped during LTIPP. Around 2k ETHx has been retained following LTIPP relative to the peak around 2.6k ETHx at the end of LTIPP.
+
+Stakewise
+Stakewise utilized its ARB grant to incentivize the adoption and utility of osETH in the Arbitrum ecosystem. During the incentivization period, the 7D MA balance of osETH on Arbitrum increased from 0.1 tokens to 797 tokens. This translates to an additional 0.003 osETH per ARB utilized
+osETH launched too close to LTIPP - only have a few days to train the model and this is not sufficient.
+
+
+Threshold Network
+Threshold Network utilized its ARB grant to incentivize the growth of tBTC on Arbitrum. During the incentivization period, the 7D MA balance of tBTC on Arbitrum increased 176%, from 53 tokens to 147 tokens. This translates to an additional 0.0003 tBTC per ARB utilized.
+This increase on Arbitrum happened while tBTC stayed flat on other chains, making it all incremental relative to the balance we’d expect if LTIPP hadn’t happened.
+Notably we see continued momentum as the balance of tBTC on Arbitrum has been increasing at about the same rate post-LTIPP.
+
+

@@ -67,9 +67,36 @@ const queryById = gql`
   }
 `;
 
+const queryByIds = gql`
+  query FIND_BY_ID($ids: [ID!]) {
+    transactions(ids: $ids, first: 100, sort: HEIGHT_DESC) {
+      pageInfo {
+        hasNextPage
+      }
+      edges {
+        cursor
+        node {
+          id
+          tags {
+            name
+            value
+          }
+          block {
+            height
+            timestamp
+          }
+          owner {
+            address
+          }
+        }
+      }
+    }
+  }
+`;
+
 const gqlQueryWithOwners = gql`
-query FIND_BY_TAGS($tags: [TagFilter!], $first: Int!, $after: String, $owners: [String!]) {
-  transactions(tags: $tags, first: $first, after: $after, sort: HEIGHT_DESC, owners: $owners) {
+query FIND_BY_TAGS($tags: [TagFilter!], $first: Int!, $after: String, $owners: [String!], $minBlockHeight: Int!) {
+  transactions(tags: $tags, first: $first, after: $after, sort: HEIGHT_DESC, owners: $owners, block: {min: $minBlockHeight}) {
     pageInfo {
       hasNextPage
     }
@@ -157,7 +184,7 @@ export const queryTransactionAnswered = async (
   const result = await clientGateway.query({
     query: gql`
       query TransactionAnswered($tags: [TagFilter!], $owner: String!, $first: Int!) {
-        transactions(first: $first, tags: $tags, owners: [$owner], sort: HEIGHT_DESC) {
+        transactions(first: $first, tags: $tags, owners: [$owner], sort: HEIGHT_DESC, block: { min: 1532000}) {
           edges {
             node {
               id
@@ -224,40 +251,25 @@ export const isRegistrationCancelled = async (txid: string, opAddress: string) =
   return data.transactions.edges.length > 0;
 };
 
+const currentOperatorRegistrations = [
+  'TJwdKL6m7mGGyWpjp_V2tO3UXilvylPdduLSstQQDyk',
+  'FWNNrjjm8gFKcySaHfXltb3LtoDp3tUl_XxuXqAUbp4',
+  'NC5gZBNACmfVCuEFRD-8W7Jo8XnOCJGFNyCRNzHSMkU',
+  'EE0GajOfSDB3s5MqqPs_gBPkFpQjw-lQjIyTaaOjE5Y',
+  'tNGQUyAw3KxN_iz66mSX_xz0eBfniBnxez14-GGZr24',
+  'kAb3-8IG40wAIl3m3qayODH88ajUFGxSDrPziX6PpCs',
+  'ViMaY4LUTS24QVyq04_m84HP7pGGbAZWTk-TRBC9kIE',
+  'Vut0HO9JTPcNgK4GpVFDPsq8HGea1XZgQcwjplqVIDE',
+  'LxoOIo8R30RJPSX1x_-Sz6P58ZI-zsYs-oC8b4Cj8MQ'
+];
+
 export const queryOperatorRegistrations = async (address: string) => {
-  const tags = [
-    {
-      name: PROTOCOL_NAME_TAG,
-      values: ['FairAI'],
-    },
-    {
-      name: 'Protocol-Version',
-      values: ['2.0'],
-    },
-    {
-      name: OPERATION_NAME_TAG,
-      values: ['Operator Registration'],
-    },
-  ];
+  const { data }: { data: { transactions: ITransactions } } = await clientGateway.query({
+    query: queryByIds,
+    variables: { ids: currentOperatorRegistrations },
+  });
 
-  let hasNextPage = false;
-  let registrationTxs: IEdge[] = [];
-  do {
-    const first = 10;
-    const after: string | undefined = hasNextPage
-      ? registrationTxs[registrationTxs.length - 1].cursor
-      : undefined;
-
-    const { data }: { data: { transactions: ITransactions } } = await clientGateway.query({
-      query: gqlQueryWithOwners,
-      variables: { tags, first, after, owners: [ address ] },
-    });
-
-    registrationTxs = registrationTxs.concat(data.transactions.edges);
-    hasNextPage = data.transactions.pageInfo.hasNextPage;
-  } while (hasNextPage);
-
-  return registrationTxs;
+  return data.transactions.edges;
 };
 
 export const isEvmWalletLinked = async (arweaveAddress: string, evmAddress?: string) => {
@@ -269,7 +281,7 @@ export const isEvmWalletLinked = async (arweaveAddress: string, evmAddress?: str
   
   const { data }: { data: { transactions: ITransactions } } = await clientGateway.query({
     query: gqlQueryWithOwners,
-    variables: { tags: linkTags, first: 1, owners: [ arweaveAddress ] },
+    variables: { tags: linkTags, first: 1, owners: [ arweaveAddress ], minBlockHeight: 1404705 },
   });
 
   if (!data || data.transactions.edges.length === 0) {
