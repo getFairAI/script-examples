@@ -554,6 +554,15 @@ const parsePayload = (format, payloadType, text, settings, negativePrompt, conve
     payload = JSON.stringify({
       messages
     });
+  } else if (format === 'ollama-simple' && text == 'generate') {
+    payload = JSON.stringify({
+      type: 'report'
+    });
+  } else if (format === 'ollama-simple' && text != 'generate') {
+    payload = JSON.stringify({
+      type: 'open',
+      prompt: text
+    });
   } else if (format === 'arbitrum') {
     payload = JSON.stringify({
       prompt: text,
@@ -570,7 +579,7 @@ const runInference = async (url, format, payload, text) => {
   try {
     const res = await fetch(url, {
       method: 'POST',
-      ...((format === 'webui' || format === 'ollama' || format === 'arbitrum') && { headers: {
+      ...((format === 'webui' || format === 'ollama' || format === 'arbitrum' || format === 'ollama-simple') && { headers: {
         'accept': 'application/json',
         'Content-Type': 'application/json'
       }}),
@@ -767,6 +776,9 @@ const inference = async (requestTx, registration, nImages, cid, negativePrompt, 
   const customWith = requestTx.tags.find((tag) => tag.name === IMAGES_WIDTH_TAG)?.value;
   const customHeight = requestTx.tags.find((tag) => tag.name === IMAGES_HEIGHT_TAG)?.value;
   const customImagesSize = { width: customWith, height: customHeight };
+  if (text === 'Generate Report') {
+    text = 'generate';
+  }
   const payload = parsePayload(format, payloadType, text, settings, negativePrompt, promptHistory, customImagesSize, contextData);
 
   const maxImages = 10;
@@ -808,7 +820,7 @@ const processRequest = async (requestTx, nMissingResponses, registration, operat
 
   const protocolVersion = requestTx.tags.find((tag) => tag.name === PROTOCOL_VERSION_TAG)?.value;
   const conversationIdentifier = requestTx.tags.find(
-    (tag) => tag.name === 'Conversation-Identifier',
+    (tag) => tag.name === 'Conversation-Identifier' || tag.name === 'Conversation-ID',
   )?.value;
   if (!protocolVersion || !conversationIdentifier) {
     // If the request doesn't have the necessary tags, skip

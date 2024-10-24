@@ -1,5 +1,12 @@
 {
   "urls": {
+    "PDacD6onKuLIPp7ap3Cg1gDBFDJjd7TAD_4gNEGpLFw": [
+      {
+        "name": "Llama3:70B",
+        "url": "http://127.0.0.1:8086/process",
+        "payloadFormat": "ollama-simple"
+      }
+    ],
     "zq5_Jvd4miO6QDl42XRpPx9iICDe0AVzanvTepJ_s50": [
       {
         "url": "http://127.0.0.1:8084/process",
@@ -117,7 +124,7 @@
         "payloadFormat": "default"
       }
     ],
-    "j8wkH4jRdPygr6DY106n9ibq_WLeA1jaoDgJ16PlFJI": [
+    "RuBfsVIARw1jLKsGjQCrEHL_QBCAmAAIJ0E3UUu5X0w": [
       {
         "name": "Llama3",
         "url": "http://127.0.0.1:5000/process",
