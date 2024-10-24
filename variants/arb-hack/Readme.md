@@ -27,7 +27,7 @@ The files that comprise this AI component include:
 
 
 
-## Code files:
+## Code files
 
 **prompts.py:** This script focuses on prompt engineering to effectively answer each question in the report. The goal is to gather relevant information to address the questions and formulate them in the best possible way for submission to the AI models.
 
