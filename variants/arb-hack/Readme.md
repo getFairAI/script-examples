@@ -2,9 +2,7 @@
 
 We are developing FairAI, a decentralized AI marketplace. In our platform, businesses can submit requests for problems they have, and developers can provide open-source AI solutions to address those real-world issues. These solutions are then automatically connected to our platform's enlisted hardware providers, ensuring transparent and verifiable AI computation. This setup allows end-users and businesses to easily access and retain high-quality AI responses while maintaining more control over the model and its operator without incurring infrastructure costs. You can check an image explaining this concept on the image below:
 
-
 ![Overview FairAI](./images/image1.png)
-
 
 ## Idea
 
@@ -14,7 +12,7 @@ We recognized these challenges more clearly as we began using Arbitrum USD for p
 
 By creating this PoC, we aim to save time and resources while maximizing the potential and impact of grants awarded within the Arbitrum ecosystem. We also plan to make retrospective analyses of how a given incentive program went and improve future ones. Through our experiences and conversations, we identified some example questions that our solution aims to answer, demonstrating its significant potential to continue developing this PoC after the hackathon. 
 
-## **Architecture**
+## Architecture
 
 Our proof of concept (PoC) for participating in the Arbitrum CollabTech Hackathon consists of several components: the AI component, and the front-end interface that allows users to interact with the AI. Both components have been deployed on the FairAI marketplace, enabling the solution to be accessible and allowing anyone to contribute computing resources for this PoC. This setup ensures the necessary scalability to handle an unlimited number of requests. Each part is detailed below.
 
@@ -55,21 +53,13 @@ Regarding hardware, we used an Nvidia GeForce 4090 to run the llama3 and llama3:
 
 **FairAI:** As mentioned earlier, these components are deployed in the FairAI marketplace. In our marketplace, everything is open-source and stored on-chain using Arweave, ensuring that all AI solutions are permanently stored and available. This allows anyone to inspect the code, use it, integrate it into other projects, or enhance existing code, facilitating composability. Furthermore, connecting AI solutions with hardware providers promotes transparency, scalability, and verifiable AI.
 
-
-
-
-
-
-
-**Vision**
+## Vision
 
 Regarding this project, the imagination is the limit to improve it. We envision an AI solution that allows users to have more questions answered. In addition to the tailored data processing we currently provide, we could incorporate data streaming, enabling the AI to generate reports based on real-time, updated data. We can enhance the data used for this solution by applying techniques such as sentiment analysis on social media discussions related to the projects and utilizing on-chain data to assess how the project contributes to the Arbitrum ecosystem and identify related patterns. The chat feature could not only allow users to inquire about the data we have gathered on the project but also about the generated report itself. Finally, this entire system can be continually refined and adapted for each specific future grant.
 
-**More Information**
+## More Information
 
 We submitted two grant proposals under Questbook’s “Arbitrum New Protocols and Ideas 2.0” program that are related with the AI system mentioned above. With the [first proposal](https://questbook.app/dashboard/?proposalId=663ec3d47d71679fa9a3852c&chainId=10&grantId=662f31c25488d5000f055a54&role=community), we suggested the creation of two chatbots and their respective interfaces for querying information related to the STIP and LTIPP programs. This proposal has been accepted and developed, and you can preview the solution in the images below, or explore it in our marketplace. We are still awaiting the final decision on the [second proposal](https://questbook.app/dashboard/?proposalId=66d1b7902047c84bb80fe75b&chainId=10&grantId=662f31c25488d5000f055a54&role=community&isRenderingProposalBody=true), which focuses on building a multi-modal grant analyzer for the Questbook grants.
-
-
 
 ![LTIPP and STIP](./images/image2.png)
 ![chat](./images/image3.png)
