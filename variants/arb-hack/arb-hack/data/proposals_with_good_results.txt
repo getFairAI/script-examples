@@ -1,0 +1,43 @@
+Compound
+Goals:
+Increase the Total Value Locked (TVL) on Arbitrum from ~$84.4 million to ~$155 million within three months through liquidity incentives.
+Attract liquidity from Ethereum mainnet to Arbitrum, particularly targeting whale investors for sticky liquidity.
+Implement a tiered reward system to incentivize liquidity provision in USDC and USDT markets.
+Promote long-term user engagement and growth in TVL.
+Requested Grant Size: 1.8 million ARB
+
+Alchemix
+Goals:
+Onboard $20 million of TVL into Alchemix vaults on Arbitrum within 12 weeks, with at least 250 users.
+Increase reach and retention for depositors and alAsset liquidity providers, leveraging Arbitrum’s low gas fees.
+Utilize a smaller initial grant to prove the concept before expanding into larger programs.
+Requested Grant Size: 150,000 ARB
+
+Gyroscope Finance
+Goals:
+Grow the TVL of Gyroscope on Arbitrum from low five figures to at least $10 million, focusing on both E-CLP liquidity infrastructure and GYD stablecoin usage.
+Launch new E-CLP pools and use grant incentives to attract liquidity and foster user engagement.
+Develop strong liquidity networks and partnerships within the Arbitrum ecosystem.
+Requested Grant Size: 100,000 ARB
+
+Lido Finance
+Goals:
+Increase the usage and liquidity of wstETH on Arbitrum, aiming to at least double the current ratio of wstETH
+.
+Support various DEXes and leverage vaults to boost adoption and liquidity.
+Create sustainable incentives that ensure ongoing growth of wstETH’s presence in the Arbitrum ecosystem.
+Requested Grant Size: 750,000 ARB
+
+Stader Labs
+Goals:
+Build a sustainable liquid staking ecosystem for ETHx on Arbitrum, aiming for significant adoption and TVL growth.
+Provide incentives to liquidity providers and encourage the bridging of ETHx to Arbitrum.
+Establish partnerships with key DeFi platforms to enhance usability and growth of ETHx.
+Requested Grant Size: 250,000 ARB
+
+Threshold Network (tBTC)
+Goals:
+Grow the TVL of tBTC on Arbitrum to $25 million through liquidity incentives and a loyalty program.
+Enhance the user experience for Bitcoin holders by integrating direct minting capabilities for tBTC on Arbitrum.
+Foster long-term liquidity and user engagement through a structured incentivization strategy.
+Requested Grant Size: 300,000 ARB

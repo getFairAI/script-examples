@@ -1,0 +1,148 @@
+APX Finance
+Requested Grant Size: 525,000 ARB
+Objectives:
+Boost Total Value Locked (TVL): Target a 25x increase in TVL on Arbitrum from $1.02M to $24.6M through cross-chain liquidity incentives.
+Increase Trading Volume: Engage traders through a team-based trading challenge to raise daily trading volume from $4.7M to $200M and increase the number of active traders from 6 to 240.
+User Retention: Implement LP incentives and grant matching to attract and retain new traders.
+
+Bebop
+Requested Grant Size: 400,000 ARB
+Objectives:
+Attract Solvers and Market Makers: Incentivize new private market makers and solvers to improve liquidity and pricing quality on Arbitrum.
+Enhance User Engagement: Implement gas rebates and a mystery box incentive system to gamify user experience and encourage trading.
+Increase Daily Transactions: Aim for a 10x increase in daily transactions from 500 to 5,000 trades.
+
+Contango
+Requested Grant Size: 220,000 ARB
+Objectives:
+Increase Open Interest: Target a 400% increase in open interest from $5M to $20M, which serves as a proxy for increased trading volume.
+Incentivize Trading Activity: Provide ARB rewards to encourage users to engage in delta-neutral strategies and other trading activities.
+Enhance User Stickiness: Focus on retaining users through attractive APR incentives and stable trading environments.
+
+DODO
+Requested Grant Size: 700,000 ARB
+Objectives:
+Boost Trading Volume: Increase daily trading volume from $5M to $15M and TVL from $3M to $10M.
+Enhance Liquidity Provider Incentives: Attract liquidity through a competitive 20% APR for liquidity providers.
+Implement dPoints System: Introduce a points-based incentive system to encourage trading and reward user engagement.
+
+Synthetix
+Requested Grant Size: 4,500,000 ARB
+Objectives:
+Bootstrapping Liquidity: Focus on LP incentives and trading fee rebates to establish liquidity for derivative markets on Arbitrum.
+Engage Users: Conduct trading competitions and growth experiments to attract and retain users.
+Support a Decentralized Stablecoin: Encourage liquidity for a Synthetix-backed stablecoin (sUSD) to enhance capital efficiency.
+
+Aave
+Requested Grant Size: 750,000 ARB
+Objectives:
+Kickstart GHO as a Native Stablecoin: Deploy and grow GHO, ensuring deep liquidity and a solid peg for its launch on Arbitrum.
+Increase Retained Users: Focus on attracting users to the Aave V3 platform on Arbitrum by incentivizing liquidity and borrowing activities for ETH and GHO.
+Enhance Total Value Locked (TVL): Increase TVL and borrow demand through targeted incentives for WETH, stablecoin borrowers, and GHO minters.
+
+Copra
+Requested Grant Size: 30,000 ARB
+Objectives:
+Introduce Undercollateralized Loans: Enable users to access undercollateralized loans, thereby creating new opportunities in the Arbitrum ecosystem.
+Encourage Secure Fixed-Yield Lending: Attract lenders to Copra's platform, enhancing liquidity and yield generation.
+Build a Flywheel Effect: Foster a mutually beneficial relationship between lenders and borrowers, driving growth in both parties.
+
+Beefy
+Requested Grant Size: 600,000 ARB
+Objectives:
+Incentivize Adoption of ALM Products: Achieve significant liquidity management efficiency by driving adoption of Beefy's Automated Liquidity Management (ALM) products.
+Strengthen Community Ties: Foster relationships within the Arbitrum ecosystem through incentivized participation across various products and liquidity pools.
+Attract Users from Other Chains: Use LTIPP incentives to draw in users from Beefy’s wider cross-chain audience, increasing overall engagement in the Arbitrum ecosystem.
+
+Yearn
+Requested Grant Size: 300,000 ARB
+Objectives:
+Enhance Yearn Vaults on Arbitrum: Boost yields within Yearn Vaults V3, thereby increasing TVL.
+Stimulate Lending Liquidity for Juiced.app: Grow lending liquidity and usage of the Juiced platform, facilitating more efficient lending on Arbitrum.
+Create Synergistic Partnerships: Leverage partnerships to maximize impact and reach within the ecosystem.
+
+Yield Yak
+Requested Grant Size: 195,000 ARB
+Objectives:
+Onboard Avalanche DeFi Users to Arbitrum: Increase user engagement and adoption of Yield Yak products within the Arbitrum ecosystem.
+Achieve $10 Million TVL: Target a total value locked of $10 million across Yak Vaults through strategic incentive distribution.
+Double Yak Swap Volumes: Increase the number of swaps routed through Yak Swap, enhancing overall activity and liquidity in the ecosystem.
+
+Bedrock
+Requested Grant Size: 510,000 ARB
+Objectives:
+Incentivize TVL Growth: Target an increase of $35 million in TVL on Arbitrum by incentivizing bridging assets from Ethereum and minting directly on Arbitrum.
+Enhance User Engagement: Provide subsidies for gas fees and implement a dual incentive structure for restaking and DeFi activities.
+Integrate with DeFi Protocols: Boost on-chain activities such as LPing, trading, and yield farming to encourage trading volume and overall ecosystem health.
+
+Mountain Protocol
+Requested Grant Size: 295,000 ARB
+Objectives:
+Bootstrap USDM into Arbitrum: Introduce USDM, aiming for a TVL of approximately $18 million, with a focus on attracting institutional players and expanding adoption across major protocols.
+Establish Sustainable Use Cases: Create liquidity pools that promote long-term capital stability and user engagement.
+Expand Ecosystem Partnerships: Integrate with other DeFi protocols to ensure utility and practical applications of USDM on Arbitrum.
+
+Origin Protocol
+Requested Grant Size: 185,000 ARB
+Objectives:
+Accelerate wOETH Growth: Enhance the liquidity and utility of wOETH on Arbitrum, targeting a TVL of $10-20 million through strategic incentives.
+Incentivize Bridging Activities: Encourage users to bridge funds from the Ethereum mainnet, enhancing the usage of wOETH within the ecosystem.
+Integrate with Lending Platforms: Work with DeFi platforms to facilitate borrowing and liquidity provision for wOETH holders.
+
+Reserve Protocol
+Requested Grant Size: 500,000 ARB
+Objectives:
+Launch RToken Integrations: Introduce RTokens into the Arbitrum ecosystem to drive TVL growth and yield opportunities, aiming for at least $20 million in TVL.
+Foster Institutional Adoption: Attract institutional players by offering competitive APY rates and robust integration options across various DeFi protocols.
+Enable Deep Liquidity Pools: Drive liquidity to ensure user engagement and minimize slippage, enhancing the overall DeFi landscape on Arbitrum.
+
+Stakewise
+Requested Grant Size: 500,000 ARB
+Objectives:
+Bootstrap osETH Liquidity: Achieve $20 million in liquidity across osETH pairs to facilitate efficient trading and integration within the Arbitrum ecosystem.
+Enhance Tokenomics Participation: Incentivize users to deploy capital on Arbitrum through a revamped StakeWise tokenomics strategy.
+Foster Long-term Engagement: Ensure sustained liquidity and user engagement beyond the initial incentivization period through ongoing StakeWise incentives.
+
+Compound
+Goals:
+Increase the Total Value Locked (TVL) on Arbitrum from ~$84.4 million to ~$155 million within three months through liquidity incentives.
+Attract liquidity from Ethereum mainnet to Arbitrum, particularly targeting whale investors for sticky liquidity.
+Implement a tiered reward system to incentivize liquidity provision in USDC and USDT markets.
+Promote long-term user engagement and growth in TVL.
+Requested Grant Size: 1.8 million ARB
+
+Alchemix
+Goals:
+Onboard $20 million of TVL into Alchemix vaults on Arbitrum within 12 weeks, with at least 250 users.
+Increase reach and retention for depositors and alAsset liquidity providers, leveraging Arbitrum’s low gas fees.
+Utilize a smaller initial grant to prove the concept before expanding into larger programs.
+Requested Grant Size: 150,000 ARB
+
+Gyroscope Finance
+Goals:
+Grow the TVL of Gyroscope on Arbitrum from low five figures to at least $10 million, focusing on both E-CLP liquidity infrastructure and GYD stablecoin usage.
+Launch new E-CLP pools and use grant incentives to attract liquidity and foster user engagement.
+Develop strong liquidity networks and partnerships within the Arbitrum ecosystem.
+Requested Grant Size: 100,000 ARB
+
+Lido Finance
+Goals:
+Increase the usage and liquidity of wstETH on Arbitrum, aiming to at least double the current ratio of wstETH
+.
+Support various DEXes and leverage vaults to boost adoption and liquidity.
+Create sustainable incentives that ensure ongoing growth of wstETH’s presence in the Arbitrum ecosystem.
+Requested Grant Size: 750,000 ARB
+
+Stader Labs
+Goals:
+Build a sustainable liquid staking ecosystem for ETHx on Arbitrum, aiming for significant adoption and TVL growth.
+Provide incentives to liquidity providers and encourage the bridging of ETHx to Arbitrum.
+Establish partnerships with key DeFi platforms to enhance usability and growth of ETHx.
+Requested Grant Size: 250,000 ARB
+
+Threshold Network (tBTC)
+Goals:
+Grow the TVL of tBTC on Arbitrum to $25 million through liquidity incentives and a loyalty program.
+Enhance the user experience for Bitcoin holders by integrating direct minting capabilities for tBTC on Arbitrum.
+Foster long-term liquidity and user engagement through a structured incentivization strategy.
+Requested Grant Size: 300,000 ARB

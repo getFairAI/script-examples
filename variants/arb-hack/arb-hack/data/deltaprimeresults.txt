@@ -1,0 +1,5 @@
+TOKEN GUARD Analysis to DeltaPrime
+
+During the promotion period we noticed a 300% increase in TVL which dropped to 150% of the baseline (compared to pre-LTIPP).
+
+During the promotion period we noticed a 400% increase in unique users and interactions. Metrics got back to their baseline right after the promotion ended, right before the hack on 16th of September.
