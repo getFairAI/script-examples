@@ -7,26 +7,26 @@ For this hackathon, we created a PoC to prove this system's effectiveness. By an
 
 Using a limited selection of data from the Arbitrum forum, the AI system can successfully identify patterns and extract insights similar to those found [in OpenBlock's report](https://www.openblocklabs.com/research/arbitrum-ltipp-efficacy-analysis). This demonstrates the effectiveness of the AI system and highlights the solution's potential when applied to a larger dataset.
 
-![Report Video](https://github.com/getFairAI/script-examples/blob/main/variants/arb-hack/videos/Report.gif)
+![Report Video](https://github.com/getFairAI/script-examples/blob/main/variants/arb-hack/jokerace_submission/videos/Report.gif)
 
 We built this AI system on top of the FairAI marketplace, which means it is composable, verifiable, and transparent. We also implemented a chatbot where individuals can pose questions or discuss the generated reports with the AI system.
 
-![Chat Video](https://github.com/getFairAI/script-examples/blob/main/variants/arb-hack/videos/Chat.gif)
+![Chat Video](https://github.com/getFairAI/script-examples/blob/main/variants/arb-hack/jokerace_submission/videos/Chat.gif)
 
-# Project Links
+# Things to Do
 ---
 
-GitHub: https://github.com/getFairAI/script-examples/tree/main/variants/arb-hack
+Try our solution!
 
-App: 
+Check our original demo video!
 
-Video: 
+[Check our GitHub!](https://github.com/getFairAI/script-examples/tree/main/variants/arb-hack)
 
 # Team
 ---
 
-Tiago Ferreira: 
+Tiago Ferreira
 
-Márcio Guia: 
+Márcio Guia
 
-Luís Silvestre: 
+Luís Silvestre
