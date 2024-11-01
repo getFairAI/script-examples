@@ -3,7 +3,7 @@
 
 Analyzing the effectiveness of an incentive program at Arbitrum can be quite challenging. Even when dashboards and reports are available, understanding the data requires specific knowledge, and simply being able to read it often doesn't address the most critical questions. Additionally, answering these questions may necessitate gathering information from various sources, which is typically not included in these dashboards and reports.
 
-A clear example of this occurred in the LTIPP incentive program. Despite OpenBlock's efforts to gather data and information for evaluating the program, the delegates still needed help understanding how to read their report and interpret the data and dashboards during [the call to present their findings](https://drive.google.com/file/d/1glTdpNX7s7HlnhkB3mfUcpyjlwybQU8h/view).
+A clear example of this was seen in the LTIPP incentive program. Despite OpenBlock's efforts to collect data and information for evaluating the program, the delegates still struggled to understand how to interpret their reports, data, and dashboards in order to draw conclusions during [the call to present their findings](https://drive.google.com/file/d/1glTdpNX7s7HlnhkB3mfUcpyjlwybQU8h/view).
 
 # Project Description
 ---
