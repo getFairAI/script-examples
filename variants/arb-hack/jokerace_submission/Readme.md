@@ -7,7 +7,7 @@ A clear example of this was seen in the LTIPP incentive program. Despite OpenBlo
 
 To optimize Arbitrum's incentive programs, we designed an AI system that assists Arbitrum decision-makers by utilizing both on-chain and off-chain data. We named this system Data-Enhanced Coordination for Intelligent Decision-Making on Grants, or DECIDE for short. You can see how it would work in more detail [at this link](https://questbook.app/dashboard/?chainId=10&grantId=662f31c25488d5000f055a54&role=community&isRenderingProposalBody=true&proposalId=66d1b7902047c84bb80fe75b).
 
-# The Project
+# Project Description
 ---
 
 For this hackathon, we created a PoC to prove DECIDE's effectiveness. By analyzing data from various projects within the LTIPP incentive program, we generated an AI system capable of doing a report that addresses some of the most common questions posed by critical stakeholders in the Arbitrum forum and meetings.
@@ -16,7 +16,7 @@ Using a limited selection of data from the Arbitrum forum, the AI system can suc
 
 ![Report Video](https://github.com/getFairAI/script-examples/blob/main/variants/arb-hack/jokerace_submission/videos/Report.gif)
 
-We built this AI system on top of the FairAI marketplace, which means it is composable, verifiable, and transparent. Besides being way faster, cheaper, and trustless compared with mainstream reports, another advantage of a system like this is that individuals can pose questions, request summaries, or discuss the generated reports with the AI system. We also built a PoC for this feature for the hackathon:
+We built this AI system on top of the [FairAI marketplace](https://getfair.ai/), which means it is totally composable, verifiable, and transparent. Besides being way faster, cheaper, and trustless compared with mainstream reports, another advantage of a system like this is that individuals can pose questions, request summaries, or discuss the generated reports with the AI system. We also built a PoC for this feature for the hackathon:
 
 ![Chat Video](https://github.com/getFairAI/script-examples/blob/main/variants/arb-hack/jokerace_submission/videos/Chat.gif)
 
