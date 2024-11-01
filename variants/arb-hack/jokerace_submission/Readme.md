@@ -16,7 +16,7 @@ We built this AI system on top of the FairAI marketplace, which means it is comp
 # Things to Do
 ---
 
-Try our solution!
+[Try our solution!](https://app.getfair.ai/#/collabtech-hackathon-decide)
 
 Check our original demo video!
 
