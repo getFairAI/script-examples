@@ -22,7 +22,7 @@ We built this AI system on top of the [FairAI marketplace](https://getfair.ai/),
 
 [Try our solution!](https://app.getfair.ai/#/collabtech-hackathon-decide)
 
-[Check our original demo video!](https://github.com/getFairAI/script-examples/blob/main/variants/arb-hack/demo-video.mp4)
+[Check our original demo video!](https://youtu.be/sngcopaWwzI)
 
 [Learn more about our solution in our GitHub!](https://github.com/getFairAI/script-examples/tree/main/variants/arb-hack)
 
