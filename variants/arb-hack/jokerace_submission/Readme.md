@@ -23,7 +23,7 @@ We built this AI system on top of the FairAI marketplace, which means it is comp
 # Things to Do
 ---
 
-[Try our solution! (you need to connect your wallet first)](https://app.getfair.ai/#/collabtech-hackathon-decide)
+[Try our solution!](https://app.getfair.ai/#/collabtech-hackathon-decide) (Note: You need to connect your wallet first)
 
 [Check our original demo video!](https://github.com/getFairAI/script-examples/blob/main/variants/arb-hack/demo-video.mp4)
 
