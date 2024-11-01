@@ -12,7 +12,7 @@ To optimize Arbitrum's incentive programs, we designed an AI system that assists
 
 For this hackathon, we created a PoC to prove DECIDE's effectiveness. By analyzing data from various projects within the LTIPP incentive program, we generated an AI system capable of doing a report that addresses some of the most common questions posed by critical stakeholders in the Arbitrum forum and meetings.
 
-Using a limited selection of data from the Arbitrum forum, the AI system can successfully identify patterns and extract insights similar to those found [in OpenBlock's report](https://www.openblocklabs.com/research/arbitrum-ltipp-efficacy-analysis). This demonstrates the effectiveness of the AI system and highlights the solution's potential when applied to a larger dataset:
+Using a limited selection of data from the Arbitrum forum, the AI system can successfully identify patterns and extract insights similar to those found [in OpenBlock's report](https://www.openblocklabs.com/research/arbitrum-ltipp-efficacy-analysis). This demonstrates the effectiveness of the AI system and highlights the solution's potential when applied to a larger dataset.
 
 ![Report Video](https://github.com/getFairAI/script-examples/blob/main/variants/arb-hack/jokerace_submission/videos/Report.gif)
 
