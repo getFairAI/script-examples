@@ -2,7 +2,7 @@
 
 We are developing [FairAI, a decentralized AI marketplace](https://getfair.ai/). In our platform, businesses can submit requests for problems they have, and developers can provide open-source AI solutions to address those real-world issues. These solutions are then automatically connected to our platform's enlisted hardware providers, ensuring composable, verifiable, and transparent AI computation. This setup allows end-users and businesses to easily access and retain high-quality AI responses while maintaining more control over the model and its operator without incurring infrastructure costs. You can check an image explaining this concept on the image below:
 
-![Overview FairAI](./images/image1.png)
+![Overview FairAI](./images/image1.png){: width="50%"}
 
 ## Problem
 
