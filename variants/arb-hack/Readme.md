@@ -41,7 +41,7 @@ The files that comprise this AI component include:
 
 - **Data Folder**: This folder contains the files used to provide context for the questions in the report. This data will be utilized for prompt engineering, specifically through the 'prompts.py' file. The OpenBlock and TokenGuard reports are part of this data. Additionally, we have used the best available open-source LLM (Llama 3.1:405b) to summarize some of the proposals from the projects that participated in LTIPP, using the code from the 'rag.py' file. This approach was implemented to facilitate summarization and to prevent the real-time report generation from taking too long.
 
-## Code files
+## Hardware and Code Files Description
 
 **prompts.py:** This script focuses on prompt engineering to effectively answer each question in the report. The goal is to gather relevant information to address the questions and formulate them in the best possible way for submission to the AI models.
 
@@ -62,10 +62,6 @@ If you're interested in bypassing the cache, simply call the function without ca
 **AI Models Used:** We utilized three open-source models (llama3, llama3:70b, and llama3.1:405b) to perform our inferences. We employed the Ollama framework, which enables us to run the models locally (https://github.com/ollama/ollama), but you could opt for any other method or even use different open-source models. Our code is designed to be compatible with any open-source AI model.
 
 Regarding hardware, we used an Nvidia GeForce 4090 to run the llama3 and llama3:70b models, while the llama3.1:405b model was set up on Runpod using three A100 GPUs. For a tutorial on how to do this, you can refer to https://docs.runpod.io/tutorials/pods/run-ollama. Again, this setup could be accomplished using other methods, but we chose the most efficient option given the limited time available during the hackathon.
-
-**Front-end:** We have developed a user-friendly front-end that allows users to easily select the AI model they want to use. With just one button press, they can generate a report based on predefined questions. Additionally, if users have questions about the report or wish to ask open-ended questions, the front-end enables them to do so intuitively.
-
-**FairAI:** As mentioned earlier, these components are deployed in the FairAI marketplace. In our marketplace, everything is open-source and stored on-chain using Arweave, ensuring that all AI solutions are permanently stored and available. This allows anyone to inspect the code, use it, integrate it into other projects, or enhance existing code, facilitating composability. Furthermore, connecting AI solutions with hardware providers promotes transparency, scalability, and verifiable AI.
 
 ## Vision
 
