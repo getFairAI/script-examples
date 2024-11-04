@@ -2,7 +2,9 @@
 
 We are developing [FairAI, a decentralized AI marketplace](https://getfair.ai/). In our platform, businesses can submit requests for problems they have, and developers can provide open-source AI solutions to address those real-world issues. These solutions are then automatically connected to our platform's enlisted hardware providers, ensuring composable, verifiable, and transparent AI computation. This setup allows end-users and businesses to easily access and retain high-quality AI responses while maintaining more control over the model and its operator without incurring infrastructure costs. You can check an image explaining this concept on the image below:
 
-![Overview FairAI](./images/image1.png){: width="50%"}
+<p align="center">
+  <img src="./images/image1.png" width=75% height=75%>
+</p>
 
 ## Problem
 
@@ -16,11 +18,15 @@ To optimize Arbitrum's incentive programs, we designed an AI system that assists
 
 By analyzing just a limited selection of data from various projects within the LTIPP incentive program, we generated an AI system capable of producing a report that addresses questions posed by key members from the Arbitrum ecosystem in the forum and ArbitrumDAO meetings. This demonstrates the effectiveness of the AI system and highlights the solution's potential when applied to a larger dataset.
 
-![Report Example](./jokerace_submission/videos/Report.gif)
+<p align="center">
+  <img src="./jokerace_submission/videos/Report.gif">
+</p>
 
 By creating this PoC, we aim to save time and resources while maximizing the potential and impact of grants awarded within the Arbitrum ecosystem. We built this AI system on top of the [FairAI marketplace mentioned above](https://getfair.ai/), taking advantage of its composability, verifiability, and transparency. Besides being way faster, cheaper, and trustless compared with mainstream reports, another advantage of a system like this is that individuals can pose questions, request summaries, or discuss the generated reports with the AI system. We also built a PoC for this feature for the hackathon:
 
-![Question Example](./jokerace_submission/videos/Chat.gif)
+<p align="center">
+  <img src="./jokerace_submission/videos/Chat.gif">
+</p>
 
 ## Architecture
 
@@ -85,5 +91,8 @@ Regarding this project, imagination is the limit to improving it. We envision an
 
 We submitted two grant proposals under Questbook’s “Arbitrum New Protocols and Ideas 2.0” program that are related to the AI system mentioned above. With the [first proposal](https://questbook.app/dashboard/?proposalId=663ec3d47d71679fa9a3852c&chainId=10&grantId=662f31c25488d5000f055a54&role=community), we suggested the creation of two chatbots and their respective interfaces for querying information related to the STIP and LTIPP programs. This proposal has been accepted and developed, and you can preview the solution in the images below, or explore it in our marketplace. We are still awaiting the final decision on the [second proposal](https://questbook.app/dashboard/?proposalId=66d1b7902047c84bb80fe75b&chainId=10&grantId=662f31c25488d5000f055a54&role=community&isRenderingProposalBody=true), which focuses on building a multi-modal grant analyzer for the Questbook grants.
 
-![LTIPP and STIP](./images/image2.png)
-![chat](./images/image3.png)
+<p align="center">
+  <img src="./images/image2.png" width=50% height=50%>
+
+  <img src="./images/image3.png" width=50% height=50%>
+</p>
