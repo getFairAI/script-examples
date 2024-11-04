@@ -32,7 +32,7 @@ By creating this PoC, we aim to save time and resources while maximizing the pot
 
 Our proof of concept (PoC) for participating in the Arbitrum CollabTech Hackathon consists of several components: the AI component, and the front-end interface that allows users to interact with the AI. Both components have been deployed on the FairAI marketplace, enabling the solution to be accessible and allowing anyone to contribute computing resources for this PoC. This setup ensures the necessary scalability to handle an unlimited number of requests. Each part is detailed below.
 
-**AI Component:** For this AI solution, we utilized data from the proposals of projects that participated in the LTIPP program, along with reports created to analyze the program, such as those from OpenBlock and Tokenguard. This AI component consists of various parts that enable the system to function effectively.
+**AI Component:** For this AI solution, we utilized data from the proposals of projects that participated in the LTIPP program, along with reports created to analyze the program, such as those from [OpenBlock](https://www.openblocklabs.com/research/arbitrum-ltipp-efficacy-analysis) and [Tokenguard](https://drive.google.com/file/d/19rrYt3D200l4oTbxaUBq2qsXveKFls0L/view). This AI component consists of various parts that enable the system to function effectively.
 
 For example, we employed prompt engineering to formulate the report's questions. Additionally, we developed a Retrieval-Augmented Generation (RAG) system designed to answer open-ended questions about the projects involved in LTIPP, as well as summarize and structure the questions used for prompt engineering. 
 
