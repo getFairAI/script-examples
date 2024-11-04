@@ -16,11 +16,11 @@ To optimize Arbitrum's incentive programs, we designed an AI system that assists
 
 By analyzing just a limited selection of data from various projects within the LTIPP incentive program, we generated an AI system capable of producing a report that addresses questions posed by key members from the Arbitrum ecosystem in the forum and ArbitrumDAO meetings. This demonstrates the effectiveness of the AI system and highlights the solution's potential when applied to a larger dataset.
 
-**VIDEO**
+![Report Example](./jokerace_submission/videos/Report.gif)
 
 By creating this PoC, we aim to save time and resources while maximizing the potential and impact of grants awarded within the Arbitrum ecosystem. We built this AI system on top of the [FairAI marketplace mentioned above](https://getfair.ai/), taking advantage of its composability, verifiability, and transparency. Besides being way faster, cheaper, and trustless compared with mainstream reports, another advantage of a system like this is that individuals can pose questions, request summaries, or discuss the generated reports with the AI system. We also built a PoC for this feature for the hackathon:
 
-**VIDEO**
+![Question Example](./jokerace_submission/videos/Chat.gif)
 
 ## Architecture
 
