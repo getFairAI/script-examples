@@ -59,9 +59,9 @@ Since we are leveraging a heavy model to ensure high-quality responses for repor
 
 If you're interested in bypassing the cache, simply call the function without caching, ensuring that the llama3.1:405b model is running locally. For open questions, we use the llama3:70b model, which doesn't employ caching since the answers are dynamic. For this reason, we will ensure that this model is always live.
 
-**AI Models Used:** We utilized three open-source models (llama3, llama3:70b, and llama3.1:405b) to perform our inferences. We employed the Ollama framework, which enables us to run the models locally (https://github.com/ollama/ollama), but you could opt for any other method or even use different open-source models. Our code is designed to be compatible with any open-source AI model.
+**AI Models Used:** We utilized three open-source models (llama3, llama3:70b, and llama3.1:405b) to perform our inferences. We employed the [Ollama framework](https://github.com/ollama/ollama), which enables us to run the models locally, but you could opt for any other method or even use different open-source models. Our code is designed to be compatible with any open-source AI model.
 
-Regarding hardware, we used an Nvidia GeForce 4090 to run the llama3 and llama3:70b models, while the llama3.1:405b model was set up on Runpod using three A100 GPUs. For a tutorial on how to do this, you can refer to https://docs.runpod.io/tutorials/pods/run-ollama. Again, this setup could be accomplished using other methods, but we chose the most efficient option given the limited time available during the hackathon.
+Regarding hardware, we used an Nvidia GeForce 4090 to run the llama3 and llama3:70b models, while the llama3.1:405b model was set up on Runpod using three A100 GPUs. For a tutorial on how to do this, you can refer to [this link](https://docs.runpod.io/tutorials/pods/run-ollama). Again, this setup could be accomplished using other methods, but we chose the most efficient option given the limited time available during the hackathon.
 
 ## Vision
 
