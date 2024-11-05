@@ -71,7 +71,9 @@ Regarding this project, imagination is the limit to improving it. We envision an
 
 [Try our solution!](https://app.getfair.ai/#/collabtech-hackathon-decide)
 
-[Check our original demo video!](https://www.youtube.com/watch?v=sngcopaWwzI)
+[Check our original demo video!](https://youtu.be/-ld9V-un71c)
+
+[Check our video for the pitch day!](https://youtu.be/swomsr_nI6Y)
 
 ## Team
 
